@@ -23,9 +23,9 @@ for bnd in $(seq 1 $bands)
  ipw2grid singleband$srcfile.$bnd grid$srcfile
 #Use gdal_translate to translate the grid to tif
  gdal_translate grid$srcfile.bip $srcfile.b$bnd.tif
-#use gdalwarp to transfor the tif at the same time writing it to the output dir
+#use gdalwarp to transform the tif at the same time writing it to the output dir
  gdalwarp -t_srs EPSG:26911 $srcfile.b$bnd.tif $outputdir/$srcfile.b$bnd.tif
-#clean up. You can delete these rm lines if you want to keep the files created during transision to geotifs.
+#clean up. You can delete these rm lines if you want to keep the files created during transformation to geotifs.
  rm singleband$srcfile.*
  rm $srcfile.b$bnd.tif
  rm grid$srcfile.*
