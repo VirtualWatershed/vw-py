@@ -1,0 +1,14 @@
+*.html
+*.pdf
+
+private/*
+
+*.swp
+*.pyc
+*.bak
+default.conf
+doc/ppt/*
+example_model_run/*
+
+scripts/inputs/*
+scripts/outputs/*
