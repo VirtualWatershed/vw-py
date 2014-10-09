@@ -24,7 +24,8 @@ gdal_translate grid$srcfile.bip $srcfile.b$bnd.tif
 gdalwarp -t_srs EPSG:26911 $srcfile.b$bnd.tif $outputdir/$srcfile.b$bnd.tif
 #clean up. You can delete these rm lines if you want to keep the files created during transformation to geotifs.
 rm singleband$srcfile.*
-rm $srcfile.b$bnd.tif
+#this was just for testing:
+#rm $srcfile.b$bnd.tif
 rm grid$srcfile.*
 done
 done
