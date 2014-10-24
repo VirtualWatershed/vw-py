@@ -5,7 +5,7 @@ Contributors:
 + [Bill Hudspeth](mailto:bhudspeth@edac.unm.edu)
 + [Moinul Hossain Rifat](mailto:moinul.cse@gmail.com)
 + [Matthew Turner](mailto:maturner01@uidaho.edu)
-
++ [Chase Carthen](mailto:chasec2331@gmail.com)
 
 ## Intro
 
