@@ -1,7 +1,11 @@
 # Adaptors for ISNOBAL in the Virtual Watershed
 
-README authors: 
-+ Matthew Turner [maturner01@uidaho.edu](mailto:maturner01@uidaho.edu)
+Contributors:
++ [Hays Barrett](mailto:hays.barrett@gmail.com)
++ [Bill Hudspeth](mailto:bhudspeth@edac.unm.edu)
++ [Moinul Hossain Rifat](mailto:moinul.cse@gmail.com)
++ [Matthew Turner](mailto:maturner01@uidaho.edu)
++ [Chase Carthen](mailto:chasec2331@gmail.com)
 
 ## Intro
 
