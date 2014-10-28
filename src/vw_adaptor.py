@@ -22,6 +22,8 @@ def pushMetadata(metadataIterator):
     u = commonConfig['user']
     p = commonConfig['passwd']
 
+    # see http://docs.python-requests.org/en/latest/user/quickstart/#more-complicated-post-requests
+    # for how to send strings as files
     for m in metadataIterator:
         requests.put(INSERT_URL, data=m, auth=(u, p), verify=False)
 
