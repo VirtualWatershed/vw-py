@@ -5,15 +5,16 @@
 """
 
 import configparser
-import template
+from string import Template
 import os
 import os.path as path
 import requests
 
 
-def pushMetadata(metadataIterator):
+def pushMetadata(metadataIterator, configPath='default.conf'):
 
     config = configparser.ConfigParser()
+    config.read(configPath)
     commonConfig = config['Common']
 
     INSERT_URL = \
@@ -28,7 +29,7 @@ def pushMetadata(metadataIterator):
         requests.put(INSERT_URL, data=m, auth=(u, p), verify=False)
 
 
-def makeMetadata(dataDir, kind):
+def makeMetadata(dataDir, kind, configPath="default.conf"):
     """ Given `dataDir`, create XML FGDC metadata for every file in the
         directory.
 
@@ -42,7 +43,7 @@ def makeMetadata(dataDir, kind):
 
     # get configuration for FGDC Metadata
     config = configparser.ConfigParser()
-    config.read('default.conf')
+    config.read(configPath)
     config = config[kind + ' Metadata']
 
     if kind == 'FGDC':
@@ -66,6 +67,7 @@ def makeFGDCMetadatum(dataFile, config, model_run_uuid):
     commonConfig = config['Common']
 
     # use templates and the fgdc configuration to write the metadata for a file
+    template = ""
     output = template.substitute(filename=dataFile,
                                  filesizeMB=filesizeMB,
                                  model_run_uuid=model_run_uuid,
@@ -101,8 +103,12 @@ def makeWatershedMetadatum(dataFile, config, model_run_uuid, model_set):
         Take the model_run_uuid from the result of initializing a new model
         run in the virtual watershed.
 
+        model_set must be
+
         Returns: JSON metadata string
     """
+    assert model_set in ["inputs", "outputs"], "parameter model_set must be \
+            either 'inputs' or 'outputs'"
 
     RECS = "1"
     FEATURES = "1"
@@ -139,13 +145,21 @@ def makeWatershedMetadatum(dataFile, config, model_run_uuid, model_set):
 
     # this and XML path are given since they are known. TODO: check
     #  what happens if these are not given... or better yet try it!
-    inputFilePath = os.path.join("/geodata/watershed-data",
-                                 first_two_of_parent_uuid,
-                                 parent_model_run_uuid,
-                                 dataFile)
+
+    if model_set == "inputs":
+        inputFilePath = os.path.join("/geodata/watershed-data",
+                                     first_two_of_parent_uuid,
+                                     parent_model_run_uuid,
+                                     dataFile)
+    else:
+        inputFilePath = ""
 
     fileDir = os.path.dirname(dataFile)
 
+    json_template = watershedConfig['template_path']
+
+    template_object = open(json_template, 'r')
+    template = Template(template_object.read())
 
     # write the metadata for a file
     output = template.substitute(wcs=wcs,
@@ -161,7 +175,7 @@ def makeWatershedMetadatum(dataFile, config, model_run_uuid, model_set):
                                  modelname=commonConfig['model'],
                                  state=watershedConfig['state'],
                                  inputFilePath=inputFilePath,
-                                 # xmlFilePath=xmlFilePath,
+                                 xmlFilePath="",
                                  model_set=model_set,
                                  model_set_type=model_set_type,
                                  model_set_taxonomy=commonConfig['model_set_taxonomy'],

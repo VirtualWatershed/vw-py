@@ -6,9 +6,16 @@ private/*
 *.swp
 *.pyc
 *.bak
-default.conf
+
 doc/ppt/*
 example_model_run/*
 
 scripts/inputs/*
 scripts/outputs/*
+
+*.ipw
+*.conf
+
+scripts/resources/*
+scripts/ppt_desc
+scripts/ppt_images_dist/*
