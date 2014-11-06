@@ -2,12 +2,12 @@
 <!DOCTYPE metadata SYSTEM "http://www.fgdc.gov/metadata/fgdc-std-001-1998.dtd">
 <metadata>
         <idinfo>
-                <model_run_uuid>$model_run_uuid</model_run_uuid>
+                <model_run_uuid>09079630-5ef8-11e4-9803-0800200c9a66</model_run_uuid>
                 <citation>
                         <citeinfo>
                                 <origin>Idaho EPSCoR Group</origin>
-                                <pubdate>$procdate</pubdate>
-                                <title>$filename</title>
+                                <pubdate>now</pubdate>
+                                <title>src/test/data/in.00</title>
                                 <geoform>modeling input grid</geoform>
                                 <pubinfo>
                                         <pubplace>Boise,Idaho USA</pubplace>
@@ -23,8 +23,8 @@
                 <timeperd>
                         <timeinfo>
                                 <rngdates>
-                                        <begdate>$begdate</begdate>
-                                        <enddate>$enddate</enddate>
+                                        <begdate>10012010</begdate>
+                                        <enddate>09302011</enddate>
                                 </rngdates>
                         </timeinfo>
                         <current>Year long record for which the ISNOBAL model was run</current>
@@ -35,29 +35,29 @@
                 </status>
                 <spdom>
                         <bounding>
-                                <westbc>$westBnd</westbc>
-                                <eastbc>$eastBnd</eastbc>
-                                <northbc>$northBnd</northbc>
-                                <southbc>$southBnd</southbc>
+                                <westbc>-116.142905556</westbc>
+                                <eastbc>-116.137583333</eastbc>
+                                <northbc>43.7326972222</northbc>
+                                <southbc>43.7294055556</southbc>
                         </bounding>
                 </spdom>
                 <keywords>
                         <theme>
                             <themekt>CF</themekt>
-                            <themekey>$themekey</themekey>
+                            <themekey>watershed</themekey>
                         </theme>                
                         <theme>
                                 <themekt>ISO 19115 Topic Categories</themekt>
-                                <themekey>$themekey</themekey>
+                                <themekey>watershed</themekey>
                         </theme>
                         <theme>
                                 <themekt>None</themekt>
-                                <themekey>$model</themekey>
-                                <themekey>$themekey</themekey>
+                                <themekey>isnobal</themekey>
+                                <themekey>watershed</themekey>
                         </theme>
                         <place>
                                 <placekt>None</placekt>
-                                <placekey>$state</placekey>
+                                <placekey>Idaho</placekey>
                         </place>
                 </keywords>
                 <accconst>Gridded input file for isnobal. Consists of a multiband binary file derived from interpolation of sensor point and time data.</accconst>
@@ -66,18 +66,18 @@
                 <ptcontac>
                         <cntinfo>
                                 <cntperp>
-                                        <cntper>$researcherName</cntper>
+                                        <cntper>Matthew Turner</cntper>
                                 </cntperp>
                                 <cntaddr>
                                         <addrtype>mailing address</addrtype>
-                                        <address>$mailing_address</address>
-                                        <city>$city</city>
-                                        <state>$state</state>
-                                        <postal>$zipCode</postal>
+                                        <address>875 Perimeter Drive MS2358</address>
+                                        <city>Moscow</city>
+                                        <state>Idaho</state>
+                                        <postal>83843</postal>
                                         <country>USA</country>
                                 </cntaddr>
-                                <cntvoice>$researcherPhone</cntvoice>
-                                <cntemail>$researcherEmail</cntemail>
+                                <cntvoice>(208)885-7129</cntvoice>
+                                <cntemail>maturner@uidaho.edu</cntemail>
                         </cntinfo>
                 </ptcontac>
                 <native>GDAL/Isnobal</native>
@@ -125,8 +125,8 @@
                                 <srctime>
                                         <timeinfo>
                                                 <rngdates>
-                                                        <begdate>$begdate</begdate>
-                                                        <enddate>$enddate</enddate>
+                                                        <begdate>10012010</begdate>
+                                                        <enddate>09302011</enddate>
                                                 </rngdates>
                                         </timeinfo>
                                         <srccurr>ground condition</srccurr>
@@ -140,7 +140,7 @@
                                         native ascii format and reprojected to a byte type geotiff in WGS84. The GDAL
                                         (Geospatial Data Abstraction Library) gdalwarp utility was used for both
                                         reprojection and file format transformation.</procdesc>
-                                <procdate>$procdate</procdate>
+                                <procdate>now</procdate>
                                 <proccont>
                                         <cntinfo>
                                                 <cntorgp>
@@ -171,17 +171,17 @@
                 <rastinfo>
                         <cvaltype>8-bit unsigned integer</cvaltype>
                         <rasttype>Pixel</rasttype>
-                        <rowcount>$rowcount</rowcount>
-                        <colcount>$columncount</colcount>
+                        <rowcount>170</rowcount>
+                        <colcount>148</colcount>
                         <vrtcount>1</vrtcount>
                 </rastinfo>
         </spdoinfo>
         <spref>
                 <horizsys>
                         <geograph>
-                                <latres>$latres</latres>
-                                <longres>$longres</longres>
-                                <geogunit>$mapUnits</geogunit>
+                                <latres>2.5</latres>
+                                <longres>2.5</longres>
+                                <geogunit>meters</geogunit>
                         </geograph>
                         <geodetic>
                                 <horizdn>D_WGS_1984</horizdn>
@@ -241,7 +241,7 @@
                         <digform>
                                 <digtinfo>
                                         <formname>GeoTiff</formname>
-                                        <transize>$filesizeMB</transize>
+                                        <transize>0</transize>
                                 </digtinfo>
                                 <digtopt>
                                         <offoptn>

@@ -1,10 +1,10 @@
 {
     "orig_epsg": "4326",
-    "description": "Test ISNOBAL Arizona input binary file Hour 00",
+    "description": "Testing metadata!",
     "taxonomy": "file",
-    "basename": "in.0002",
+    "basename": "i_dont_exist.data",
     "parent_model_run_uuid": "373ae181-a0b2-4998-ba32-e27da190f6dd",
-    "model_run_uuid":"549068c5-a136-4b86-a1b2-e862b943d837",
+    "model_run_uuid":"09079630-5ef8-11e4-9803-0800200c9a66",
     "model_set": "inputs",
     "model_set_type": "binary",
     "model_set_taxonomy": "grid",
@@ -18,8 +18,8 @@
     "records": "1",
     "active": "True",
     "services": [
-    " ",
-    " "
+    "",
+    ""
     ],
     "categories": [{
             "location": "Dry Creek",
@@ -28,7 +28,7 @@
         }],
     "sources": [{
         "mimetype": "application/x-binary",
-        "files": ["/geodata/watershed-data/37/373ae181-a0b2-4998-ba32-e27da190f6dd/in.0002"],
+        "files": ["/geodata/watershed-data/37/373ae181-a0b2-4998-ba32-e27da190f6dd/src/test/data/i_dont_exist.data"],
         "set": "original",
         "external": "False",
         "extension": "bin"

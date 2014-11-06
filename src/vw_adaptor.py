@@ -30,8 +30,9 @@ def pushMetadata(metadataIterator, configPath='default.conf'):
 
 
 def makeMetadata(dataDir, kind, configPath="default.conf"):
-    """ Given `dataDir`, create XML FGDC metadata for every file in the
-        directory.
+    """ Given `dataDir`, create XML FGDC or Virtual Watershed JSON metadata for
+        every file in the directory. Whether its FGDC or VW metadata depends on
+        `kind`, as seen in the assert directly below.
 
         Returns: generator of fgdc metadata text
     """
@@ -59,7 +60,6 @@ def makeFGDCMetadatum(dataFile, config, model_run_uuid):
 
         Returns: XML metadata string
     """
-
     statinfo = os.stat(dataFile)
     filesizeMB = "%s" % str(statinfo.st_size/1000000)
 
@@ -67,7 +67,11 @@ def makeFGDCMetadatum(dataFile, config, model_run_uuid):
     commonConfig = config['Common']
 
     # use templates and the fgdc configuration to write the metadata for a file
-    template = ""
+    xml_template = fgdcConfig['template_path']
+
+    template_object = open(xml_template, 'r')
+    template = Template(template_object.read())
+
     output = template.substitute(filename=dataFile,
                                  filesizeMB=filesizeMB,
                                  model_run_uuid=model_run_uuid,
@@ -79,7 +83,7 @@ def makeFGDCMetadatum(dataFile, config, model_run_uuid):
                                  northBnd=commonConfig['northBnd'],
                                  southBnd=commonConfig['southBnd'],
                                  themekey=fgdcConfig['themekey'],
-                                 model=fgdcConfig['model'],
+                                 model=commonConfig['model'],
                                  researcherName=fgdcConfig['researcherName'],
                                  mailing_address=fgdcConfig['mailing_address'],
                                  city=fgdcConfig['city'],
@@ -96,7 +100,10 @@ def makeFGDCMetadatum(dataFile, config, model_run_uuid):
     return output
 
 
-def makeWatershedMetadatum(dataFile, config, model_run_uuid, model_set):
+def makeWatershedMetadatum(dataFile, config,
+                           model_run_uuid, model_set, description="",
+                           xmlFilePath=""):
+
     """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
         metadata.
 
@@ -122,7 +129,7 @@ def makeWatershedMetadatum(dataFile, config, model_run_uuid, model_set):
         ext = 'tif'
         mimetype = 'application/x-zip-compressed'
         # type_subdir = 'geotiffs'
-        model_set_type = 'binary'
+        model_set_type = 'vis'
     else:
         wcs = ''
         wms = ''
@@ -130,9 +137,7 @@ def makeWatershedMetadatum(dataFile, config, model_run_uuid, model_set):
         ext = 'bin'
         mimetype = 'application/x-binary'
         # type_subdir = 'bin'
-        model_set_type = 'vis'
-
-    description = ""
+        model_set_type = 'binary'
 
     basename = os.path.basename(dataFile)
 
@@ -154,30 +159,31 @@ def makeWatershedMetadatum(dataFile, config, model_run_uuid, model_set):
     else:
         inputFilePath = ""
 
-    fileDir = os.path.dirname(dataFile)
-
     json_template = watershedConfig['template_path']
 
     template_object = open(json_template, 'r')
     template = Template(template_object.read())
 
     # write the metadata for a file
-    output = template.substitute(wcs=wcs,
+    output = template.substitute(# determined by file ext, set within function
+                                 wcs=wcs,
                                  wms=wms,
                                  tax=tax,
                                  ext=ext,
                                  mimetype=mimetype,
+                                 model_set_type=model_set_type,
+                                 # passed as args to parent function
                                  model_run_uuid=model_run_uuid,
                                  description=description,
+                                 model_set=model_set,
+                                 xmlFilePath=xmlFilePath,
+                                 # derived from parent function args
                                  basename=basename,
-                                 recs=RECS,
-                                 features=FEATURES,
+                                 inputFilePath=inputFilePath,
+                                 # given in config file
+                                 parent_model_run_uuid=commonConfig['parent_model_run_uuid'],
                                  modelname=commonConfig['model'],
                                  state=watershedConfig['state'],
-                                 inputFilePath=inputFilePath,
-                                 xmlFilePath="",
-                                 model_set=model_set,
-                                 model_set_type=model_set_type,
                                  model_set_taxonomy=commonConfig['model_set_taxonomy'],
                                  orig_epsg=watershedConfig['orig_epsg'],
                                  westBnd=commonConfig['westBnd'],
@@ -185,7 +191,10 @@ def makeWatershedMetadatum(dataFile, config, model_run_uuid, model_set):
                                  northBnd=commonConfig['northBnd'],
                                  southBnd=commonConfig['southBnd'],
                                  epsg=watershedConfig['epsg'],
-                                 location=watershedConfig['location']
+                                 location=watershedConfig['location'],
+                                 # static default values defined at top of func
+                                 recs=RECS,
+                                 features=FEATURES
                                  )
 
     return output

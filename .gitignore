@@ -19,3 +19,4 @@ scripts/outputs/*
 scripts/resources/*
 scripts/ppt_desc
 scripts/ppt_images_dist/*
+*.xls
