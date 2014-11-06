@@ -3,6 +3,7 @@
     "description": "$description",
     "taxonomy": "$tax",
     "basename": "$basename",
+    "parent_model_run_uuid": "$parent_model_run_uuid",
     "model_run_uuid":"$model_run_uuid",
     "model_set": "$model_set",
     "model_set_type": "$model_set_type",

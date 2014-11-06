@@ -7,6 +7,19 @@ Contributors:
 + [Matthew Turner](mailto:maturner01@uidaho.edu)
 + [Chase Carthen](mailto:chasec2331@gmail.com)
 
+## Quickstart
+
+A good way to get started is to run some tests. From the root project directory,
+run 
+
+```bash
+nosetests
+```
+
+Install [nose](https://nose.readthedocs.org/en/latest/) if you haven't already.
+
+The tests are located in `src/tests/`.
+
 ## Contribution guidelines
 
 Stay as close to [PEP 8](http://legacy.python.org/dev/peps/pep-0008) 

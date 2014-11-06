@@ -4,6 +4,35 @@
 from vw_adaptor import *  # get_all_with_uuid
 
 import unittest
+import sys
+
+from difflib import Differ
+
+
+def showStringDiff(s1, s2):
+    """ Writes differences between strings s1 and s2 """
+    d = Differ()
+    diff = d.compare(s1.splitlines(), s2.splitlines())
+    # diffList = [ el.strip().replace(' ', '') + '\n' for el in diff
+    diffList = [ el + '\n' for el in diff
+                if el[0] != ' ' and el[0] != '?' ]
+
+    for l in diffList:
+        if l[0] == '+':
+            print "+" + bcolors.GREEN + l[1:] + bcolors.ENDC
+        elif l[0] == '-':
+            print "-" + bcolors.RED + l[1:] + bcolors.ENDC
+        else:
+            assert False, "Error, diffList entry must start with + or -"
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    ENDC = '\033[0m'
 
 
 class TestJSONMetadata(unittest.TestCase):
@@ -13,43 +42,37 @@ class TestJSONMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        configPath = '/Users/mturner/workspace/adaptors/src/test/test.conf'
+        configPath = "/Users/mturner/workspace/adaptors/src/test/test.conf"
         config = configparser.ConfigParser()
         config.read(configPath)
         self.config = config
 
         self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
+        self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (JSON)"""
         # Run test for 'inputs' model_set
         # create metadata file
         model_set = "inputs"
-        generated = makeWatershedMetadatum('src/test/test1.json', self.config,
-                                           self.model_run_uuid, model_set)
-        print generated
+        generated = makeWatershedMetadatum("src/test/data/i_dont_exist.data",
+                                           self.config, self.model_run_uuid,
+                                           model_set,
+                                           "Testing metadata!",
+                                           "/Users/mturner/workspace/adaptors/scripts/inputs/54/549068c5-a136-4b86-a1b2-e862b943d837/XML/in.00.xml"
+                                           )
         # load expected json metadata file
-        expected = ""
+        expected = open("src/test/data/expected1_in.json", 'r').read()
 
         # check equality
-        assert generated == expected, "generated: %s" % generated
-        # Run test for 'outputs' model set
-        # create metadata file
-        model_set = "outputs"
-        generated = makeWatershedMetadatum('src/test/test1.json', self.config,
-                                           self.model_run_uuid, model_set)
-        # load expected json metadata file
-        expected = ""
+        assert generated == expected, "generated: %s\n\nexpected:\n%s" % \
+            (generated, expected)
 
-        # check equality
-        assert generated == expected, "generated: %s" % generated
+        # TODO Run test for 'outputs' model set??? No, but do for output with
+        # 'services'
 
     def testCorrectMetadata(self):
         """ A series of metadata is correctly built (JSON)"""
-        assert False
-
-    def testCorrectVWInsert(self):
-        """ The metadata has been properly inserted to virtual watershed (JSON)"""
         assert False
 
 
@@ -61,35 +84,36 @@ class TestFGDCMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        pass
+        configPath = "/Users/mturner/workspace/adaptors/src/test/test.conf"
+        config = configparser.ConfigParser()
+        config.read(configPath)
+        self.config = config
+
+        self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
+        self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+        self.dataFile = "src/test/data/in.00"
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
-        assert False
+
+        generated = makeFGDCMetadatum(self.dataFile, self.config,
+                                      self.model_run_uuid)
+
+        expected = open("src/test/data/expected1_in.xml", 'r').read()
+        assert generated == expected, \
+            showStringDiff(generated, expected)
 
     def testCorrectMetadata(self):
         """ A series of metadata is correctly built (FGDC)"""
         assert False
 
-    def testCorrectVWInsert(self):
-        """ The metadata has been properly inserted to virtual watershed (FGDC)"""
+
+class TestVWClient(unittest.TestCase):
+    """ Test the functionality of the Virtual Watershed client """
+    def setUp(self):
+        pass
+
+    # TODO not a test until we prepend "test" somewheres
+    def insert(self, args):
+        """ Does VW Client properly insert data? """
         assert False
-
-
-# class TestUUID(unittest.TestCase):
-    # """ Tests for getting data using a UUID """
-
-    # def test_enforce_uuid_is_string(self):
-        # """ Disallow non-string UUIDs """
-
-        # numRun = 0
-        # for badUUID in (42, 2.233, {'hey': 'joe'}):
-            # with self.assertRaises(AssertionError):
-                # numRun += 1
-                # get_all_with_uuid(badUUID)
-
-        # assert numRun == 3, "Test did not run! numRun="+str(numRun)
-
-    # def test_get_all_with_uuid(self):
-        # """ Make sure we return something """
-        # assert get_all_with_uuid("2202-1120-AXFF-")
