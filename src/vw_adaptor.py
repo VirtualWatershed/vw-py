@@ -11,10 +11,9 @@ import os.path as path
 import requests
 
 
-def pushMetadata(metadataIterator, configPath='default.conf'):
+def pushMetadata(metadataIterator):
 
-    config = configparser.ConfigParser()
-    config.read(configPath)
+    config = getConfig()
     commonConfig = config['Common']
 
     INSERT_URL = \
@@ -29,7 +28,7 @@ def pushMetadata(metadataIterator, configPath='default.conf'):
         requests.put(INSERT_URL, data=m, auth=(u, p), verify=False)
 
 
-def makeMetadata(dataDir, kind, configPath="default.conf"):
+def makeMetadata(dataDir, kind):
     """ Given `dataDir`, create XML FGDC or Virtual Watershed JSON metadata for
         every file in the directory. Whether its FGDC or VW metadata depends on
         `kind`, as seen in the assert directly below.
@@ -43,8 +42,7 @@ def makeMetadata(dataDir, kind, configPath="default.conf"):
              if path.isfile(path.join(dataDir, f)))
 
     # get configuration for FGDC Metadata
-    config = configparser.ConfigParser()
-    config.read(configPath)
+    config = getConfig()
     config = config[kind + ' Metadata']
 
     if kind == 'FGDC':
@@ -216,3 +214,13 @@ class VWClient:
 
     def fetchRecords(self, model_run_uuid):
         pass
+
+
+def getConfig(configFile="../default.conf"):
+    """ Provide user with a ConfigParser that has read the `configFile`
+
+        Returns: ConfigParser()
+    """
+    config = configparser.ConfigParser()
+    config.read(configFile)
+    return config

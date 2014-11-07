@@ -43,10 +43,7 @@ class TestJSONMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        configPath = "/Users/mturner/workspace/adaptors/src/test/test.conf"
-        config = configparser.ConfigParser()
-        config.read(configPath)
-        self.config = config
+        self.config = getConfig("src/test/test.conf")
 
         self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
         self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
@@ -78,10 +75,7 @@ class TestFGDCMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        configPath = "/Users/mturner/workspace/adaptors/src/test/test.conf"
-        config = configparser.ConfigParser()
-        config.read(configPath)
-        self.config = config
+        self.config = getConfig("src/test/test.conf")
 
         self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
         self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
