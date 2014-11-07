@@ -198,3 +198,21 @@ def makeWatershedMetadatum(dataFile, config,
                                  )
 
     return output
+
+class VWClient:
+    """ Client class for interacting with a Virtual Watershed (VW). A VW
+        is essentially a structured database with certain rules for its
+        metadata and for uploading or inserting data.
+    """
+    def __init__(self, ipAddress, uname, passwd):
+        """ Initialize a new connection to the virtual watershed """
+        authUrl = "https://" + ipAddress + "/apps/my_app/auth"
+        r = requests.get(authUrl, auth=(uname, passwd), verify=False)
+        r.raise_for_status()
+
+    def upload(self, model_run_uuid, data):
+        """ Upload data for a given model_run_uuid to the VW """
+        pass
+
+    def fetchRecords(self, model_run_uuid):
+        pass

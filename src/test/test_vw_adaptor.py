@@ -4,9 +4,10 @@
 from vw_adaptor import *  # get_all_with_uuid
 
 import unittest
-import sys
 
+from nose.tools import raises
 from difflib import Differ
+from requests.exceptions import HTTPError
 
 
 def showStringDiff(s1, s2):
@@ -65,15 +66,8 @@ class TestJSONMetadata(unittest.TestCase):
         expected = open("src/test/data/expected1_in.json", 'r').read()
 
         # check equality
-        assert generated == expected, "generated: %s\n\nexpected:\n%s" % \
-            (generated, expected)
-
-        # TODO Run test for 'outputs' model set??? No, but do for output with
-        # 'services'
-
-    def testCorrectMetadata(self):
-        """ A series of metadata is correctly built (JSON)"""
-        assert False
+        assert generated == expected, \
+            showStringDiff(generated, expected)
 
 
 class TestFGDCMetadata(unittest.TestCase):
@@ -103,17 +97,34 @@ class TestFGDCMetadata(unittest.TestCase):
         assert generated == expected, \
             showStringDiff(generated, expected)
 
-    def testCorrectMetadata(self):
-        """ A series of metadata is correctly built (FGDC)"""
-        assert False
-
 
 class TestVWClient(unittest.TestCase):
     """ Test the functionality of the Virtual Watershed client """
     def setUp(self):
         pass
+        # self.vwClient = default_vw_client()
 
-    # TODO not a test until we prepend "test" somewheres
-    def insert(self, args):
-        """ Does VW Client properly insert data? """
+    @raises(HTTPError)
+    def testAuthFail(self):
+        """ Test that failed authorization is correctly caught """
+        actualVWip = "129.24.196.43"
+        VWClient(actualVWip, "fake_user", "fake_passwd")
+
+    def testInsert(self):
+        """ VW Client properly inserts data """
         assert False
+
+    def testUpload(self):
+        """ VW Client properly uploads data """
+        assert False
+
+    def testFetch(self):
+        """ VW Client properly fetches data """
+        assert False
+
+    @raises(AssertionError)
+    def testFetchFail(self):
+        """ VW Client fails when trying to fetch non-existent model_run_uuid """
+        # self.vwClient.fetchRecords("invalid_uuid")
+        # assert False
+
