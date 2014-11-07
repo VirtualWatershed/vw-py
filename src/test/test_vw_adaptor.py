@@ -4,9 +4,13 @@
 from vw_adaptor import *  # get_all_with_uuid
 
 import unittest
-import sys
+import os
 
+from nose.tools import raises
 from difflib import Differ
+from requests.exceptions import HTTPError
+
+from uuid import uuid4 as getUUID
 
 
 def showStringDiff(s1, s2):
@@ -42,13 +46,10 @@ class TestJSONMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        configPath = "/Users/mturner/workspace/adaptors/src/test/test.conf"
-        config = configparser.ConfigParser()
-        config.read(configPath)
-        self.config = config
+        self.config = get_config("src/test/test.conf")
 
-        self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
-        self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+        self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
+        self.parent_modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (JSON)"""
@@ -56,7 +57,7 @@ class TestJSONMetadata(unittest.TestCase):
         # create metadata file
         model_set = "inputs"
         generated = makeWatershedMetadatum("src/test/data/i_dont_exist.data",
-                                           self.config, self.model_run_uuid,
+                                           self.config, self.modelRunUUID,
                                            model_set,
                                            "Testing metadata!",
                                            "/Users/mturner/workspace/adaptors/scripts/inputs/54/549068c5-a136-4b86-a1b2-e862b943d837/XML/in.00.xml"
@@ -65,15 +66,8 @@ class TestJSONMetadata(unittest.TestCase):
         expected = open("src/test/data/expected1_in.json", 'r').read()
 
         # check equality
-        assert generated == expected, "generated: %s\n\nexpected:\n%s" % \
-            (generated, expected)
-
-        # TODO Run test for 'outputs' model set??? No, but do for output with
-        # 'services'
-
-    def testCorrectMetadata(self):
-        """ A series of metadata is correctly built (JSON)"""
-        assert False
+        assert generated == expected, \
+            showStringDiff(generated, expected)
 
 
 class TestFGDCMetadata(unittest.TestCase):
@@ -84,36 +78,124 @@ class TestFGDCMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        configPath = "/Users/mturner/workspace/adaptors/src/test/test.conf"
-        config = configparser.ConfigParser()
-        config.read(configPath)
-        self.config = config
+        self.config = get_config("src/test/test.conf")
 
-        self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
-        self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+        self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
+        self.parent_modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
         self.dataFile = "src/test/data/in.00"
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
 
         generated = makeFGDCMetadatum(self.dataFile, self.config,
-                                      self.model_run_uuid)
+                                      self.modelRunUUID)
 
         expected = open("src/test/data/expected1_in.xml", 'r').read()
         assert generated == expected, \
             showStringDiff(generated, expected)
 
-    def testCorrectMetadata(self):
-        """ A series of metadata is correctly built (FGDC)"""
-        assert False
-
 
 class TestVWClient(unittest.TestCase):
     """ Test the functionality of the Virtual Watershed client """
-    def setUp(self):
-        pass
 
-    # TODO not a test until we prepend "test" somewheres
-    def insert(self, args):
-        """ Does VW Client properly insert data? """
-        assert False
+    def setUp(self):
+
+        self.vwClient = default_vw_client()
+
+        self.modelRunUUID = \
+            self.vwClient.search(limit=20)[0]['model_run_uuid']
+
+        self.config = get_config("src/test/test.conf")
+
+    @raises(HTTPError)
+    def test_authFail(self):
+        """ Test that failed authorization is correctly caught """
+        actualVWip = "129.24.196.43"
+        VWClient(actualVWip, "fake_user", "fake_passwd")
+
+    def test_insert(self):
+        """ VW Client properly inserts data """
+        testUUID = getUUID()
+
+        dataFile = "src/test/data/in.00"
+
+        fgdcXML = \
+            makeFGDCMetadatum(dataFile, self.config, modelRunUUID=testUUID)
+
+        watershedJSON = \
+            makeWatershedMetadatum(dataFile, self.config, testUUID,
+                                   "inputs", "Description of the data", "filePath")
+
+        self.vwClient.insert_metadata(watershedJSON, fgdcXML)
+
+        vwTestUUIDEntries = self.vwClient.fetch_records(testUUID)
+
+        assert vwTestUUIDEntries, "No VW Entries corresponding to the test UUID"
+
+    @raises(HTTPError)
+    def test_insertFail(self):
+        """ VW Client throws error on failed insert"""
+        self.vwClient.insert_metadata('{"metadata": {"xml": "mo garbage"}}',
+                                      "<XML?></XML>")
+
+    def test_upload(self):
+        """ VW Client properly uploads data """
+
+        self.vwClient.upload(self.modelRunUUID, "src/test/data/in.00")
+
+        # fetch the file from the url we know from the VW file storage pattern
+        record = \
+            self.vwClient.search(modelRunUUID=self.modelRunUUID, limit=1)
+
+        url = record[0]['downloads'][0]['bin']
+
+        outfile = "src/test/data/back_in.00"
+
+        if os.path.isfile(outfile):
+            os.remove(outfile)
+
+        self.vwClient.download(url, outfile)
+
+        # check that the file now exists in the file system as expected
+        assert os.path.isfile(outfile)
+
+        os.remove(outfile)
+
+    def test_fetch(self):
+        """ VW Client properly fetches data """
+
+        # search for a valid modelRunUUID to use as a parent modelRunUUID
+        uuid = self.modelRunUUID
+
+        # use that to fetch metadata for that single modelRunUUID
+        assert len(self.vwClient.fetch_records(uuid)) > 0
+
+    @raises(AssertionError)
+    def test_fetchFail(self):
+        """ VW Client fails when trying to fetch non-existent modelRunUUID
+        """
+        self.vwClient.fetch_records("invalid_uuid")
+
+    def test_download(self):
+        """ VW Client properly downloads data """
+        record = \
+            self.vwClient.search(modelRunUUID=self.modelRunUUID, limit=1)
+        url = record[0]['downloads'][0]['bin']
+
+        outfile = "src/test/data/test_dl.file"
+
+        if os.path.isfile(outfile):
+            os.remove(outfile)
+
+        self.vwClient.download(url, outfile)
+
+        assert os.path.isfile(outfile)
+
+        os.remove(outfile)
+
+    @raises(AssertionError)
+    def test_downloadFail(self):
+        """ VW Client throws error on failed download"""
+        url = "http://httpbin.org/status/404"
+
+        self.vwClient.download(url, "this won't ever exist")

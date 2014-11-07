@@ -106,7 +106,7 @@ os.environ["IPW"] = "/Users/mturner/workspace/ipw-2.1.0/"
 INSERT_DATASET_URL = "https://" + hostname + "/apps/my_app/datasets"
 DATA_UPLOAD_URL = "https://" + hostname + "/apps/my_app/data"
 UUID_CHECK_URL = "https://" + hostname + "/apps/my_app/checkmodeluuid"
-SRC_DATASET_URL = "https://"+ hostname + "/apps/my_app/search/datasets.json?version=3&model_run_uuid=" + parent_model_run_uuid + "&limit=21"
+SRC_DATASET_URL = "https://"+ hostname + "/apps/my_app/search/datasets.json?version=3&model_run_uuid=" + parent_model_run_uuid + "&limit=12"
 
 
 
@@ -222,7 +222,7 @@ def runModel():
 
         datatstep = "60"
         # nsteps = "2001"
-        nsteps = "20"
+        nsteps = "11"
         outfreq = "1"
 
         isnobalcmd = "isnobal -t " + datatstep  + " -n " + nsteps  + " -I " + init_img  + " -p " + pr_file  + " -m " + mask_file + " -i " + in_pre + " -O " + outfreq + " -e em -s snow"
@@ -369,10 +369,18 @@ def processFiles(inputDir):
                 print 'PROCESSING: ', json_file
                 with open(json_file, 'r') as f:
                     post_data = json.loads(f.read())
+
+                #### ONLY USED TO PRINT THE _PARENT_ MODEL RUN UUID ####
                 model_set_uuid=post_data['model_run_uuid']
                 print "Model Run UUID %s" % model_set_uuid
+                ####  ************************************* ####
+
                 xml = etree.parse(post_data['metadata']['xml'])
+                print etree.tostring(xml, encoding=unicode)
                 post_data['metadata']['xml'] = etree.tostring(xml, encoding=unicode)
+
+                # **** The only app that gets used is 'my_app' so this is
+                # not useful for the VW client
                 apps = post_data['apps']
                 if len(apps) > 1:
                     the_url = INSERT_DATASET_URL % {'app':apps[0]}
@@ -380,6 +388,7 @@ def processFiles(inputDir):
                 else:
                     the_url = INSERT_DATASET_URL % {'app':apps[0]}
                     post_data.update({"apps": []})
+                # also this is no use
                 post_data['active'] = 'true'
                 #upload the data
                 uploadpayload = {"name": "hbtest","modelid": model_run_uuid}
@@ -387,7 +396,13 @@ def processFiles(inputDir):
                 print source_filepath
 
                 files = {'file': open(source_filepath, 'rb')}
+                # HOW THE FILE NAME IS KEPT TRACK OF IN THE VIRTUAL WATERSHED
+                # The JSON file contains the XML itself. It also contains a
+                # string like /geodata/watershed-data/0a/0a64e994-8f18-4e8c-bf9b-6c3d8b1577dd/em.09.7.tif
+                # upload the newly-generated output file
                 r = requests.post(DATA_UPLOAD_URL, files=files, data=uploadpayload, auth=(u, p), verify=False)
+                # create the new record for the inserted file and insert metadata
+                print json.dumps(post_data)
                 result = requests.put(INSERT_DATASET_URL, data=json.dumps(post_data), auth=(u, p), verify=False)
                 print result.text
                 if result.status_code != 200:
