@@ -13,7 +13,7 @@ import requests
 
 def pushMetadata(metadataIterator):
 
-    config = getConfig()
+    config = get_config()
     commonConfig = config['Common']
 
     INSERT_URL = \
@@ -42,7 +42,7 @@ def makeMetadata(dataDir, kind):
              if path.isfile(path.join(dataDir, f)))
 
     # get configuration for FGDC Metadata
-    config = getConfig()
+    config = get_config()
     config = config[kind + ' Metadata']
 
     if kind == 'FGDC':
@@ -197,6 +197,7 @@ def makeWatershedMetadatum(dataFile, config,
 
     return output
 
+
 class VWClient:
     """ Client class for interacting with a Virtual Watershed (VW). A VW
         is essentially a structured database with certain rules for its
@@ -204,19 +205,82 @@ class VWClient:
     """
     def __init__(self, ipAddress, uname, passwd):
         """ Initialize a new connection to the virtual watershed """
+
+        # Check our credentials
         authUrl = "https://" + ipAddress + "/apps/my_app/auth"
         r = requests.get(authUrl, auth=(uname, passwd), verify=False)
         r.raise_for_status()
+
+        # Initialize URLS used by class methods
+        self.insertDatasetUrl = "https://" + ipAddress + \
+            "/apps/my_app/datasets"
+        self.dataUploadUrl = "https://" + ipAddress + "/apps/my_app/data"
+        self.uuidCheckUrl = "https://" + ipAddress + \
+            "/apps/my_app/checkmodeluuid"
+
+        self.searchUrl = "https://" + ipAddress + \
+            "/apps/my_app/search/datasets.json?version=3"
+        # self.srcDatasetUrl = "https://"+ ipAddress + \
+        # "/apps/my_app/search/datasets.json?version=3&model_run_uuid=" + \
+        # model_run_uuid + "&limit=21"
+
+    def search(self, limit=None, offset=None, model_run_uuid=None,
+               parent_model_run_uuid=None):
+        """ Search the VW for JSON metadata records with matching parameters
+
+            Returns: a list of JSON records as dictionaries
+        """
+        fullUrl = self.searchUrl
+
+        if limit:
+            fullUrl = fullUrl + "&limit=%s" % str(limit)
+
+        if offset:
+            fullUrl = fullUrl + "&offset=%s" % str(offset)
+
+        if model_run_uuid:
+            fullUrl = fullUrl + "&model_run_uuid=%s" % model_run_uuid
+
+        if parent_model_run_uuid:
+            fullUrl = fullUrl + "&parent_model_run_uuid=%s" % \
+                parent_model_run_uuid
+
+        r = requests.get(fullUrl, verify=False)
+        metadata = r.json()['results']
+
+        return metadata
+
+    def fetch_records(self, model_run_uuid):
+        """ Fetch JSON records with given model_run_uuid """
+
+        uuiddata = {"modelid": model_run_uuid}
+        r = requests.post(self.uuidCheckUrl, data=uuiddata, verify=False)
+
+        status = r.text
+        assert status.lower() == "true", "Invalid model_run_uuid!"
+
+        # query for a valid model run uuid
+        results = self.search(model_run_uuid=model_run_uuid)
+
+        return results
 
     def upload(self, model_run_uuid, data):
         """ Upload data for a given model_run_uuid to the VW """
         pass
 
-    def fetchRecords(self, model_run_uuid):
-        pass
+
+def default_vw_client(configFile="default.conf"):
+    """ Use the credentials in configFile to initialize a new VWClient instance
+
+        Returns: VWClient connected to the ip address given in configFile
+    """
+    config = get_config(configFile)
+    common = config['Common']
+
+    return VWClient(common['watershedIP'], common['user'], common['passwd'])
 
 
-def getConfig(configFile="../default.conf"):
+def get_config(configFile="../default.conf"):
     """ Provide user with a ConfigParser that has read the `configFile`
 
         Returns: ConfigParser()

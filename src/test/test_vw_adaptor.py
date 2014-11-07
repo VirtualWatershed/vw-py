@@ -43,7 +43,7 @@ class TestJSONMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        self.config = getConfig("src/test/test.conf")
+        self.config = get_config("src/test/test.conf")
 
         self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
         self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
@@ -75,7 +75,7 @@ class TestFGDCMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        self.config = getConfig("src/test/test.conf")
+        self.config = get_config("src/test/test.conf")
 
         self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
         self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
@@ -95,30 +95,31 @@ class TestFGDCMetadata(unittest.TestCase):
 class TestVWClient(unittest.TestCase):
     """ Test the functionality of the Virtual Watershed client """
     def setUp(self):
-        pass
-        # self.vwClient = default_vw_client()
+        self.vwClient = default_vw_client()
 
     @raises(HTTPError)
-    def testAuthFail(self):
+    def test_authFail(self):
         """ Test that failed authorization is correctly caught """
         actualVWip = "129.24.196.43"
         VWClient(actualVWip, "fake_user", "fake_passwd")
 
-    def testInsert(self):
+    def test_insert(self):
         """ VW Client properly inserts data """
         assert False
 
-    def testUpload(self):
+    def test_upload(self):
         """ VW Client properly uploads data """
         assert False
 
-    def testFetch(self):
+    def test_fetch(self):
         """ VW Client properly fetches data """
-        assert False
+        # search for a valid model_run_uuid to use as a parent model_run_uuid
+        uuid = self.vwClient.search(limit=20)[0]['model_run_uuid']
+        # use that to fetch metadata for that single model_run_uuid
+        assert self.vwClient.fetch_records(uuid)
 
     @raises(AssertionError)
-    def testFetchFail(self):
-        """ VW Client fails when trying to fetch non-existent model_run_uuid """
-        # self.vwClient.fetchRecords("invalid_uuid")
-        # assert False
-
+    def test_fetchFail(self):
+        """ VW Client fails when trying to fetch non-existent model_run_uuid
+        """
+        self.vwClient.fetch_records("invalid_uuid")
