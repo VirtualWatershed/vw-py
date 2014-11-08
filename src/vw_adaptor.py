@@ -5,10 +5,12 @@
 """
 
 import configparser
-from string import Template
 import os
 import os.path as path
 import requests
+import urllib
+
+from string import Template
 
 
 def pushMetadata(metadataIterator):
@@ -263,6 +265,24 @@ class VWClient:
         results = self.search(model_run_uuid=model_run_uuid)
 
         return results
+
+    def download(self, url, outFile):
+        """ Download a file from the VW using url to localFile on local disk
+
+            Returns: None
+        """
+        data = urllib.urlopen(url)
+
+        assert data.getcode() == 200, "Download Failed!"
+
+        with file(outFile, 'w+') as out:
+            out.writelines(data.readlines())
+
+        return None
+
+    def insert(self, metadata):
+        """ Insert metadata to  """
+        pass
 
     def upload(self, model_run_uuid, data):
         """ Upload data for a given model_run_uuid to the VW """

@@ -4,6 +4,7 @@
 from vw_adaptor import *  # get_all_with_uuid
 
 import unittest
+import os
 
 from nose.tools import raises
 from difflib import Differ
@@ -94,8 +95,13 @@ class TestFGDCMetadata(unittest.TestCase):
 
 class TestVWClient(unittest.TestCase):
     """ Test the functionality of the Virtual Watershed client """
+
     def setUp(self):
+
         self.vwClient = default_vw_client()
+
+        self.model_run_uuid = \
+            self.vwClient.search(limit=20)[0]['model_run_uuid']
 
     @raises(HTTPError)
     def test_authFail(self):
@@ -105,21 +111,56 @@ class TestVWClient(unittest.TestCase):
 
     def test_insert(self):
         """ VW Client properly inserts data """
+
+        assert False
+
+    def test_insertFail(self):
+        """ VW Client throws error on failed insert"""
         assert False
 
     def test_upload(self):
         """ VW Client properly uploads data """
         assert False
 
+    def test_uploadFail(self):
+        """  VW Client throws error on failed upload """
+        assert False
+
     def test_fetch(self):
         """ VW Client properly fetches data """
+
         # search for a valid model_run_uuid to use as a parent model_run_uuid
-        uuid = self.vwClient.search(limit=20)[0]['model_run_uuid']
+        uuid = self.model_run_uuid
+
         # use that to fetch metadata for that single model_run_uuid
-        assert self.vwClient.fetch_records(uuid)
+        assert len(self.vwClient.fetch_records(uuid)) > 0
 
     @raises(AssertionError)
     def test_fetchFail(self):
         """ VW Client fails when trying to fetch non-existent model_run_uuid
         """
         self.vwClient.fetch_records("invalid_uuid")
+
+    def test_download(self):
+        """ VW Client properly downloads data """
+        record = \
+            self.vwClient.search(model_run_uuid=self.model_run_uuid, limit=1)
+        url = record[0]['downloads'][0]['bin']
+
+        outfile = "src/test/data/test_dl.file"
+
+        if os.path.isfile(outfile):
+            os.remove(outfile)
+
+        self.vwClient.download(url, outfile)
+
+        assert os.path.isfile(outfile)
+
+        os.remove(outfile)
+
+    @raises(AssertionError)
+    def test_downloadFail(self):
+        """ VW Client throws error on failed download"""
+        url = "http://httpbin.org/status/404"
+
+        self.vwClient.download(url, "this won't ever exist")
