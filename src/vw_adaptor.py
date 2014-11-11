@@ -1,7 +1,8 @@
-""" Virtual Watershed Adaptor. Handles fetching and searching of data, model
-    run initialization, and pushing of data. Does this for associated metadata
-    as well. Each file that's either taken as input or produced as output gets
-    associated metadata.
+"""
+Virtual Watershed Adaptor. Handles fetching and searching of data, model
+run initialization, and pushing of data. Does this for associated metadata
+as well. Each file that's either taken as input or produced as output gets
+associated metadata.
 """
 
 import configparser
@@ -16,9 +17,10 @@ from string import Template
 
 
 def makeFGDCMetadatum(dataFile, config, modelRunUUID):
-    """ For a single `dataFile`, write the XML FGDC metadata
+    """
+    For a single `dataFile`, write the XML FGDC metadata
 
-        Returns: XML metadata string
+    Returns: XML metadata string
     """
     statinfo = os.stat(dataFile)
     filesizeMB = "%s" % str(statinfo.st_size/1000000)
@@ -161,9 +163,10 @@ def makeWatershedMetadatum(dataFile, config,
 
 
 class VWClient:
-    """ Client class for interacting with a Virtual Watershed (VW). A VW
-        is essentially a structured database with certain rules for its
-        metadata and for uploading or inserting data.
+    """
+    Client class for interacting with a Virtual Watershed (VW). A VW
+    is essentially a structured database with certain rules for its
+    metadata and for uploading or inserting data.
     """
     def __init__(self, ipAddress, uname, passwd):
         """ Initialize a new connection to the virtual watershed """
