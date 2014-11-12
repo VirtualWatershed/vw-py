@@ -10,18 +10,16 @@ from nose.tools import raises
 from difflib import Differ
 from requests.exceptions import HTTPError
 
-from uuid import uuid4 as getUUID
-
 
 def showStringDiff(s1, s2):
     """ Writes differences between strings s1 and s2 """
     d = Differ()
     diff = d.compare(s1.splitlines(), s2.splitlines())
-    # diffList = [ el.strip().replace(' ', '') + '\n' for el in diff
-    diffList = [ el + '\n' for el in diff
-                if el[0] != ' ' and el[0] != '?' ]
+    diffList = [el for el in diff
+                if el[0] != ' ' and el[0] != '?']
 
     for l in diffList:
+
         if l[0] == '+':
             print "+" + bcolors.GREEN + l[1:] + bcolors.ENDC
         elif l[0] == '-':
@@ -43,13 +41,14 @@ class TestJSONMetadata(unittest.TestCase):
     """ Test that individual and sets of JSON metadata are being properly
         generated. """
     def setUp(self):
-        """ initialize the class with some appropriate entry
-            metadata from file
+        """
+        initialize the class with some appropriate entry
+        metadata from file
         """
         self.config = get_config("src/test/test.conf")
 
         self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
-        self.parent_modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+        self.parentModelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (JSON)"""
@@ -57,13 +56,31 @@ class TestJSONMetadata(unittest.TestCase):
         # create metadata file
         model_set = "inputs"
         generated = makeWatershedMetadatum("src/test/data/i_dont_exist.data",
-                                           self.config, self.modelRunUUID,
+                                           self.config,
+                                           self.parentModelRunUUID,
+                                           self.modelRunUUID,
                                            model_set,
                                            "Testing metadata!",
-                                           "/Users/mturner/workspace/adaptors/scripts/inputs/54/549068c5-a136-4b86-a1b2-e862b943d837/XML/in.00.xml"
+                                           "<XML>yup.</XML>"
                                            )
         # load expected json metadata file
         expected = open("src/test/data/expected1_in.json", 'r').read()
+
+        # check equality
+        assert generated == expected, \
+            showStringDiff(generated, expected)
+
+        model_set = "outputs"
+        generated = makeWatershedMetadatum("src/test/data/fake_output.tif",
+                                           self.config,
+                                           self.parentModelRunUUID,
+                                           self.modelRunUUID,
+                                           model_set,
+                                           "Testing metadata!",
+                                           "<XML>yup.</XML>"
+                                           )
+        # load expected json metadata file
+        expected = open("src/test/data/expected_w_services.json", 'r').read()
 
         # check equality
         assert generated == expected, \
@@ -81,7 +98,6 @@ class TestFGDCMetadata(unittest.TestCase):
         self.config = get_config("src/test/test.conf")
 
         self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
-        self.parent_modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
         self.dataFile = "src/test/data/in.00"
 
     def testCorrectMetadatum(self):
@@ -115,22 +131,37 @@ class TestVWClient(unittest.TestCase):
 
     def test_insert(self):
         """ VW Client properly inserts data """
-        testUUID = getUUID()
+        # testUUID = getUUID()
+        hostname = self.config['Common']['watershedIP']
+        modelIdUrl = "https://" + hostname + "/apps/my_app/newmodelrun"
+
+        data = {"description": "inital insert"}
+
+        result = \
+            requests.post(modelIdUrl, data=json.dumps(data),
+                          auth=(self.vwClient.uname, self.vwClient.passwd),
+                          verify=False)
+
+        modelRunUUID = result.text
+
+        self.vwClient.upload(modelRunUUID, "src/test/data/in.00")
 
         dataFile = "src/test/data/in.00"
 
         fgdcXML = \
-            makeFGDCMetadatum(dataFile, self.config, modelRunUUID=testUUID)
+            makeFGDCMetadatum(dataFile, self.config, modelRunUUID=modelRunUUID)
 
         watershedJSON = \
-            makeWatershedMetadatum(dataFile, self.config, testUUID,
-                                   "inputs", "Description of the data", "filePath")
+            makeWatershedMetadatum(dataFile, self.config, modelRunUUID,
+                                   modelRunUUID, "inputs",
+                                   "Description of the data", "filePath")
 
         self.vwClient.insert_metadata(watershedJSON, fgdcXML)
 
-        vwTestUUIDEntries = self.vwClient.fetch_records(testUUID)
+        vwTestUUIDEntries = self.vwClient.fetch_records(modelRunUUID)
 
-        assert vwTestUUIDEntries, "No VW Entries corresponding to the test UUID"
+        assert vwTestUUIDEntries,\
+            "No VW Entries corresponding to the test UUID"
 
     @raises(HTTPError)
     def test_insertFail(self):
@@ -195,7 +226,7 @@ class TestVWClient(unittest.TestCase):
 
     @raises(AssertionError)
     def test_downloadFail(self):
-        """ VW Client throws error on failed download"""
+        """ VW Client throws error on failed download """
         url = "http://httpbin.org/status/404"
 
         self.vwClient.download(url, "this won't ever exist")

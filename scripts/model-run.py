@@ -511,6 +511,8 @@ def processParentFiles(isnobal_inputDir):
                     the_url = INSERT_DATASET_URL % {'app':apps[0]}
                     post_data.update({"apps": []})
                 post_data['active'] = 'true'
+                print "INSERT_DATASET_URL:\n" + INSERT_DATASET_URL + "\n"
+                print "json dumps(post_data):\n" + json.dumps(post_data) + "\n"
                 result = requests.put(INSERT_DATASET_URL,
                         data=json.dumps(post_data), auth=(u, p), verify=False)
                 print result.text

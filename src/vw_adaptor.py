@@ -62,9 +62,9 @@ def makeFGDCMetadatum(dataFile, config, modelRunUUID):
     return output
 
 
-def makeWatershedMetadatum(dataFile, config,
+def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
                            modelRunUUID, model_set, description="",
-                           xmlFilePath=""):
+                           fgdcMetadata=""):
 
     """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
         metadata.
@@ -107,17 +107,16 @@ def makeWatershedMetadatum(dataFile, config,
     commonConfig = config['Common']
 
     # TODO clean up the variable names here: snake or camel; going w/ camel
-    parent_modelRunUUID = commonConfig['parent_model_run_uuid']
-    first_two_of_parent_uuid = parent_modelRunUUID[:2]
+    firstTwoParentUUID = parentModelRunUUID[:2]
 
     # this and XML path are given since they are known. TODO: check
     #  what happens if these are not given... or better yet try it!
 
     if model_set == "inputs":
         inputFilePath = os.path.join("/geodata/watershed-data",
-                                     first_two_of_parent_uuid,
-                                     parent_modelRunUUID,
-                                     dataFile)
+                                     firstTwoParentUUID,
+                                     parentModelRunUUID,
+                                     os.path.basename(dataFile))
     else:
         inputFilePath = ""
 
@@ -138,12 +137,12 @@ def makeWatershedMetadatum(dataFile, config,
                                  model_run_uuid=modelRunUUID,
                                  description=description,
                                  model_set=model_set,
-                                 xmlFilePath=xmlFilePath,
+                                 fgdcMetadata=fgdcMetadata,
                                  # derived from parent function args
                                  basename=basename,
                                  inputFilePath=inputFilePath,
                                  # given in config file
-                                 parent_model_run_uuid=commonConfig['parent_model_run_uuid'],
+                                 parent_model_run_uuid=parentModelRunUUID,
                                  modelname=commonConfig['model'],
                                  state=watershedConfig['state'],
                                  model_set_taxonomy=commonConfig['model_set_taxonomy'],
@@ -189,7 +188,7 @@ class VWClient:
             "/apps/my_app/search/datasets.json?version=3"
 
     def search(self, limit=None, offset=None, modelRunUUID=None,
-               parent_modelRunUUID=None):
+               parentModelRunUUID=None):
         """ Search the VW for JSON metadata records with matching parameters
 
             Returns: a list of JSON records as dictionaries
@@ -205,9 +204,9 @@ class VWClient:
         if modelRunUUID:
             fullUrl = fullUrl + "&model_run_uuid=%s" % modelRunUUID
 
-        if parent_modelRunUUID:
+        if parentModelRunUUID:
             fullUrl = fullUrl + "&parent_model_run_uuid=%s" % \
-                parent_modelRunUUID
+                parentModelRunUUID
 
         r = requests.get(fullUrl, verify=False)
         metadata = r.json()['results']
@@ -255,12 +254,14 @@ class VWClient:
         postData = json.loads(watershedMetadata)
         # xml = etree.fromstring(fgdcMetadata)
         # postData['metadata']['xml'] = etree.tostring(xml, encoding=unicode)
-        postData['metadata']['xml'] = "yolo.xml"
+        # postData['metadata']['xml'] = "<validxml></validxml>"
+        postData['metadata']['xml'] = fgdcMetadata
+
+        logging.debug("insertDatasetUrl:\n" + self.insertDatasetUrl)
+        logging.debug("post data dumped:\n" + json.dumps(postData))
 
         result = requests.put(self.insertDatasetUrl, data=json.dumps(postData),
                               auth=(self.uname, self.passwd), verify=False)
-        # result = requests.put(self.insertDatasetUrl, data=postData,
-                              # auth=(self.uname, self.passwd), verify=False)
 
         logging.debug(result.content)
 
@@ -270,7 +271,9 @@ class VWClient:
 
     def upload(self, modelRunUUID, dataFilePath):
         """ Upload data for a given modelRunUUID to the VW """
+
         dataPayload = {"name": "test", "modelid": modelRunUUID}
+
         result = requests.post(self.dataUploadUrl, data=dataPayload,
                                files={'file': open(dataFilePath, 'rb')},
                                auth=(self.uname, self.passwd), verify=False)

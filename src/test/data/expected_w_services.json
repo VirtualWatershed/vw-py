@@ -1,12 +1,12 @@
 {
     "orig_epsg": "4326",
     "description": "Testing metadata!",
-    "taxonomy": "file",
-    "basename": "i_dont_exist.data",
+    "taxonomy": "geoimage",
+    "basename": "fake_output.tif",
     "parent_model_run_uuid": "373ae181-a0b2-4998-ba32-e27da190f6dd",
     "model_run_uuid":"09079630-5ef8-11e4-9803-0800200c9a66",
-    "model_set": "inputs",
-    "model_set_type": "binary",
+    "model_set": "outputs",
+    "model_set_type": "vis",
     "model_set_taxonomy": "grid",
     "spatial": {
         "geomtype": "grid",
@@ -18,8 +18,8 @@
     "records": "1",
     "active": "true",
     "services": [
-    "",
-    ""
+    "wms",
+    "wcs"
     ],
     "categories": [{
             "location": "Dry Creek",
@@ -27,11 +27,11 @@
             "state": "Idaho"
         }],
     "sources": [{
-        "mimetype": "application/x-binary",
-        "files": ["/geodata/watershed-data/37/373ae181-a0b2-4998-ba32-e27da190f6dd/i_dont_exist.data"],
+        "mimetype": "application/x-zip-compressed",
+        "files": [""],
         "set": "original",
         "external": "False",
-        "extension": "bin"
+        "extension": "tif"
     }],
     "standards": [
         "FGDC-STD-001-1998",
@@ -40,7 +40,7 @@
         "ISO-19110"
     ],
     "formats": [
-        "bin"
+        "tif"
     ],
     "metadata": {
         "xml": "<XML>yup.</XML>",

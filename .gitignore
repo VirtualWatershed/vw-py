@@ -16,7 +16,11 @@ scripts/outputs/*
 *.ipw
 *.conf
 
-scripts/resources/*
-scripts/ppt_desc
-scripts/ppt_images_dist/*
 *.xls
+
+doc/build/*
+*inputs/*
+*outputs/*
+*ppt_desc
+scripts/ppt_images_dist/*
+ppt_images_dist/*

@@ -16,7 +16,7 @@
         "bbox": "$westBnd,$southBnd,$eastBnd,$northBnd"
     },
     "records": "$recs",
-    "active": "True",
+    "active": "true",
     "services": [
     "$wms",
     "$wcs"
@@ -43,7 +43,7 @@
         "$ext"
     ],
     "metadata": {
-        "xml": "$xmlFilePath",
+        "xml": "$fgdcMetadata",
         "upgrade": "true",
         "standard": "FGDC-STD-001-1998"
     },
