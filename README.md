@@ -7,6 +7,34 @@ Contributors:
 + [Matthew Turner](mailto:maturner01@uidaho.edu)
 + [Chase Carthen](mailto:chasec2331@gmail.com)
 
+## Quickstart
+
+A good way to get started is to run some tests. From the root project directory,
+run 
+
+```bash
+nosetests
+```
+
+Install [nose](https://nose.readthedocs.org/en/latest/) if you haven't already.
+
+The tests are located in `src/tests/`.
+
+## Contribution guidelines
+
+Stay as close to [PEP 8](http://legacy.python.org/dev/peps/pep-0008) 
+possible with regards to
+[indentation](http://legacy.python.org/dev/peps/pep-0008#indentation).
+Specifically, let's follow these two rules so all our text editors can agree:
+
+1. Use 4 spaces per indentation level.
+2. Spaces are the preferred indentation method. Tabs should be used solely to
+   remain consistent with code that is already indented with tabs.
+
+It seems we all prefer camelCase to what PEP 8 recommends, which is
+words\_separated\_by\_underscores. 
+
+
 ## Intro
 
 We need to write adaptors to connect ISNOBAL to the Virtual Watershed.
