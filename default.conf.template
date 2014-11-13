@@ -1,8 +1,8 @@
 ### Configuration file for the virtual watershed data adaptors ###
 [Common]
-watershedIP = 129.24.196.43
-user = your_state
-passwd = supersecret_password
+watershedIP = 1.800.call.me
+user = your_uname
+passwd = your_supersecret_password
 parent_model_run_uuid = 373ae181-a0b2-4998-ba32-e27da190f6dd
 westBnd = -116.142905556
 eastBnd = -116.137583333
@@ -12,8 +12,8 @@ model = isnobal
 model_set_taxonomy = grid
 
 [FGDC Metadata]
-template_path = resources/fgdc_template.xml
-procdate = now
+template_path = /EDIT-THIS-PATH-TO/adaptors/resources/fgdc_template.xml
+procdate = 11112014
 begdate = 10012010
 enddate = 09302011
 themekey = watershed
@@ -22,7 +22,7 @@ mailing_address = 875 Perimeter Drive MS2358
 city = Moscow
 state = Idaho
 zipCode = 83843
-researcherPhone = (208) 885-7129
+researcherPhone = (208)885-7129
 researcherEmail = maturner@uidaho.edu
 rowcount = 170
 columncount = 148
@@ -31,8 +31,8 @@ longres = 2.5
 mapUnits = meters
 
 [Watershed Metadata]
-template_path = resources/watershed_template.json
+template_path = /EDIT-THIS-PATH-TO/adaptors/resources/watershed_template.json
 orig_epsg = 4326
 epsg = 26911
 location = Dry Creek
-state = Idaho # where the data was collected
+state = Idaho
