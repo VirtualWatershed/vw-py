@@ -1,7 +1,8 @@
-""" Testing module for Virtual Watershed Data adaptor.
+"""
+Testing module for Virtual Watershed Data adaptor.
 """
 
-from vw_adaptor import *  # get_all_with_uuid
+from vw_adaptor import *
 
 import unittest
 import os
@@ -119,7 +120,7 @@ class TestVWClient(unittest.TestCase):
         self.vwClient = default_vw_client()
 
         self.modelRunUUID = \
-            self.vwClient.search(limit=20)[0]['model_run_uuid']
+            self.vwClient.search(limit=20).records[0]['model_run_uuid']
 
         self.config = get_config("src/test/test.conf")
 
@@ -131,7 +132,7 @@ class TestVWClient(unittest.TestCase):
 
     def test_insert(self):
         """ VW Client properly inserts data """
-        # testUUID = getUUID()
+
         hostname = self.config['Common']['watershedIP']
         modelIdUrl = "https://" + hostname + "/apps/my_app/newmodelrun"
 
@@ -175,10 +176,10 @@ class TestVWClient(unittest.TestCase):
         self.vwClient.upload(self.modelRunUUID, "src/test/data/in.00")
 
         # fetch the file from the url we know from the VW file storage pattern
-        record = \
+        results = \
             self.vwClient.search(modelRunUUID=self.modelRunUUID, limit=1)
 
-        url = record[0]['downloads'][0]['bin']
+        url = results.records[0]['downloads'][0]['bin']
 
         outfile = "src/test/data/back_in.00"
 
@@ -199,19 +200,22 @@ class TestVWClient(unittest.TestCase):
         uuid = self.modelRunUUID
 
         # use that to fetch metadata for that single modelRunUUID
-        assert len(self.vwClient.fetch_records(uuid)) > 0
+        assert self.vwClient.fetch_records(uuid).total > 0
 
     @raises(AssertionError)
     def test_fetchFail(self):
-        """ VW Client fails when trying to fetch non-existent modelRunUUID
+        """
+        VW Client fails when trying to fetch non-existent modelRunUUID
         """
         self.vwClient.fetch_records("invalid_uuid")
 
     def test_download(self):
-        """ VW Client properly downloads data """
-        record = \
+        """
+        VW Client properly downloads data
+        """
+        result = \
             self.vwClient.search(modelRunUUID=self.modelRunUUID, limit=1)
-        url = record[0]['downloads'][0]['bin']
+        url = result.records[0]['downloads'][0]['bin']
 
         outfile = "src/test/data/test_dl.file"
 

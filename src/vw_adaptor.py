@@ -6,7 +6,6 @@ associated metadata.
 """
 
 import configparser
-from lxml import etree
 import logging
 import json
 import os
@@ -209,9 +208,8 @@ class VWClient:
                 parentModelRunUUID
 
         r = requests.get(fullUrl, verify=False)
-        metadata = r.json()['results']
 
-        return metadata
+        return QueryResult(r.json())
 
     def fetch_records(self, modelRunUUID):
         """ Fetch JSON records with given modelRunUUID """
@@ -250,11 +248,7 @@ class VWClient:
         assert fgdcMetadata, "Must pass FGDC metadata to accompany watershed \
                 metadata"
 
-        # put the XML directly into the JSON metadata
         postData = json.loads(watershedMetadata)
-        # xml = etree.fromstring(fgdcMetadata)
-        # postData['metadata']['xml'] = etree.tostring(xml, encoding=unicode)
-        # postData['metadata']['xml'] = "<validxml></validxml>"
         postData['metadata']['xml'] = fgdcMetadata
 
         logging.debug("insertDatasetUrl:\n" + self.insertDatasetUrl)
@@ -281,6 +275,41 @@ class VWClient:
         result.raise_for_status()
 
         return None
+
+
+class QueryResult:
+    """
+    A request for records using the url built by ``VWClient.search`` and
+    ``VWClient.fetch_records`` returns a JSON string with three base fields:
+    ``total``, ``subtotal``, and ``results``. This structure wraps that
+    functionality and is returned by the aforementioned VWClient functions.
+    """
+    def __init__(self, json):
+        self.json = json
+
+    @property
+    def total(self):
+        """
+        Return the total records `known by the virtual watershed` that matched
+        the parameters passed to either the fetch_records or search function.
+        """
+        return self.json['total']
+
+    @property
+    def subtotal(self):
+        """
+        Return the `subtotal`, or the actual number of records that have been
+        transferred by the virtual watershed.
+        """
+        return self.json['subtotal']
+
+    @property
+    def records(self):
+        """
+        Return the records themselves returned by the Virtual Watershed in
+        response to the query built by either ``search`` or ``fetch_records``.
+        """
+        return self.json['results']
 
 
 def default_vw_client(configFile="default.conf"):
