@@ -190,44 +190,27 @@ class VWClient:
         self.searchUrl = "https://" + ipAddress + \
             "/apps/my_app/search/datasets.json?version=3"
 
-    def search(self, limit=None, offset=None, modelRunUUID=None,
-               parentModelRunUUID=None):
-        """ Search the VW for JSON metadata records with matching parameters
+    def search(self, **kwargs):
+        """
+        Search the VW for JSON metadata records with matching parameters.
+        Use key, value pairs as specified in the `Virtual Watershed
+        Documentation
+        <http://129.24.196.43//docs/stable/search.html#search-objects>`_
 
-            Returns: a list of JSON records as dictionaries
+        Returns: a list of JSON records as dictionaries
         """
         fullUrl = self.searchUrl
 
-        if limit:
-            fullUrl = fullUrl + "&limit=%s" % str(limit)
+        for key, val in kwargs.iteritems():
 
-        if offset:
-            fullUrl = fullUrl + "&offset=%s" % str(offset)
+            if type(val) is not str:
+                val = str(val)
 
-        if modelRunUUID:
-            fullUrl = fullUrl + "&model_run_uuid=%s" % modelRunUUID
-
-        if parentModelRunUUID:
-            fullUrl = fullUrl + "&parent_model_run_uuid=%s" % \
-                parentModelRunUUID
+            fullUrl += "&%s=%s" % (key, val)
 
         r = requests.get(fullUrl, verify=False)
 
         return QueryResult(r.json())
-
-    def fetch_records(self, modelRunUUID):
-        """ Fetch JSON records with given modelRunUUID """
-
-        uuiddata = {"modelid": modelRunUUID}
-        r = requests.post(self.uuidCheckUrl, data=uuiddata, verify=False)
-
-        status = r.text
-        assert status.lower() == "true", "Invalid modelRunUUID!"
-
-        # query for a valid model run uuid
-        results = self.search(modelRunUUID=modelRunUUID)
-
-        return results
 
     def download(self, url, outFile):
         """ Download a file from the VW using url to localFile on local disk
