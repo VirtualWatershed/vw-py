@@ -15,7 +15,7 @@ import urllib
 from string import Template
 
 
-def makeFGDCMetadatum(dataFile, config, modelRunUUID):
+def makeFGDCMetadata(dataFile, config, modelRunUUID):
     """
     For a single `dataFile`, write the XML FGDC metadata
 
@@ -61,7 +61,7 @@ def makeFGDCMetadatum(dataFile, config, modelRunUUID):
     return output
 
 
-def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
+def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
                            modelRunUUID, model_set, description="",
                            startTime=None, endTime=None, fgdcMetadata=""):
 

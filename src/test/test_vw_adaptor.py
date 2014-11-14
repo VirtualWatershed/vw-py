@@ -58,7 +58,7 @@ class TestJSONMetadata(unittest.TestCase):
         model_set = "inputs"
         startTime = "2010-10-01 10:00:00"
         endTime = "2010-10-01 11:00:00"
-        generated = makeWatershedMetadatum("src/test/data/i_dont_exist.data",
+        generated = makeWatershedMetadata("src/test/data/i_dont_exist.data",
                                            self.config,
                                            self.parentModelRunUUID,
                                            self.modelRunUUID,
@@ -76,7 +76,7 @@ class TestJSONMetadata(unittest.TestCase):
             showStringDiff(generated, expected)
 
         model_set = "outputs"
-        generated = makeWatershedMetadatum("src/test/data/fake_output.tif",
+        generated = makeWatershedMetadata("src/test/data/fake_output.tif",
                                            self.config,
                                            self.parentModelRunUUID,
                                            self.modelRunUUID,
@@ -110,7 +110,7 @@ class TestFGDCMetadata(unittest.TestCase):
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
 
-        generated = makeFGDCMetadatum(self.dataFile, self.config,
+        generated = makeFGDCMetadata(self.dataFile, self.config,
                                       self.modelRunUUID)
 
         expected = open("src/test/data/expected1_in.xml", 'r').read()
@@ -156,10 +156,10 @@ class TestVWClient(unittest.TestCase):
         dataFile = "src/test/data/in.00"
 
         fgdcXML = \
-            makeFGDCMetadatum(dataFile, self.config, modelRunUUID=modelRunUUID)
+            makeFGDCMetadata(dataFile, self.config, modelRunUUID=modelRunUUID)
 
         watershedJSON = \
-            makeWatershedMetadatum(dataFile, self.config, modelRunUUID,
+            makeWatershedMetadata(dataFile, self.config, modelRunUUID,
                                    modelRunUUID, "inputs",
                                    "Description of the data", "filePath")
 
