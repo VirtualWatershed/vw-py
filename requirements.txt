@@ -6,12 +6,10 @@ SQLAlchemy==0.9.7
 Sphinx==1.2.3
 configparser==3.3.0r2
 lxml==3.4.0
-matplotlib==1.4.0
 nose==1.3.4
 numpy==1.9.0
 pandas==0.14.1
 py==1.4.25
-pycurl==7.19.5
 python-dateutil==1.5
 requests==2.4.1
 simplejson==3.6.5
