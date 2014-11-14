@@ -56,12 +56,16 @@ class TestJSONMetadata(unittest.TestCase):
         # Run test for 'inputs' model_set
         # create metadata file
         model_set = "inputs"
+        startTime = "2010-10-01 10:00:00"
+        endTime = "2010-10-01 11:00:00"
         generated = makeWatershedMetadatum("src/test/data/i_dont_exist.data",
                                            self.config,
                                            self.parentModelRunUUID,
                                            self.modelRunUUID,
                                            model_set,
                                            "Testing metadata!",
+                                           startTime,
+                                           endTime,
                                            "<XML>yup.</XML>"
                                            )
         # load expected json metadata file
@@ -78,6 +82,8 @@ class TestJSONMetadata(unittest.TestCase):
                                            self.modelRunUUID,
                                            model_set,
                                            "Testing metadata!",
+                                           startTime,
+                                           endTime,
                                            "<XML>yup.</XML>"
                                            )
         # load expected json metadata file

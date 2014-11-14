@@ -1,6 +1,8 @@
 {
     "orig_epsg": "4326",
     "description": "Testing metadata!",
+    "start_time": "2010-10-01 10:00:00",
+    "end_time": "2010-10-01 11:00:00",
     "taxonomy": "file",
     "basename": "i_dont_exist.data",
     "parent_model_run_uuid": "373ae181-a0b2-4998-ba32-e27da190f6dd",

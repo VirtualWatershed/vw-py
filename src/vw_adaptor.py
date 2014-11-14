@@ -63,7 +63,7 @@ def makeFGDCMetadatum(dataFile, config, modelRunUUID):
 
 def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
                            modelRunUUID, model_set, description="",
-                           fgdcMetadata=""):
+                           startTime=None, endTime=None, fgdcMetadata=""):
 
     """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
         metadata.
@@ -77,6 +77,12 @@ def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
     """
     assert model_set in ["inputs", "outputs"], "parameter model_set must be \
             either 'inputs' or 'outputs'"
+
+    if not startTime:
+        startTime = "1970-01-01"
+
+    if not endTime:
+        endTime = "1970-01-02"
 
     RECS = "1"
     FEATURES = "1"
@@ -105,11 +111,7 @@ def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
     watershedConfig = config['Watershed Metadata']
     commonConfig = config['Common']
 
-    # TODO clean up the variable names here: snake or camel; going w/ camel
     firstTwoParentUUID = parentModelRunUUID[:2]
-
-    # this and XML path are given since they are known. TODO: check
-    #  what happens if these are not given... or better yet try it!
 
     if model_set == "inputs":
         inputFilePath = os.path.join("/geodata/watershed-data",
@@ -135,6 +137,8 @@ def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
                                  # passed as args to parent function
                                  model_run_uuid=modelRunUUID,
                                  description=description,
+                                 start_time=startTime,
+                                 end_time=endTime,
                                  model_set=model_set,
                                  fgdcMetadata=fgdcMetadata,
                                  # derived from parent function args
