@@ -160,8 +160,8 @@ class TestVWClient(unittest.TestCase):
 
         watershedJSON = \
             makeWatershedMetadata(dataFile, self.config, modelRunUUID,
-                                   modelRunUUID, "inputs",
-                                   "Description of the data", "filePath")
+                                  modelRunUUID, "inputs",
+                                  "Description of the data", "filePath")
 
         self.vwClient.insert_metadata(watershedJSON, fgdcXML)
 
@@ -183,7 +183,7 @@ class TestVWClient(unittest.TestCase):
 
         # fetch the file from the url we know from the VW file storage pattern
         results = \
-            self.vwClient.search(modelRunUUID=self.modelRunUUID, limit=1)
+            self.vwClient.search(model_run_uuid=self.modelRunUUID, limit=1)
 
         url = results.records[0]['downloads'][0]['bin']
 
@@ -199,15 +199,6 @@ class TestVWClient(unittest.TestCase):
 
         os.remove(outfile)
 
-    def test_fetch(self):
-        """ VW Client properly fetches data """
-
-        # search for a valid modelRunUUID to use as a parent modelRunUUID
-        uuid = self.modelRunUUID
-
-        # use that to fetch metadata for that single modelRunUUID
-        assert self.vwClient.fetch_records(uuid).total > 0
-
     @raises(AssertionError)
     def test_fetchFail(self):
         """
@@ -220,7 +211,7 @@ class TestVWClient(unittest.TestCase):
         VW Client properly downloads data
         """
         result = \
-            self.vwClient.search(modelRunUUID=self.modelRunUUID, limit=1)
+            self.vwClient.search(model_run_uuid=self.modelRunUUID, limit=1)
         url = result.records[0]['downloads'][0]['bin']
 
         outfile = "src/test/data/test_dl.file"
