@@ -1,8 +1,6 @@
 {
     "orig_epsg": "$orig_epsg",
     "description": "$description",
-    "start_time": "$start_time",
-    "end_time": "$end_time",
     "taxonomy": "$tax",
     "basename": "$basename",
     "parent_model_run_uuid": "$parent_model_run_uuid",
