@@ -21,8 +21,11 @@ def makeFGDCMetadata(dataFile, config, modelRunUUID):
 
     Returns: XML metadata string
     """
-    statinfo = os.stat(dataFile)
-    filesizeMB = "%s" % str(statinfo.st_size/1000000)
+    try:
+        statinfo = os.stat(dataFile)
+        filesizeMB = "%s" % str(statinfo.st_size/1000000)
+    except OSError:
+        filesizeMB = "NA"
 
     fgdcConfig = config['FGDC Metadata']
     commonConfig = config['Common']
@@ -226,22 +229,17 @@ class VWClient:
 
         return None
 
-    def insert_metadata(self, watershedMetadata, fgdcMetadata):
+    def insert_metadata(self, watershedMetadata):
         """ Insert metadata to the virtual watershed. The data that gets
             uploaded is the FGDC XML metadata.
 
             Returns: None
         """
-        assert fgdcMetadata, "Must pass FGDC metadata to accompany watershed \
-                metadata"
-
-        postData = json.loads(watershedMetadata)
-        postData['metadata']['xml'] = fgdcMetadata
 
         logging.debug("insertDatasetUrl:\n" + self.insertDatasetUrl)
-        logging.debug("post data dumped:\n" + json.dumps(postData))
+        logging.debug("post data dumped:\n" + json.dumps(watershedMetadata))
 
-        result = requests.put(self.insertDatasetUrl, data=json.dumps(postData),
+        result = requests.put(self.insertDatasetUrl, data=watershedMetadata,
                               auth=(self.uname, self.passwd), verify=False)
 
         logging.debug(result.content)

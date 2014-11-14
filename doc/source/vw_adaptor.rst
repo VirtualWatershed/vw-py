@@ -65,7 +65,7 @@ Virtual Watershed metadata and one for generating XML-formatted FGDC "science"
 metadata. The templates used to implement these functions are stored in the
 ``resources/`` directory.
 
-.. autofunction:: vw_adaptor.makeWatershedMetadatum
+.. autofunction:: vw_adaptor.makeWatershedMetadata
 
-.. autofunction:: vw_adaptor.makeFGDCMetadatum
+.. autofunction:: vw_adaptor.makeFGDCMetadata
 
