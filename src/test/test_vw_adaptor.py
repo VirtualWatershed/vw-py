@@ -56,18 +56,14 @@ class TestJSONMetadata(unittest.TestCase):
         # Run test for 'inputs' model_set
         # create metadata file
         model_set = "inputs"
-        startTime = "2010-10-01 10:00:00"
-        endTime = "2010-10-01 11:00:00"
         generated = makeWatershedMetadata("src/test/data/i_dont_exist.data",
-                                           self.config,
-                                           self.parentModelRunUUID,
-                                           self.modelRunUUID,
-                                           model_set,
-                                           "Testing metadata!",
-                                           startTime,
-                                           endTime,
-                                           "<XML>yup.</XML>"
-                                           )
+                                          self.config,
+                                          self.parentModelRunUUID,
+                                          self.modelRunUUID,
+                                          model_set,
+                                          "Testing metadata!",
+                                          "<XML>yup.</XML>"
+                                          )
         # load expected json metadata file
         expected = open("src/test/data/expected1_in.json", 'r').read()
 
@@ -77,15 +73,13 @@ class TestJSONMetadata(unittest.TestCase):
 
         model_set = "outputs"
         generated = makeWatershedMetadata("src/test/data/fake_output.tif",
-                                           self.config,
-                                           self.parentModelRunUUID,
-                                           self.modelRunUUID,
-                                           model_set,
-                                           "Testing metadata!",
-                                           startTime,
-                                           endTime,
-                                           "<XML>yup.</XML>"
-                                           )
+                                          self.config,
+                                          self.parentModelRunUUID,
+                                          self.modelRunUUID,
+                                          model_set,
+                                          "Testing metadata!",
+                                          "<XML>yup.</XML>"
+                                          )
         # load expected json metadata file
         expected = open("src/test/data/expected_w_services.json", 'r').read()
 

@@ -65,8 +65,8 @@ def makeFGDCMetadata(dataFile, config, modelRunUUID):
 
 
 def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
-                           modelRunUUID, model_set, description="",
-                           startTime=None, endTime=None, fgdcMetadata=""):
+                          modelRunUUID, model_set, description="",
+                          fgdcMetadata=""):
 
     """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
         metadata.
@@ -80,12 +80,6 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
     """
     assert model_set in ["inputs", "outputs"], "parameter model_set must be \
             either 'inputs' or 'outputs'"
-
-    if not startTime:
-        startTime = "1970-01-01"
-
-    if not endTime:
-        endTime = "1970-01-02"
 
     RECS = "1"
     FEATURES = "1"
@@ -140,8 +134,6 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
                                  # passed as args to parent function
                                  model_run_uuid=modelRunUUID,
                                  description=description,
-                                 start_time=startTime,
-                                 end_time=endTime,
                                  model_set=model_set,
                                  fgdcMetadata=fgdcMetadata,
                                  # derived from parent function args
