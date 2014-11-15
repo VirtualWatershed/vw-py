@@ -66,7 +66,7 @@ def makeFGDCMetadata(dataFile, config, modelRunUUID):
 
 def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
                           modelRunUUID, model_set, description="",
-                          fgdcMetadata=""):
+                          model_vars="", fgdcMetadata=""):
 
     """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
         metadata.
@@ -123,6 +123,9 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
     template_object = open(json_template, 'r')
     template = Template(template_object.read())
 
+    # properly escape xml metadata escape chars
+    fgdcMetadata = fgdcMetadata.replace('\n','\\n').replace('\t','\\t')
+
     # write the metadata for a file
     output = template.substitute(# determined by file ext, set within function
                                  wcs=wcs,
@@ -133,6 +136,7 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
                                  model_set_type=model_set_type,
                                  # passed as args to parent function
                                  model_run_uuid=modelRunUUID,
+                                 model_vars=model_vars,
                                  description=description,
                                  model_set=model_set,
                                  fgdcMetadata=fgdcMetadata,
