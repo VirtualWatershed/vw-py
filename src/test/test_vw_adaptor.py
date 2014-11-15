@@ -56,13 +56,18 @@ class TestJSONMetadata(unittest.TestCase):
         # Run test for 'inputs' model_set
         # create metadata file
         model_set = "inputs"
-        generated = makeWatershedMetadata("src/test/data/i_dont_exist.data",
+        description = "Testing metadata!"
+        model_vars = "R_n,H,L_v_E,G,M,delta_Q"
+        fgdcMetadata = "<XML>yup.</XML>"
+        dataFile = "src/test/data/i_dont_exist.data"
+        generated = makeWatershedMetadata(dataFile,
                                           self.config,
                                           self.parentModelRunUUID,
                                           self.modelRunUUID,
                                           model_set,
-                                          "Testing metadata!",
-                                          "<XML>yup.</XML>"
+                                          description,
+                                          model_vars,
+                                          fgdcMetadata
                                           )
         # load expected json metadata file
         expected = open("src/test/data/expected1_in.json", 'r').read()
@@ -71,14 +76,16 @@ class TestJSONMetadata(unittest.TestCase):
         assert generated == expected, \
             showStringDiff(generated, expected)
 
+        dataFile = "src/test/data/fake_output.tif"
         model_set = "outputs"
-        generated = makeWatershedMetadata("src/test/data/fake_output.tif",
+        generated = makeWatershedMetadata(dataFile,
                                           self.config,
                                           self.parentModelRunUUID,
                                           self.modelRunUUID,
                                           model_set,
-                                          "Testing metadata!",
-                                          "<XML>yup.</XML>"
+                                          description,
+                                          model_vars,
+                                          fgdcMetadata
                                           )
         # load expected json metadata file
         expected = open("src/test/data/expected_w_services.json", 'r').read()
@@ -155,11 +162,13 @@ class TestVWClient(unittest.TestCase):
         watershedJSON = \
             makeWatershedMetadata(dataFile, self.config, modelRunUUID,
                                   modelRunUUID, "inputs",
-                                  "Description of the data", "filePath")
+                                  "Description of the data",
+                                  model_vars="R_n,H,L_v_E,G,M,delta_Q",
+                                  fgdcMetadata=fgdcXML)
 
-        self.vwClient.insert_metadata(watershedJSON, fgdcXML)
+        self.vwClient.insert_metadata(watershedJSON)
 
-        vwTestUUIDEntries = self.vwClient.fetch_records(modelRunUUID)
+        vwTestUUIDEntries = self.vwClient.search(model_run_uuid=modelRunUUID)
 
         assert vwTestUUIDEntries,\
             "No VW Entries corresponding to the test UUID"
@@ -167,8 +176,7 @@ class TestVWClient(unittest.TestCase):
     @raises(HTTPError)
     def test_insertFail(self):
         """ VW Client throws error on failed insert"""
-        self.vwClient.insert_metadata('{"metadata": {"xml": "mo garbage"}}',
-                                      "<XML?></XML>")
+        self.vwClient.insert_metadata('{"metadata": {"xml": "mo garbage"}}')
 
     def test_upload(self):
         """ VW Client properly uploads data """
@@ -192,13 +200,6 @@ class TestVWClient(unittest.TestCase):
         assert os.path.isfile(outfile)
 
         os.remove(outfile)
-
-    @raises(AssertionError)
-    def test_fetchFail(self):
-        """
-        VW Client fails when trying to fetch non-existent modelRunUUID
-        """
-        self.vwClient.fetch_records("invalid_uuid")
 
     def test_download(self):
         """
