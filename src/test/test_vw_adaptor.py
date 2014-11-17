@@ -143,7 +143,7 @@ class TestVWClient(unittest.TestCase):
         hostname = self.config['Common']['watershedIP']
         modelIdUrl = "https://" + hostname + "/apps/my_app/newmodelrun"
 
-        data = {"description": "inital insert"}
+        data = {"description": "initial insert"}
 
         result = \
             requests.post(modelIdUrl, data=json.dumps(data),
