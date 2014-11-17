@@ -108,7 +108,7 @@ Set up and initialize watershed
 >>> modelIdUrl = "https://" + hostname + "/apps/my_app/newmodelrun"
 >>> data = {"description": "inital insert"}
 >>> commonConfig = config['Common']
->>> result = requests.post(modelIdUrl, data=json.dumps(data), auth=(config['user'], config['passwd']), verify=False)
+>>> result = requests.post(modelIdUrl, data=json.dumps(data), auth=(commonConfig['user'], commonConfig['passwd']), verify=False)
 >>> modelRunUUID = result.text
 
 Get a VW Client connection (will soon be done during initialization)
