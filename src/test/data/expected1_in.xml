@@ -1,4 +1,4 @@
-<!DOCTYPE metadata SYSTEM "http://www.fgdc.gov/metadata/fgdc-std-001-1998.dtd">
+<!DOCTYPE metadata SYSTEM 'http://www.fgdc.gov/metadata/fgdc-std-001-1998.dtd'>
 <metadata>
 	<idinfo>
 		<model_run_uuid>09079630-5ef8-11e4-9803-0800200c9a66</model_run_uuid>
