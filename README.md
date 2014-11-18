@@ -9,16 +9,168 @@ Contributors:
 
 ## Quickstart
 
-A good way to get started is to run some tests. From the root project directory,
-run 
+
+This part is very simple and basically consists of three parts: 
+
+1. Clone the repository
+2. Install dependencies using `pip install -r requirements.txt`
+3. Copy `default.conf.template` to `default.conf` and 
+   `src/test/test.conf.template` to `src/test/test.conf` and fill out both
+   with your login credentials and correct paths to the XML and JSON metadata
+   templates
+4. Check that all is well by running the unittests
+
+### Clone repository
+
+The repository is 
+[hosted on github](https://github.com/tri-state-epscor/adaptors). Clone it
+like so:
 
 ```bash
-nosetests
+$ git clone https://github.com/tri-state-epscor/adaptors
 ```
 
-Install [nose](https://nose.readthedocs.org/en/latest/) if you haven't already.
+### Install dependencies
 
-The tests are located in `src/tests/`.
+You need [pip](https://pypi.python.org/pypi/pip) installed to complete this
+step.
+
+From the root folder of the repository, run
+
+```bash
+$ pip install -r requirements.txt
+```
+
+### Copy configuration files and edit them appropriately
+
+The configuration files store metadata that doesn't change between model runs
+for a given project. Thus, a lot of the complexity of creating metadata is
+kept behind the scenes. You'll see more as you fill out the configuration files.
+Currently you must edit both the test configuration and the default
+configuration if you want to run the tests as well as connect arbitrarily to the
+virtual watershed. Hopefully this will not always be the case.
+
+
+#### Required edits to config files
+
+First, copy the configuration file templates:
+
+```bash
+$ cp default.conf.template default.conf
+$ cp src/test/test.conf.template src/test/test.conf
+```
+
+Next open `default.conf` in your text editor and fill in `watershedIP`,
+`user`, and `passwd` fields appropriately. For the two `template_path`
+variables in the two different sections, change `EDIT-THIS-PATH-TO` to the
+actual path to your `adaptors` directory.
+
+#### You should also edit this stuff
+
+There are many other fields like "researcherName", "mailing_address",
+city, state, zip code, research phone number, and more that should be modified
+appropriately. 
+
+If you don't see a field that should be included in the metadata.
+
+
+### Run Unittests
+
+Finally, run the unittests from the root `adaptors` directory like so
+
+```bash
+$ nosetests
+```
+
+If all is well, you will see the following output:
+
+```
+Test that a single metadata JSON string is properly built (FGDC) ... ok
+Test that a single metadata JSON string is properly built (JSON) ... ok
+Test that failed authorization is correctly caught ... /Users/mturner/anaconda/lib/python2.7/site-packages/requests/packages/urllib3/connectionpool.py:730: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html (This warning will only appear once by default.)
+InsecureRequestWarning)
+ok
+VW Client properly downloads data ... ok
+VW Client throws error on failed download ... ok
+VW Client properly inserts data ... ok
+VW Client throws error on failed insert ... ok
+VW Client properly uploads data ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 21.585s
+
+OK
+```
+
+### First steps to inserting data
+
+Follow these steps to insert some visualization data to the virtual watershed.
+For more on the capabilities and structure of the Virtual Watershed Client
+see the [API
+documentation](http://epscor-wc-wave-adaptors.readthedocs.org/en/latest/vw_adaptor.html#vwclient-user-interface-to-the-virtual-watershed)
+
+
+#### Connect to the watershed
+
+For this you need to make sure you filled out the `watershedIP`, `user`, and
+`passwd` in your personal `default.conf`. 
+
+```python
+# instantiate a new model run. this will soon be automated
+from adaptors.vw_adaptor import get_config, default_vw_client, \
+    makeFGDCMetadata, makeWatershedMetadata
+
+
+ use whatever path necessary to access default.conf
+config = get_config('adaptors/default.conf')
+commonConfig = config['Common']
+
+hostname = config['watershedIP']
+modelIdUrl = "https://" + hostname + "/apps/my_app/newmodelrun"
+# here "description" becomes "model_run_name" in the metadata
+data = {"description": "Model Run Name"}
+result = requests.post(modelIdUrl, data=json.dumps(data), 
+    auth=(commonConfig['user'], commonConfig['passwd']), verify=False)
+
+modelRunUUID = result.text
+```
+
+#### get a VW Client connection
+
+```python
+vwClient = default_vw_client(configFile) #could leave empty if in root directory
+```
+
+#### Upload File
+
+```python
+visFile = "em0001.3.tif"
+vwClient.upload(modelRunUUID, "path/to/data/em0001.3.tif")
+```
+
+#### Build Metadata
+
+Let's pretend that the single-banded tif we are uploading is temperature.
+Then the `model_vars` variable is `T_a`.
+
+
+```python
+fgdcXml = makeFGDCMetadata(visFile, config, modelRunUUID=modelRunUUID)
+
+# here we pass modelRunUUID as both the modelRunUUID and parentModelRunUUID
+
+watershedJSON = makeWatershedMetadata(visFile, config, modelRunUUID,
+                                      modelRunUUID, "outputs", 
+                                      description="Atmospheric Temperature Vis Data",
+                                      model_vars="T_a", model_vars="T_a",
+                                      fgdcMetadata=fgdcXML)
+```
+
+#### Insert Metadata
+
+```python
+vwClient.insert_metadata(watershedJSON)
+```
 
 ## Contribution guidelines
 
@@ -31,8 +183,8 @@ Specifically, let's follow these two rules so all our text editors can agree:
 2. Spaces are the preferred indentation method. Tabs should be used solely to
    remain consistent with code that is already indented with tabs.
 
-It seems we all prefer camelCase to what PEP 8 recommends, which is
-words\_separated\_by\_underscores. 
+I am slowly converting function names to the PEP-8 standard, which is 
+`words_underscore_sep`. 
 
 
 ## Intro

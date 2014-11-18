@@ -15,14 +15,17 @@ import urllib
 from string import Template
 
 
-def makeFGDCMetadatum(dataFile, config, modelRunUUID):
+def makeFGDCMetadata(dataFile, config, modelRunUUID):
     """
     For a single `dataFile`, write the XML FGDC metadata
 
     Returns: XML metadata string
     """
-    statinfo = os.stat(dataFile)
-    filesizeMB = "%s" % str(statinfo.st_size/1000000)
+    try:
+        statinfo = os.stat(dataFile)
+        filesizeMB = "%s" % str(statinfo.st_size/1000000)
+    except OSError:
+        filesizeMB = "NA"
 
     fgdcConfig = config['FGDC Metadata']
     commonConfig = config['Common']
@@ -61,9 +64,9 @@ def makeFGDCMetadatum(dataFile, config, modelRunUUID):
     return output
 
 
-def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
-                           modelRunUUID, model_set, description="",
-                           fgdcMetadata=""):
+def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
+                          modelRunUUID, model_set, description="",
+                          model_vars="", fgdcMetadata=""):
 
     """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
         metadata.
@@ -105,11 +108,7 @@ def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
     watershedConfig = config['Watershed Metadata']
     commonConfig = config['Common']
 
-    # TODO clean up the variable names here: snake or camel; going w/ camel
     firstTwoParentUUID = parentModelRunUUID[:2]
-
-    # this and XML path are given since they are known. TODO: check
-    #  what happens if these are not given... or better yet try it!
 
     if model_set == "inputs":
         inputFilePath = os.path.join("/geodata/watershed-data",
@@ -124,6 +123,9 @@ def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
     template_object = open(json_template, 'r')
     template = Template(template_object.read())
 
+    # properly escape xml metadata escape chars
+    fgdcMetadata = fgdcMetadata.replace('\n','\\n').replace('\t','\\t')
+
     # write the metadata for a file
     output = template.substitute(# determined by file ext, set within function
                                  wcs=wcs,
@@ -134,6 +136,7 @@ def makeWatershedMetadatum(dataFile, config, parentModelRunUUID,
                                  model_set_type=model_set_type,
                                  # passed as args to parent function
                                  model_run_uuid=modelRunUUID,
+                                 model_vars=model_vars,
                                  description=description,
                                  model_set=model_set,
                                  fgdcMetadata=fgdcMetadata,
@@ -186,44 +189,27 @@ class VWClient:
         self.searchUrl = "https://" + ipAddress + \
             "/apps/my_app/search/datasets.json?version=3"
 
-    def search(self, limit=None, offset=None, modelRunUUID=None,
-               parentModelRunUUID=None):
-        """ Search the VW for JSON metadata records with matching parameters
+    def search(self, **kwargs):
+        """
+        Search the VW for JSON metadata records with matching parameters.
+        Use key, value pairs as specified in the `Virtual Watershed
+        Documentation
+        <http://129.24.196.43//docs/stable/search.html#search-objects>`_
 
-            Returns: a list of JSON records as dictionaries
+        Returns: a list of JSON records as dictionaries
         """
         fullUrl = self.searchUrl
 
-        if limit:
-            fullUrl = fullUrl + "&limit=%s" % str(limit)
+        for key, val in kwargs.iteritems():
 
-        if offset:
-            fullUrl = fullUrl + "&offset=%s" % str(offset)
+            if type(val) is not str:
+                val = str(val)
 
-        if modelRunUUID:
-            fullUrl = fullUrl + "&model_run_uuid=%s" % modelRunUUID
-
-        if parentModelRunUUID:
-            fullUrl = fullUrl + "&parent_model_run_uuid=%s" % \
-                parentModelRunUUID
+            fullUrl += "&%s=%s" % (key, val)
 
         r = requests.get(fullUrl, verify=False)
 
         return QueryResult(r.json())
-
-    def fetch_records(self, modelRunUUID):
-        """ Fetch JSON records with given modelRunUUID """
-
-        uuiddata = {"modelid": modelRunUUID}
-        r = requests.post(self.uuidCheckUrl, data=uuiddata, verify=False)
-
-        status = r.text
-        assert status.lower() == "true", "Invalid modelRunUUID!"
-
-        # query for a valid model run uuid
-        results = self.search(modelRunUUID=modelRunUUID)
-
-        return results
 
     def download(self, url, outFile):
         """ Download a file from the VW using url to localFile on local disk
@@ -239,22 +225,17 @@ class VWClient:
 
         return None
 
-    def insert_metadata(self, watershedMetadata, fgdcMetadata):
+    def insert_metadata(self, watershedMetadata):
         """ Insert metadata to the virtual watershed. The data that gets
             uploaded is the FGDC XML metadata.
 
             Returns: None
         """
-        assert fgdcMetadata, "Must pass FGDC metadata to accompany watershed \
-                metadata"
-
-        postData = json.loads(watershedMetadata)
-        postData['metadata']['xml'] = fgdcMetadata
 
         logging.debug("insertDatasetUrl:\n" + self.insertDatasetUrl)
-        logging.debug("post data dumped:\n" + json.dumps(postData))
+        logging.debug("post data dumped:\n" + json.dumps(watershedMetadata))
 
-        result = requests.put(self.insertDatasetUrl, data=json.dumps(postData),
+        result = requests.put(self.insertDatasetUrl, data=watershedMetadata,
                               auth=(self.uname, self.passwd), verify=False)
 
         logging.debug(result.content)
