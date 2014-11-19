@@ -6,6 +6,14 @@ Tools for working with IPW binary data and running the iSNOBAL model
 """
 
 import pandas as pd
+from collections import namedtuple
+
+#: Container for ISNOBAL Band information
+Band = namedtuple("Band", \
+                  'nBytes nBits binMin binMax floatMin floatMax'.split())
+
+#: Container for ISNOBAL Global Band information
+GlobalBand = namedtuple("GlobalBand", 'nLines nSamps nBands'.split())
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
 VARNAME_DICT = \
@@ -32,7 +40,16 @@ def get_varnames(fileType):
 
 class IPW(pd.DataFrame):
     """
-    Represents an IPW file.
+    Represents an IPW file. Provides a dataFrame attribute to access the
+    variables and their floating point representation as a dataframe. The
+    dataframe can be modified, the headers recalculated with
+    recalculateHeaders, and then written back to IPW binary with
+    writeBinary.
+
+    >>> ipw = IPW().from_file("in.0000")
+    >>> ipw.dataFrame.T_a = ipw.dataFrame.T_a + 1.0 # add 1 deg C to each temp
+    >>> ipw.writeBinary("in.plusOne.000")
+
     """
     def __init__(self, ipwLines, fileType):
 
@@ -77,46 +94,34 @@ def _build_ipw_dataframe(header, binaryData, colnames):
     pass
 
 
-def _parse_header_lines(headerLines):
+def _make_header_dict(headerLines, varnames):
     """
-    Parse header lines and return a Header object
+    Make a header dictionary that points to Band objects for each variable
+    name.
+
+    Returns: dict
     """
+    # parse global information from global header
+    for i, l in headerLines[1:-1]:
+        if l.split()[0] == "!<header>":
+            toIndex = i
+            break
 
-    return Header
+    globalHeaderLines = headerLines[1:toIndex]
 
+    for l in globalHeaderLines:
+        exec(l)
 
-class Header:
-    """
-    Parse header, store information. Assumes header has already been broken
-    into lines
-    """
-    def __init__(self, headerLines):
-        """
+    del byteorder
 
-        """
-        pass
+    globalBand = GlobalBand(nlines, nsamps, nbands)
 
-    # @property
-    # def global(self):
-        # """
-        # byteorder, nlines, nsamps, nbands
-        # """
-        # pass
+    bands = []
 
-    @property
-    def quantization(self):
-        """
-        Units, bytes, value maps
-        """
-        pass
+    # create header groups for each band index number
+    nBands = nbands
 
-    @property
-    def geo(self):
-        """
-        Geographic info for bands
-        """
-        pass
-
+    return dict(zip(['global'] + range(nBands), globalBand + bands))
 
 class IPWLines:
     """
