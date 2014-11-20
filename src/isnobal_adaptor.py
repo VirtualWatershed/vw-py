@@ -41,8 +41,6 @@ def _calc_float_value(band, integerValue):
 
     Returns: Floating point value of the mapped int_
     """
-    print band.floatMax
-    print band.floatMin
     floatRange = band.floatMax - band.floatMin
 
     return (integerValue / float(band.intMax)) * floatRange + band.floatMin
@@ -164,7 +162,9 @@ def _make_header_dict(headerLines, varnames):
     globalBand = GlobalBand(nLines, nSamps, nBands)
 
     # initialize a list of bands to put parsed information into
-    bands = [Band()]*nBands
+    bands = [Band() for i in range(nBands)]
+
+    bandDict = {'global': globalBand}
 
     bandType = None
     bandIdx = None
@@ -174,12 +174,10 @@ def _make_header_dict(headerLines, varnames):
 
         if isHeaderStart(l):
 
-            bandType = l[BAND_TYPE_LOC]
-            bandIdx = l[BAND_INDEX_LOC]
+            bandType = spl[BAND_TYPE_LOC]
+            bandIdx = int(spl[BAND_INDEX_LOC])
 
             lqCounter = 0
-
-            print bandType
 
         elif bandType == 'basic_image':
             # assign byte and bits info that's stored here
@@ -191,21 +189,33 @@ def _make_header_dict(headerLines, varnames):
                 # minimum values are listed first
                 if lqCounter == 0:
                     setattr(bands[bandIdx], 'intMin', float(spl[2]))
-                    setattr(bands[bandIdx], 'floatMin', float(spl[3]))
+                    # setattr(bands[bandIdx], 'floatMin', float(spl[3]))
+                    bands[bandIdx].floatMin = float(spl[3])
+                    print bands[bandIdx].floatMin
+
                     lqCounter += 1
 
-                if lqCounter == 1:
+                elif lqCounter == 1:
                     setattr(bands[bandIdx], 'intMax', float(spl[2]))
                     setattr(bands[bandIdx], 'floatMax', float(spl[3]))
 
 
     # create header groups for each band index number
-    keys = ['global'] + varnames[:nBands]
+    # keys = ['global'] + varnames[:nBands]
+    # print keys
     values = [globalBand] + bands
+    for val in values:
+        try:
+            print val.floatMin
+        except:
+            continue
 
-    ret = dict(zip(keys, values))
+    for i, var in enumerate(varnames[:nBands]):
+        bandDict[var] = bands[i]
 
-    logging.debug(str(ret))
+    ret = bandDict
+
+    logging.debug(str(ret['T_a'].floatMin) + " " + str(ret['T_a'].floatMax))
 
     return  ret
 

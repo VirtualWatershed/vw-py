@@ -42,19 +42,28 @@ class TestHeaderParser(unittest.TestCase):
         headerDict = _make_header_dict(self.headerLines, VARNAME_DICT['in'])
 
         i = 0
+        print headerDict
         for variable, expectedBand in expectedHeaderDict.iteritems():
 
             genBand = headerDict[variable]
 
             if variable == 'global':
+                assert genBand.nLines is not None
+                assert genBand.nSamps is not None
+                assert genBand.nBands is not None
+
                 assert genBand.nLines == expectedBand.nLines
                 assert genBand.nSamps == expectedBand.nSamps
                 assert genBand.nBands == expectedBand.nBands
 
             else:
-                print genBand.bytes_
-                print expectedBand.bytes_
-                assert False
+                assert genBand.bytes_ is not None
+                assert genBand.bits_ is not None
+                assert genBand.intMin is not None
+                assert genBand.intMax is not None
+                assert genBand.floatMin is not None
+                assert genBand.floatMax is not None
+
                 assert genBand.bytes_ == expectedBand.bytes_
                 assert genBand.bits_ == expectedBand.bits_
                 assert genBand.intMin == expectedBand.intMin
