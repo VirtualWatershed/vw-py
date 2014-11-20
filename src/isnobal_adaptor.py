@@ -8,12 +8,36 @@ Tools for working with IPW binary data and running the iSNOBAL model
 import pandas as pd
 from collections import namedtuple
 
+from collections import defaultdict
+
+import logging
+
+#: IPW standard. assumed unchanging since they've been the same for 20 years
+BAND_TYPE_LOC = 1
+BAND_INDEX_LOC = 2
+
 #: Container for ISNOBAL Band information
-Band = namedtuple("Band", \
-                  'nBytes nBits binMin binMax floatMin floatMax'.split())
+class Band:
+
+    def __init__(self, nBytes=None, nBits=None, intMin=None, intMax=None,
+                 floatMin=None, floatMax=None):
+        self.bytes_ = None
+        self.bits_ = None
+        self.intMin = None
+        self.intMax = None
+        self.floatMin = None
+        self.floatMax = None
+
+
+def _calc_float_value(band, integerValue):
+
+    floatRange = band.floatMax - band.floatMin
+
+    return (integerValue / float(band.intMax)) * floatRange + band.floatMin
+
 
 #: Container for ISNOBAL Global Band information
-GlobalBand = namedtuple("GlobalBand", 'nLines nSamps nBands'.split())
+GlobalBand = namedtuple("GlobalBand", 'nLines nSamps nBands')
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
 VARNAME_DICT = \
@@ -101,27 +125,75 @@ def _make_header_dict(headerLines, varnames):
 
     Returns: dict
     """
+    # use this to check if a line in the header is a header start announcement
+    isHeaderStart = lambda headerLine: headerLine.split()[0] == "!<header>"
+
     # parse global information from global header
-    for i, l in headerLines[1:-1]:
-        if l.split()[0] == "!<header>":
-            toIndex = i
+    for i, l in enumerate(headerLines[1:-1]):
+        if isHeaderStart(l):
+            globalEndIdx = i
             break
 
-    globalHeaderLines = headerLines[1:toIndex]
+    globalHeaderLines = headerLines[1:globalEndIdx+1]
 
+    # tried a prettier dictionary comprehension, but wouldn't fly
+    globalBandDict = defaultdict(int)
     for l in globalHeaderLines:
-        exec(l)
+        if l:
+            spl = l.strip().split()
+            globalBandDict[spl[0]] = int(spl[2])
 
-    del byteorder
+    # these are the standard names in an ISNOBAL header file
+    nLines = globalBandDict['nlines']
+    nSamps = globalBandDict['nsamps']
+    nBands = globalBandDict['nbands']
 
-    globalBand = GlobalBand(nlines, nsamps, nbands)
+    globalBand = GlobalBand(nLines, nSamps, nBands)
 
-    bands = []
+    # initialize a list of bands to put parsed information into
+    bands = [Band()]*nBands
+
+    bandType = None
+    bandIdx = None
+    for l in headerLines[globalEndIdx:]:
+
+        spl = l.strip().split()
+
+        if isHeaderStart(l):
+
+            bandType = l[BAND_TYPE_LOC]
+            bandIdx = l[BAND_INDEX_LOC]
+
+            lqCounter = 0
+
+        elif bandType == 'basic_image':
+            # assign byte and bits info that's stored here
+            setattr(bands[bandIdx], spl[0] + "_", int(spl[2]))
+
+        elif bandType == 'lq':
+            # assign integer and float min and max
+            if spl[0] == "map":
+                # minimum values are listed first
+                if lqCounter == 0:
+                    setattr(bands[bandIdx], 'intMin', float(spl[2]))
+                    setattr(bands[bandIdx], 'floatMin', float(spl[3]))
+                    lqCounter += 1
+
+                if lqCounter == 1:
+                    setattr(bands[bandIdx], 'intMax', float(spl[2]))
+                    setattr(bands[bandIdx], 'floatMax', float(spl[3]))
+
 
     # create header groups for each band index number
-    nBands = nbands
+    keys = ['global'] + varnames[:nBands]
+    values = [globalBand] + bands
 
-    return dict(zip(['global'] + range(nBands), globalBand + bands))
+    ret = dict(zip(keys, values))
+
+    logging.debug(str(ret))
+
+    return  ret
+
 
 class IPWLines:
     """
