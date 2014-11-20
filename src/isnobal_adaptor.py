@@ -16,21 +16,33 @@ import logging
 BAND_TYPE_LOC = 1
 BAND_INDEX_LOC = 2
 
-#: Container for ISNOBAL Band information
-class Band:
 
+class Band:
+    """
+    Container for band information
+    """
     def __init__(self, nBytes=None, nBits=None, intMin=None, intMax=None,
                  floatMin=None, floatMax=None):
-        self.bytes_ = None
-        self.bits_ = None
-        self.intMin = None
-        self.intMax = None
-        self.floatMin = None
-        self.floatMax = None
+        """
+        Can either pass this information or create an all-None Band.
+        """
+        self.bytes_ = nBytes
+        self.bits_ = nBits
+        self.intMin = intMin
+        self.intMax = intMax
+        self.floatMin = floatMin
+        self.floatMax = floatMax
 
 
 def _calc_float_value(band, integerValue):
+    """
+    Calculate a floating point value for the integer int_ given the min/max int
+    and min/max floats in the given bandObj
 
+    Returns: Floating point value of the mapped int_
+    """
+    print band.floatMax
+    print band.floatMin
     floatRange = band.floatMax - band.floatMin
 
     return (integerValue / float(band.intMax)) * floatRange + band.floatMin
@@ -46,6 +58,7 @@ VARNAME_DICT = \
         'em': [],
         'snow': []
     }
+
 
 def get_varnames(fileType):
     """

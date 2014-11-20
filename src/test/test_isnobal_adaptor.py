@@ -7,7 +7,7 @@ import unittest
 import numpy.testing as npt
 
 from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_header_dict, \
-    GlobalBand, Band
+    GlobalBand, Band, _calc_float_value
 
 
 class TestHeaderParser(unittest.TestCase):
@@ -52,6 +52,9 @@ class TestHeaderParser(unittest.TestCase):
                 assert genBand.nBands == expectedBand.nBands
 
             else:
+                print genBand.bytes_
+                print expectedBand.bytes_
+                assert False
                 assert genBand.bytes_ == expectedBand.bytes_
                 assert genBand.bits_ == expectedBand.bits_
                 assert genBand.intMin == expectedBand.intMin
@@ -71,11 +74,10 @@ class TestUtils(unittest.TestCase):
     def setUp(self):
         pass
 
-    def TestName(self):
+    def test_float_convert(self):
         """
-        DisplayTestDescription
+        Convert an integer to a float using the header information in a Band
         """
-
         testBand = Band(1, 8, 0, 255, -27.5, 33.0)
 
         testInt = 10
