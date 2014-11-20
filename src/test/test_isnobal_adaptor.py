@@ -86,6 +86,3 @@ class TestUtils(unittest.TestCase):
 
         npt.assert_approx_equal(byHandFloat,
                                 _calc_float_value(testBand, testInt))
-
-
-

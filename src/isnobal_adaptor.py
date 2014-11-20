@@ -179,6 +179,8 @@ def _make_header_dict(headerLines, varnames):
 
             lqCounter = 0
 
+            print bandType
+
         elif bandType == 'basic_image':
             # assign byte and bits info that's stored here
             setattr(bands[bandIdx], spl[0] + "_", int(spl[2]))
