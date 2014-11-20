@@ -24,3 +24,6 @@ doc/build/*
 *ppt_desc
 scripts/ppt_images_dist/*
 ppt_images_dist/*
+*.ppt*
+scripts/gdal_metadata.py
+scripts/my-model-run.py
