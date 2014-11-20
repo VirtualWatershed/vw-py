@@ -159,12 +159,13 @@ def _make_header_dict(headerLines, varnames):
     nSamps = globalBandDict['nsamps']
     nBands = globalBandDict['nbands']
 
+    # this will be put into the return dictionary at the return statement
     globalBand = GlobalBand(nLines, nSamps, nBands)
 
     # initialize a list of bands to put parsed information into
     bands = [Band() for i in range(nBands)]
 
-    bandDict = {'global': globalBand}
+    # bandDict = {'global': globalBand}
 
     bandType = None
     bandIdx = None
@@ -184,40 +185,19 @@ def _make_header_dict(headerLines, varnames):
             setattr(bands[bandIdx], spl[0] + "_", int(spl[2]))
 
         elif bandType == 'lq':
-            # assign integer and float min and max
+            # assign integer and float min and max. ignore non-"map" fields
             if spl[0] == "map":
                 # minimum values are listed first
                 if lqCounter == 0:
-                    setattr(bands[bandIdx], 'intMin', float(spl[2]))
-                    # setattr(bands[bandIdx], 'floatMin', float(spl[3]))
+                    bands[bandIdx].intMin = float(spl[2])
                     bands[bandIdx].floatMin = float(spl[3])
-                    print bands[bandIdx].floatMin
-
                     lqCounter += 1
 
                 elif lqCounter == 1:
-                    setattr(bands[bandIdx], 'intMax', float(spl[2]))
-                    setattr(bands[bandIdx], 'floatMax', float(spl[3]))
+                    bands[bandIdx].intMax = float(spl[2])
+                    bands[bandIdx].floatMax = float(spl[3])
 
-
-    # create header groups for each band index number
-    # keys = ['global'] + varnames[:nBands]
-    # print keys
-    values = [globalBand] + bands
-    for val in values:
-        try:
-            print val.floatMin
-        except:
-            continue
-
-    for i, var in enumerate(varnames[:nBands]):
-        bandDict[var] = bands[i]
-
-    ret = bandDict
-
-    logging.debug(str(ret['T_a'].floatMin) + " " + str(ret['T_a'].floatMax))
-
-    return  ret
+    return dict(zip(['global']+varnames[:nBands], [globalBand]+bands))
 
 
 class IPWLines:
