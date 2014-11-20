@@ -119,8 +119,8 @@ Get a VW Client connection (will soon be done during initialization)
 Upload File
 -----------
 
->>> vwClient.upload(modelRunUUID, "src/test/data/in.0001")
 >>> dataFile = "src/test/data/in.0001"
+>>> vwClient.upload(modelRunUUID, "src/test/data/in.0001")
 
 Build metadata
 --------------
