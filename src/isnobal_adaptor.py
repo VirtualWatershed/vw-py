@@ -6,6 +6,7 @@ Tools for working with IPW binary data and running the iSNOBAL model
 """
 
 import pandas as pd
+import numpy as np
 from collections import namedtuple, defaultdict
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
@@ -96,7 +97,7 @@ def _build_ipw_dataframe(header, binaryData, colnames):
     pass
 
 
-def _make_header_dict(headerLines, varnames):
+def _make_bands(headerLines, varnames):
     """
     Make a header dictionary that points to Band objects for each variable
     name.
@@ -133,6 +134,8 @@ def _make_header_dict(headerLines, varnames):
     bands = [Band() for i in range(nBands)]
 
     # bandDict = {'global': globalBand}
+    for i, b in enumerate(bands):
+        b.varname = varnames[i]
 
     bandType = None
     bandIdx = None
@@ -181,17 +184,28 @@ def _calc_float_value(band, integerValue):
     return integerValue * (floatRange / band.intMax) + band.floatMin
 
 
+def _bands_to_dtype(bands):
+    """
+    Given a list of Bands, convert them to a numpy.dtype for use in creating
+    the IPW dataframe.
+    """
+    return np.dtype([(b.varname, 'uint' + str(b.bits_)) for b in bands])
+
+
 class Band:
     """
     Container for band information
     """
-    def __init__(self, nBytes=None, nBits=None, intMin=None, intMax=None,
-                 floatMin=None, floatMax=None):
+    def __init__(self, varname="", nBytes=0, nBits=0, intMin=0, intMax=0,
+                 floatMin=0.0, floatMax=0.0):
         """
         Can either pass this information or create an all-None Band.
         """
+        self.varname = varname
+
         self.bytes_ = nBytes
         self.bits_ = nBits
+
         self.intMin = float(intMin)
         self.intMax = float(intMax)
         self.floatMin = float(floatMin)
