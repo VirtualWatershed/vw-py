@@ -6,44 +6,11 @@ Tools for working with IPW binary data and running the iSNOBAL model
 """
 
 import pandas as pd
-from collections import namedtuple
-
-from collections import defaultdict
-
-import logging
+from collections import namedtuple, defaultdict
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
 BAND_TYPE_LOC = 1
 BAND_INDEX_LOC = 2
-
-
-class Band:
-    """
-    Container for band information
-    """
-    def __init__(self, nBytes=None, nBits=None, intMin=None, intMax=None,
-                 floatMin=None, floatMax=None):
-        """
-        Can either pass this information or create an all-None Band.
-        """
-        self.bytes_ = nBytes
-        self.bits_ = nBits
-        self.intMin = intMin
-        self.intMax = intMax
-        self.floatMin = floatMin
-        self.floatMax = floatMax
-
-
-def _calc_float_value(band, integerValue):
-    """
-    Calculate a floating point value for the integer int_ given the min/max int
-    and min/max floats in the given bandObj
-
-    Returns: Floating point value of the mapped int_
-    """
-    floatRange = band.floatMax - band.floatMin
-
-    return (integerValue / float(band.intMax)) * floatRange + band.floatMin
 
 
 #: Container for ISNOBAL Global Band information
@@ -88,7 +55,7 @@ class IPW(pd.DataFrame):
     """
     def __init__(self, ipwLines, fileType):
 
-        header = _parse_header_lines(ipwLines.headerLines)
+        header = _make_header_dict(ipwLines.headerLines)
 
         df = _build_ipw_dataframe(header, ipwLines.binaryData)
 
@@ -200,6 +167,37 @@ def _make_header_dict(headerLines, varnames):
     return dict(zip(['global']+varnames[:nBands], [globalBand]+bands))
 
 
+def _calc_float_value(band, integerValue):
+    """
+    Calculate a floating point value for the integer int_ given the min/max int
+    and min/max floats in the given bandObj
+
+    Returns: Floating point value of the mapped int_
+    """
+    # TODO create Band.floatRange
+    floatRange = band.floatMax - band.floatMin
+
+    # TODO create Band.scaleMult = floatRange/band.intMax
+    return integerValue * (floatRange / band.intMax) + band.floatMin
+
+
+class Band:
+    """
+    Container for band information
+    """
+    def __init__(self, nBytes=None, nBits=None, intMin=None, intMax=None,
+                 floatMin=None, floatMax=None):
+        """
+        Can either pass this information or create an all-None Band.
+        """
+        self.bytes_ = nBytes
+        self.bits_ = nBits
+        self.intMin = float(intMin)
+        self.intMax = float(intMax)
+        self.floatMin = float(floatMin)
+        self.floatMax = float(floatMax)
+
+
 class IPWLines:
     """
     Data structure to wrap header and binary parts of an IPW file.
@@ -209,7 +207,7 @@ class IPWLines:
     def __init__(self, ipwFile):
 
         with open(ipwFile, 'rb') as f:
-            lines = f.readlines
+            lines = f.readlines()
 
         self.headerLines = lines[:-1]
 
