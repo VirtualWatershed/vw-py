@@ -5,9 +5,10 @@ Tests for the isnobal_adaptor module
 import unittest
 
 import numpy.testing as npt
+import numpy as np
 
-from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_header_dict, \
-    GlobalBand, Band, _calc_float_value
+from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_bands, \
+    GlobalBand, Band, _calc_float_value, _bands_to_dtype
 
 
 class TestHeaderParser(unittest.TestCase):
@@ -25,6 +26,9 @@ class TestHeaderParser(unittest.TestCase):
 
         self.headerLines = lines[:-1]
 
+        self.headerDict = \
+            _make_bands(self.headerLines, VARNAME_DICT['in'])
+
     def test_header_dict(self):
         """
         Check that header lines are properly built into a dictionary
@@ -32,17 +36,17 @@ class TestHeaderParser(unittest.TestCase):
         expectedHeaderDict = \
             {
                 'global': GlobalBand(148, 170, 5),
-                'I_lw': Band(1, 8, 0, 255, 0, 500),
-                'T_a': Band(1, 8, 0, 255, 22.39999962, 23.39999962),
-                'e_a': Band(2, 16, 0, 65535, 468.7428284, 469.7428284),
-                'u': Band(2, 16, 0, 65535, 0.8422899842, 1.842289925),
-                'T_g': Band(1, 8, 0, 255, 0, 1)
+                'I_lw': Band('I_lw', 1, 8, 0, 255, 0, 500),
+                'T_a': Band('T_a', 1, 8, 0, 255, 22.39999962, 23.39999962),
+                'e_a': Band('e_a', 2, 16, 0, 65535, 468.7428284, 469.7428284),
+                'u': Band('u', 2, 16, 0, 65535, 0.8422899842, 1.842289925),
+                'T_g': Band('T_g', 1, 8, 0, 255, 0, 1)
             }
 
-        headerDict = _make_header_dict(self.headerLines, VARNAME_DICT['in'])
+        headerDict =\
+            self.headerDict
 
         i = 0
-        print headerDict
         for variable, expectedBand in expectedHeaderDict.iteritems():
 
             genBand = headerDict[variable]
@@ -57,6 +61,7 @@ class TestHeaderParser(unittest.TestCase):
                 assert genBand.nBands == expectedBand.nBands
 
             else:
+                assert genBand.varname is not None
                 assert genBand.bytes_ is not None
                 assert genBand.bits_ is not None
                 assert genBand.intMin is not None
@@ -64,6 +69,7 @@ class TestHeaderParser(unittest.TestCase):
                 assert genBand.floatMin is not None
                 assert genBand.floatMax is not None
 
+                assert genBand.varname == expectedBand.varname
                 assert genBand.bytes_ == expectedBand.bytes_
                 assert genBand.bits_ == expectedBand.bits_
                 assert genBand.intMin == expectedBand.intMin
@@ -74,6 +80,23 @@ class TestHeaderParser(unittest.TestCase):
             i += 1
 
         assert i == 6, "Not enough variables were iterated through, test fail."
+
+    def test_create_dtype(self):
+        """
+        Check that _bands_to_dtype works as expected
+        """
+        bands = [Band('I_lw', 1, 8, 0, 255, 0, 500),
+                 Band('T_a', 1, 8, 0, 255, 22.39999962, 23.39999962),
+                 Band('e_a', 2, 16, 0, 65535, 468.7428284, 469.7428284),
+                 Band('u', 2, 16, 0, 65535, 0.8422899842, 1.842289925),
+                 Band('T_g', 1, 8, 0, 255, 0, 1)]
+
+        expectedDt = np.dtype([('I_lw', 'uint8'), ('T_a', 'uint8'),
+                               ('e_a', 'uint16'), ('u', 'uint16'),
+                               ('T_g', 'uint8')])
+        dt = _bands_to_dtype(bands)
+
+        assert expectedDt == dt, "%s != %s" % (str(set(expectedDt)), str(set(dt)))
 
 
 class TestUtils(unittest.TestCase):
@@ -87,7 +110,7 @@ class TestUtils(unittest.TestCase):
         """
         Convert an integer to a float using the header information in a Band
         """
-        testBand = Band(1, 8, 0, 255, -27.5, 33.0)
+        testBand = Band("Band Name", 1, 8, 0, 255, -27.5, 33.0)
 
         testInt = 10
 
