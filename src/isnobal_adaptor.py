@@ -15,7 +15,7 @@ BAND_INDEX_LOC = 2
 
 
 #: Container for ISNOBAL Global Band information
-GlobalBand = namedtuple("GlobalBand", 'nLines nSamps nBands')
+GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
 VARNAME_DICT = \
@@ -131,15 +131,19 @@ def _make_bands(headerLines, varnames):
     for l in globalHeaderLines:
         if l:
             spl = l.strip().split()
-            globalBandDict[spl[0]] = int(spl[2])
+            if spl[0] == 'byteorder':
+                globalBandDict[spl[0]] = spl[2]
+            else:
+                globalBandDict[spl[0]] = int(spl[2])
 
     # these are the standard names in an ISNOBAL header file
+    byteorder = globalBandDict['byteorder']
     nLines = globalBandDict['nlines']
     nSamps = globalBandDict['nsamps']
     nBands = globalBandDict['nbands']
 
     # this will be put into the return dictionary at the return statement
-    globalBand = GlobalBand(nLines, nSamps, nBands)
+    globalBand = GlobalBand(byteorder, nLines, nSamps, nBands)
 
     # initialize a list of bands to put parsed information into
     bands = [Band() for i in range(nBands)]
@@ -147,6 +151,7 @@ def _make_bands(headerLines, varnames):
     # bandDict = {'global': globalBand}
     for i, b in enumerate(bands):
         b.varname = varnames[i]
+        b.bandIdx = i
 
     bandType = None
     bandIdx = None
@@ -203,16 +208,56 @@ def _bands_to_dtype(bands):
     return np.dtype([(b.varname, 'uint' + str(b.bits_)) for b in bands])
 
 
+def _bands_to_header(bandsDict):
+    """
+    Convert the bands to a new header assuming the float ranges are up to date
+    for the current dataframe, df.
+    """
+    firstLine = "!<header> basic_image_i -1 $Revision: 1.11 $"
+
+    global_ = bandsDict['global']
+
+    firstLines = [firstLine,
+                  "byteorder = {0} ".format(global_.byteorder),
+                  "nlines = {0} ".format(global_.nLines),
+                  "nsamps = {0} ".format(global_.nSamps),
+                  "nbands = {0} ".format(global_.nBands)]
+
+    otherLines = []
+    bands = [b for varname, b in bandsDict.iteritems() if varname != 'global']
+
+    bands = sorted(bands, key=lambda b: b.bandIdx)
+
+    # for some reason IPW has a space at the end of data lines
+    for i, b in enumerate(bands):
+        otherLines += ["!<header> basic_image {0} $Revision: 1.11 $".format(i),
+                       "nbytes = {0} ".format(b.bytes_),
+                       "nbits = {0} ".format(b.bits_)]
+
+    for i, b in enumerate(bands):
+        intMin = int(b.intMin)
+        intMax = int(b.intMax)
+        floatMin = (b.floatMin, int(b.floatMin))[b.floatMin == int(b.floatMin)]
+        floatMax = (b.floatMax, int(b.floatMax))[b.floatMax == int(b.floatMax)]
+        otherLines += ["!<header> lq {0} $Revision: 1.6 $".format(i),
+                       "map = {0} {1} ".format(intMin, floatMin),
+                       "map = {0} {1} ".format(intMax, floatMax)]
+
+    return firstLines + otherLines
+
+
 class Band:
     """
     Container for band information
     """
-    def __init__(self, varname="", nBytes=0, nBits=0, intMin=0, intMax=0,
-                 floatMin=0.0, floatMax=0.0):
+    def __init__(self, varname="", bandIdx=0, nBytes=0, nBits=0, intMin=0,
+                 intMax=0, floatMin=0.0, floatMax=0.0):
         """
         Can either pass this information or create an all-None Band.
         """
         self.varname = varname
+
+        self.bandIdx = bandIdx
 
         self.bytes_ = nBytes
         self.bits_ = nBits
@@ -221,6 +266,7 @@ class Band:
         self.intMax = float(intMax)
         self.floatMin = float(floatMin)
         self.floatMax = float(floatMax)
+
 
 
 class IPWLines:

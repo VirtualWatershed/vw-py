@@ -10,7 +10,8 @@ import unittest
 
 from StringIO import StringIO
 from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_bands, \
-    GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe
+    GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
+    _bands_to_header
 
 
 class TestHeaderParser(unittest.TestCase):
@@ -33,12 +34,11 @@ class TestHeaderParser(unittest.TestCase):
         self.headerDict = \
             _make_bands(self.headerLines, VARNAME_DICT['in'])
 
-        self.bands = [Band('I_lw', 1, 8, 0, 255, 0, 500),
-                      Band('T_a', 1, 8, 0, 255, 22.39999962, 23.39999962),
-                      Band('e_a', 2, 16, 0, 65535, 468.7428284, 469.7428284),
-                      Band('u', 2, 16, 0, 65535, 0.8422899842, 1.842289925),
-                      Band('T_g', 1, 8, 0, 255, 0, 1)]
-
+        self.bands = [Band('I_lw', 0, 1, 8, 0, 255, 0, 500),
+                      Band('T_a', 1, 1, 8, 0, 255, 22.39999962, 23.39999962),
+                      Band('e_a', 2, 2, 16, 0, 65535, 468.7428284, 469.7428284),
+                      Band('u', 3, 2, 16, 0, 65535, 0.8422899842, 1.842289925),
+                      Band('T_g', 4, 1, 8, 0, 255, 0, 1)]
 
     def test_header_dict(self):
         """
@@ -46,12 +46,12 @@ class TestHeaderParser(unittest.TestCase):
         """
         expectedHeaderDict = \
             {
-                'global': GlobalBand(148, 170, 5),
-                'I_lw': Band('I_lw', 1, 8, 0, 255, 0, 500),
-                'T_a': Band('T_a', 1, 8, 0, 255, 22.39999962, 23.39999962),
-                'e_a': Band('e_a', 2, 16, 0, 65535, 468.7428284, 469.7428284),
-                'u': Band('u', 2, 16, 0, 65535, 0.8422899842, 1.842289925),
-                'T_g': Band('T_g', 1, 8, 0, 255, 0, 1)
+                'global': GlobalBand("0123", 148, 170, 5),
+                'I_lw': Band('I_lw', 0, 1, 8, 0, 255, 0, 500),
+                'T_a': Band('T_a', 1, 1, 8, 0, 255, 22.39999962, 23.39999962),
+                'e_a': Band('e_a', 2, 2, 16, 0, 65535, 468.7428284, 469.7428284),
+                'u': Band('u', 3, 2, 16, 0, 65535, 0.8422899842, 1.842289925),
+                'T_g': Band('T_g', 4, 1, 8, 0, 255, 0, 1)
             }
 
         headerDict =\
@@ -63,6 +63,7 @@ class TestHeaderParser(unittest.TestCase):
             genBand = headerDict[variable]
 
             if variable == 'global':
+
                 assert genBand.nLines is not None
                 assert genBand.nSamps is not None
                 assert genBand.nBands is not None
@@ -108,7 +109,7 @@ class TestHeaderParser(unittest.TestCase):
         """
         Convert an integer to a float using the header information in a Band
         """
-        testBand = Band("Band Name", 1, 8, 0, 255, -27.5, 33.0)
+        testBand = Band("Band Name", 221, 1, 8, 0, 255, -27.5, 33.0)
 
         testInt = 10
 
@@ -137,3 +138,54 @@ class TestHeaderParser(unittest.TestCase):
         # use .01 because of severe rounding by IPW primg
         assert all(abs(expectedDf - df) < .01),\
             (abs(expectedDf - df) < .1).any(1)
+
+    def test_bands_to_header(self):
+        """
+        Check that IPW header is properly re-made
+        """
+        expectedHeaderLines = \
+            ["!<header> basic_image_i -1 $Revision: 1.11 $",
+             "byteorder = 0123 ",
+             "nlines = 148 ",
+             "nsamps = 170 ",
+             "nbands = 5 ",
+             "!<header> basic_image 0 $Revision: 1.11 $",
+             "nbytes = 1 ",
+             "nbits = 8 ",
+             "!<header> basic_image 1 $Revision: 1.11 $",
+             "nbytes = 1 ",
+             "nbits = 8 ",
+             "!<header> basic_image 2 $Revision: 1.11 $",
+             "nbytes = 2 ",
+             "nbits = 16 ",
+             "!<header> basic_image 3 $Revision: 1.11 $",
+             "nbytes = 2 ",
+             "nbits = 16 ",
+             "!<header> basic_image 4 $Revision: 1.11 $",
+             "nbytes = 1 ",
+             "nbits = 8 ",
+             "!<header> lq 0 $Revision: 1.6 $",
+             "map = 0 0 ",
+             "map = 255 500 ",
+             "!<header> lq 1 $Revision: 1.6 $",
+             "map = 0 22.39999962 ",
+             "map = 255 23.39999962 ",
+             "!<header> lq 2 $Revision: 1.6 $",
+             "map = 0 468.7428284 ",
+             "map = 65535 469.7428284 ",
+             "!<header> lq 3 $Revision: 1.6 $",
+             "map = 0 0.8422899842 ",
+             "map = 65535 1.842289925 ",
+             "!<header> lq 4 $Revision: 1.6 $",
+             "map = 0 0 ",
+             "map = 255 1 "]
+
+        # create the header from the bands
+        headerLines = _bands_to_header(self.headerDict)
+
+        assert headerLines == expectedHeaderLines, \
+            "%s != %s" % (headerLines, expectedHeaderLines)
+
+
+
+
