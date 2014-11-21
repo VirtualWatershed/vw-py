@@ -2,13 +2,15 @@
 Tests for the isnobal_adaptor module
 """
 
-import unittest
-
 import numpy.testing as npt
 import numpy as np
+import pandas as pd
+import subprocess
+import unittest
 
+from StringIO import StringIO
 from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_bands, \
-    GlobalBand, Band, _calc_float_value, _bands_to_dtype
+    GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe
 
 
 class TestHeaderParser(unittest.TestCase):
@@ -26,8 +28,17 @@ class TestHeaderParser(unittest.TestCase):
 
         self.headerLines = lines[:-1]
 
+        self.binaryData = lines[-1]
+
         self.headerDict = \
             _make_bands(self.headerLines, VARNAME_DICT['in'])
+
+        self.bands = [Band('I_lw', 1, 8, 0, 255, 0, 500),
+                      Band('T_a', 1, 8, 0, 255, 22.39999962, 23.39999962),
+                      Band('e_a', 2, 16, 0, 65535, 468.7428284, 469.7428284),
+                      Band('u', 2, 16, 0, 65535, 0.8422899842, 1.842289925),
+                      Band('T_g', 1, 8, 0, 255, 0, 1)]
+
 
     def test_header_dict(self):
         """
@@ -85,26 +96,13 @@ class TestHeaderParser(unittest.TestCase):
         """
         Check that _bands_to_dtype works as expected
         """
-        bands = [Band('I_lw', 1, 8, 0, 255, 0, 500),
-                 Band('T_a', 1, 8, 0, 255, 22.39999962, 23.39999962),
-                 Band('e_a', 2, 16, 0, 65535, 468.7428284, 469.7428284),
-                 Band('u', 2, 16, 0, 65535, 0.8422899842, 1.842289925),
-                 Band('T_g', 1, 8, 0, 255, 0, 1)]
-
         expectedDt = np.dtype([('I_lw', 'uint8'), ('T_a', 'uint8'),
                                ('e_a', 'uint16'), ('u', 'uint16'),
                                ('T_g', 'uint8')])
-        dt = _bands_to_dtype(bands)
+        dt = _bands_to_dtype(self.bands)
 
-        assert expectedDt == dt, "%s != %s" % (str(set(expectedDt)), str(set(dt)))
-
-
-class TestUtils(unittest.TestCase):
-    """
-    Test things like calculating floating point value
-    """
-    def setUp(self):
-        pass
+        assert expectedDt == dt, \
+            "%s != %s" % (str(set(expectedDt)), str(set(dt)))
 
     def test_float_convert(self):
         """
@@ -118,3 +116,24 @@ class TestUtils(unittest.TestCase):
 
         npt.assert_approx_equal(byHandFloat,
                                 _calc_float_value(testBand, testInt))
+
+    def test_build_dataframe(self):
+        """
+        Check that the IPW dataframe has been correctly built
+        """
+        data = self.binaryData
+        bands = self.bands
+
+        df = _build_ipw_dataframe(bands, data)
+
+        # fetch the floating point data using the IPW tool primg
+        # <http://cgiss.boisestate.edu/~hpm/software/IPW/man1/primg.html>
+        ipwCmd = "primg -a -i src/test/data/in.00"
+        textArray = subprocess.check_output(ipwCmd, shell=True)
+        expectedDf = \
+            pd.DataFrame(np.genfromtxt(StringIO(textArray), delimiter=" "),
+                         columns=[b.varname for b in bands])
+
+        # use .01 because of severe rounding by IPW primg
+        assert all(abs(expectedDf - df) < .01),\
+            (abs(expectedDf - df) < .1).any(1)
