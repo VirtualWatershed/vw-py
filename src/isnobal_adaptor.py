@@ -235,6 +235,7 @@ def _bands_to_header(bandsDict):
                        "nbits = {0} ".format(b.bits_)]
 
     for i, b in enumerate(bands):
+        # IPW writes integer floats without even a dec point, so strip decimal
         intMin = int(b.intMin)
         intMax = int(b.intMax)
         floatMin = (b.floatMin, int(b.floatMin))[b.floatMin == int(b.floatMin)]
@@ -244,6 +245,13 @@ def _bands_to_header(bandsDict):
                        "map = {0} {1} ".format(intMax, floatMax)]
 
     return firstLines + otherLines
+
+
+def _floatdf_to_binstring(bands, df):
+    """
+    Convert the dataframe floating point data to a binary string.
+    """
+    pass
 
 
 class Band:
