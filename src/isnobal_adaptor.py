@@ -90,11 +90,22 @@ class IPW(pd.DataFrame):
         return self.header
 
 
-def _build_ipw_dataframe(header, binaryData, colnames):
+def _build_ipw_dataframe(bands, binaryData):
     """
     Build a pandas DataFrame using header info to assign column names
     """
-    pass
+    colnames = [b.varname for b in bands]
+
+    dtype = _bands_to_dtype(bands)
+
+    intData = np.fromstring(binaryData, dtype=dtype)
+
+    df = pd.DataFrame(intData, columns=colnames)
+
+    for b in bands:
+        df[b.varname] = _calc_float_value(b, df[b.varname])
+
+    return df
 
 
 def _make_bands(headerLines, varnames):
