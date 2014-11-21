@@ -186,6 +186,16 @@ class TestHeaderParser(unittest.TestCase):
         assert headerLines == expectedHeaderLines, \
             "%s != %s" % (headerLines, expectedHeaderLines)
 
+    def test_floatdf_to_binstring(self):
+        """
+        Test that a dataframe with floats is correctly translated to a binary string
+        """
+        df = pd.DataFrame([[10.0, 1.0, 16.0], [-85.0, 9.0, 25.0]],
+                          columns=['this', 'that', 'the other'])
+        bands = [Band('this', 0, 2, 16, 0, 65535, -100.0, 100.0),
+                 Band('that', 1, 1, 8, 0, 255, 0, 10.0),
+                 Band('the other', 2, 1, 8, 0, 255, 0, 30.0)]
 
+        # Do a math problem by hand to figure out what these should be
 
-
+        assert False, "Implement me!"
