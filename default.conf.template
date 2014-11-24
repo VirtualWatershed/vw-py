@@ -1,6 +1,6 @@
 ### Configuration file for the virtual watershed data adaptors ###
 [Common]
-watershedIP = 1.800.call.me
+watershedIP = 1.800.you.rock
 user = your_uname
 passwd = your_supersecret_password
 parent_model_run_uuid = 373ae181-a0b2-4998-ba32-e27da190f6dd
