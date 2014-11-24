@@ -6,12 +6,15 @@ import numpy.testing as npt
 import numpy as np
 import pandas as pd
 import subprocess
+import struct
 import unittest
+
+from nose.tools import raises
 
 from StringIO import StringIO
 from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_bands, \
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
-    _bands_to_header
+    _bands_to_header, _floatdf_to_binstring
 
 
 class TestHeaderParser(unittest.TestCase):
@@ -188,14 +191,60 @@ class TestHeaderParser(unittest.TestCase):
 
     def test_floatdf_to_binstring(self):
         """
-        Test that a dataframe with floats is correctly translated to a binary string
+        Test that a DF with floats is correctly translated to a binary string
         """
-        df = pd.DataFrame([[10.0, 1.0, 16.0], [-85.0, 9.0, 25.0]],
+        df = pd.DataFrame([[10.0, -1.0, 16.0], [-85.0, 9.0, 25.0]],
                           columns=['this', 'that', 'the other'])
         bands = [Band('this', 0, 2, 16, 0, 65535, -100.0, 100.0),
-                 Band('that', 1, 1, 8, 0, 255, 0, 10.0),
+                 Band('that', 1, 1, 8, 0, 255, -5, 10.0),
                  Band('the other', 2, 1, 8, 0, 255, 0, 30.0)]
 
         # Do a math problem by hand to figure out what these should be
+        expectedIntDf = pd.DataFrame([[36044, 68, 136],
+                                      [4915, 238, 212]],
+                                     columns=['this', 'that', 'the other'])
 
+        expectedBinStr = \
+            "".join([struct.pack('H', expectedIntDf['this'][0]),
+                     struct.pack('B', expectedIntDf['that'][0]),
+                     struct.pack('B', expectedIntDf['the other'][0]),
+                     struct.pack('H', expectedIntDf['this'][1]),
+                     struct.pack('B', expectedIntDf['that'][1]),
+                     struct.pack('B', expectedIntDf['the other'][1])])
+
+        binStr = _floatdf_to_binstring(bands, df)
+
+        assert binStr == expectedBinStr, "Implement me!"
+
+    @raises(AssertionError)
+    def test_floatdf_to_binstring_fail_min(self):
+        """
+        Error when a data val is less than a band minimum?
+        """
+        df = pd.DataFrame([[10.0, -10.0, 16.0], [-85.0, 9.0, 25.0]],
+                          columns=['this', 'that', 'the other'])
+
+        bands = [Band('this', 0, 2, 16, 0, 65535, -100.0, 100.0),
+                 Band('that', 1, 1, 8, 0, 255, -5, 10.0),
+                 Band('the other', 2, 1, 8, 0, 255, 0, 30.0)]
+
+        _floatdf_to_binstring(bands, df)
+
+    @raises(AssertionError)
+    def test_floatdf_to_binstring_fail_max(self):
+        """
+        Error when a data val is less than a band maximum?
+        """
+        df = pd.DataFrame([[101.0, -1.0, 16.0], [-85.0, 9.0, 25.0]],
+                          columns=['this', 'that', 'the other'])
+        bands = [Band('this', 0, 2, 16, 0, 65535, -100.0, 100.0),
+                 Band('that', 1, 1, 8, 0, 255, -5, 10.0),
+                 Band('the other', 2, 1, 8, 0, 255, 0, 30.0)]
+
+        _floatdf_to_binstring(bands, df)
+
+    def test_modify_save_ipw(self):
+        """
+        Test start-to-finish steps of load, modify, and save an IPW file
+        """
         assert False, "Implement me!"

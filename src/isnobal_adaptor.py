@@ -6,8 +6,10 @@ Tools for working with IPW binary data and running the iSNOBAL model
 """
 
 import pandas as pd
-<<<<<<< HEAD
 import numpy as np
+import logging
+
+import struct
 from collections import namedtuple, defaultdict
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
@@ -17,8 +19,6 @@ BAND_INDEX_LOC = 2
 
 #: Container for ISNOBAL Global Band information
 GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
-=======
->>>>>>> master
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
 VARNAME_DICT = \
@@ -28,10 +28,15 @@ VARNAME_DICT = \
         'snow': []
     }
 
-<<<<<<< HEAD
+#: Convert number of bytes to struct package code for unsigned integer type
+PACK_DICT = \
+    {
+        1: 'B',
+        2: 'H',
+        4: 'I'
+    }
 
-=======
->>>>>>> master
+
 def get_varnames(fileType):
     """
     Access variable names associated with the fileType via VARNAME_DICT.
@@ -49,7 +54,6 @@ def get_varnames(fileType):
 
 class IPW(pd.DataFrame):
     """
-<<<<<<< HEAD
     Represents an IPW file. Provides a dataFrame attribute to access the
     variables and their floating point representation as a dataframe. The
     dataframe can be modified, the headers recalculated with
@@ -64,13 +68,6 @@ class IPW(pd.DataFrame):
     def __init__(self, ipwLines, fileType):
 
         header = _make_header_dict(ipwLines.headerLines)
-=======
-    Represents an IPW file.
-    """
-    def __init__(self, ipwLines, fileType):
-
-        header = _parse_header_lines(ipwLines.headerLines)
->>>>>>> master
 
         df = _build_ipw_dataframe(header, ipwLines.binaryData)
 
@@ -104,7 +101,6 @@ class IPW(pd.DataFrame):
         return self.header
 
 
-<<<<<<< HEAD
 def _build_ipw_dataframe(bands, binaryData):
     """
     Build a pandas DataFrame using header info to assign column names
@@ -266,7 +262,29 @@ def _floatdf_to_binstring(bands, df):
     """
     Convert the dataframe floating point data to a binary string.
     """
-    pass
+    # first convert df to an integer dataframe
+    intDf = pd.DataFrame(dtype='uint64')
+
+    for b in bands:
+        # check that bands are appropriately made, that b.Max/Min really are
+        assert (b.floatMax > df[b.varname]).all(), \
+            "Bad band: max not really max"
+        assert (b.floatMin < df[b.varname]).all(), \
+            "Bad band: min not really min"
+
+        # no need to include b.intMin, it's always zero
+        mapFn = lambda x: \
+            np.floor(((x - b.floatMin) * b.intMax)/(b.floatMax - b.floatMin))
+
+        intDf[b.varname] = mapFn(df[b.varname])
+
+    packStr = "".join([PACK_DICT[b.bytes_] for b in bands])
+
+    logging.debug("packStr: " + packStr)
+
+    logging.debug("intDf: " + str(intDf))
+
+    return "".join([struct.pack(packStr, *r[1]) for r in intDf.iterrows()])
 
 
 class Band:
@@ -290,17 +308,6 @@ class Band:
         self.floatMin = float(floatMin)
         self.floatMax = float(floatMax)
 
-=======
-def _build_ipw_dataframe(header, binaryData, colnames):
-    """
-    Build a pandas DataFrame using header info to assign column names
-    """
-    pass
-
-
-def _make_header_dict(
->>>>>>> master
-
 
 class IPWLines:
     """
@@ -311,12 +318,8 @@ class IPWLines:
     def __init__(self, ipwFile):
 
         with open(ipwFile, 'rb') as f:
-<<<<<<< HEAD
             lines = f.readlines()
-=======
-            lines = f.readlines
->>>>>>> master
 
         self.headerLines = lines[:-1]
 
-        self.binaryData  = lines[-1]
+        self.binaryData = lines[-1]
