@@ -6,6 +6,7 @@ Tools for working with IPW binary data and running the iSNOBAL model
 """
 
 import pandas as pd
+<<<<<<< HEAD
 import numpy as np
 from collections import namedtuple, defaultdict
 
@@ -16,6 +17,8 @@ BAND_INDEX_LOC = 2
 
 #: Container for ISNOBAL Global Band information
 GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
+=======
+>>>>>>> master
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
 VARNAME_DICT = \
@@ -25,7 +28,10 @@ VARNAME_DICT = \
         'snow': []
     }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 def get_varnames(fileType):
     """
     Access variable names associated with the fileType via VARNAME_DICT.
@@ -43,6 +49,7 @@ def get_varnames(fileType):
 
 class IPW(pd.DataFrame):
     """
+<<<<<<< HEAD
     Represents an IPW file. Provides a dataFrame attribute to access the
     variables and their floating point representation as a dataframe. The
     dataframe can be modified, the headers recalculated with
@@ -57,6 +64,13 @@ class IPW(pd.DataFrame):
     def __init__(self, ipwLines, fileType):
 
         header = _make_header_dict(ipwLines.headerLines)
+=======
+    Represents an IPW file.
+    """
+    def __init__(self, ipwLines, fileType):
+
+        header = _parse_header_lines(ipwLines.headerLines)
+>>>>>>> master
 
         df = _build_ipw_dataframe(header, ipwLines.binaryData)
 
@@ -90,6 +104,7 @@ class IPW(pd.DataFrame):
         return self.header
 
 
+<<<<<<< HEAD
 def _build_ipw_dataframe(bands, binaryData):
     """
     Build a pandas DataFrame using header info to assign column names
@@ -275,6 +290,16 @@ class Band:
         self.floatMin = float(floatMin)
         self.floatMax = float(floatMax)
 
+=======
+def _build_ipw_dataframe(header, binaryData, colnames):
+    """
+    Build a pandas DataFrame using header info to assign column names
+    """
+    pass
+
+
+def _make_header_dict(
+>>>>>>> master
 
 
 class IPWLines:
@@ -286,7 +311,11 @@ class IPWLines:
     def __init__(self, ipwFile):
 
         with open(ipwFile, 'rb') as f:
+<<<<<<< HEAD
             lines = f.readlines()
+=======
+            lines = f.readlines
+>>>>>>> master
 
         self.headerLines = lines[:-1]
 
