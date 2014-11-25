@@ -45,23 +45,24 @@ PACK_DICT = \
     }
 
 
-def isnobal(data_tstep=60, nsteps=8754, init_img="data/init.ipw",
-            precip_file="data/ppt_desc", mask_file="tl2p5mask.ipw",
-            input_prefix="in", output_frequency=1):
+def isnobal(data_tstep=60, nsteps=8758, init_img="data/init.ipw",
+            precip_file="data/ppt_desc", mask_file="data/tl2p5mask.ipw",
+            input_prefix="data/inputs/in", output_frequency=1,
+            em_prefix="data/outputs/em", snow_prefix="data/outputs/snow"):
     """
     Wrapper for running the ISNOBAL
     (http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html) model.
     """
     isnobalcmd = "".join(["isnobal ",
-                          " -t " + data_tstep,
-                          " -n " + nsteps,
+                          " -t " + str(data_tstep),
+                          " -n " + str(nsteps),
                           " -I " + init_img,
                           " -p " + precip_file,
                           " -m " + mask_file,
                           " -i " + input_prefix,
-                          " -O " + output_frequency,
-                          " -e em ",
-                          " -s snow"])
+                          " -O " + str(output_frequency),
+                          " -e " + em_prefix,
+                          " -s " + snow_prefix])
     logging.debug("ISNOBAL shell command: " + isnobalcmd)
 
     output = subprocess.check_output(isnobalcmd, shell=True)
