@@ -5,7 +5,6 @@
 Tools for working with IPW binary data and running the iSNOBAL model
 """
 
-import logging
 import os
 import pandas as pd
 import numpy as np
@@ -20,6 +19,9 @@ BAND_INDEX_LOC = 2
 
 #: Container for ISNOBAL Global Band information
 GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
+
+#: Check if a header is starting
+IsHeaderStart = lambda headerLine: headerLine.split()[0] == "!<header>"
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
 VARNAME_DICT = \
@@ -73,6 +75,8 @@ class IPW:
 
         # _make_bands
         headerDict = _make_bands(ipwLines.headerLines, VARNAME_DICT[fileType])
+        geoLines = _parse_geo_header(ipwLines.headerLines)
+
         bands = [band for band in headerDict.values()]
         nonglobalBands =\
             sorted([band for varname, band in headerDict.iteritems()
@@ -83,6 +87,7 @@ class IPW:
 
         self.fileType = fileType
         self.headerDict = headerDict
+        self.geoLines = geoLines
         self.bands = bands
         self.nonglobalBands = nonglobalBands
         self.dataFrame = df
@@ -91,7 +96,7 @@ class IPW:
         """
         Recalculate header values
         """
-        _recalculate_headers(self.bands, self.dataFrame)
+        _recalculate_headers(self.nonglobalBands, self.dataFrame)
 
     def write(self, fileName):
         """
@@ -102,6 +107,9 @@ class IPW:
         with open(fileName, 'wb') as f:
             for l in _bands_to_header_lines(self.headerDict):
                 f.write(l + '\n')
+            for l in self.geoLines:
+                # geoLines have not been altered; still have line ends
+                f.write(l)
 
             f.write(lastLine + '\n')
 
@@ -135,12 +143,9 @@ def _make_bands(headerLines, varnames):
 
     Returns: dict
     """
-    # use this to check if a line in the header is a header start announcement
-    isHeaderStart = lambda headerLine: headerLine.split()[0] == "!<header>"
-
     # parse global information from global header
     for i, l in enumerate(headerLines[1:-1]):
-        if isHeaderStart(l):
+        if IsHeaderStart(l):
             globalEndIdx = i
             break
 
@@ -179,7 +184,7 @@ def _make_bands(headerLines, varnames):
 
         spl = l.strip().split()
 
-        if isHeaderStart(l):
+        if IsHeaderStart(l):
 
             bandType = spl[BAND_TYPE_LOC]
             bandIdx = int(spl[BAND_INDEX_LOC])
@@ -204,6 +209,22 @@ def _make_bands(headerLines, varnames):
                     bands[bandIdx].floatMax = float(spl[3])
 
     return dict(zip(['global']+varnames[:nBands], [globalBand]+bands))
+
+
+def _parse_geo_header(headerLines):
+    """
+    For now, just returns all the geographic lines within the header lines.
+
+    Returns: list of geographic header lines ONLY. not the last header line
+    """
+    firstGeoIdx = 0
+    for idx, line in enumerate(headerLines):
+        if IsHeaderStart(line) and line.split()[1] == 'geo':
+            firstGeoIdx = idx
+            break
+
+    # exclude last line because it's just !<header> image -1 $Revision: 1.5 $
+    return headerLines[firstGeoIdx:-1]
 
 
 def _calc_float_value(band, integerValue):
@@ -291,32 +312,31 @@ def _floatdf_to_binstring(bands, df):
 
     packStr = "".join([PACK_DICT[b.bytes_] for b in bands])
 
-    logging.debug("packStr: " + packStr)
-
-    logging.debug("intDf: " + str(intDf.ix[:10]))
-
     return "".join([struct.pack(packStr, *r[1]) for r in intDf.iterrows()])
 
 
 # TODO: rename this to _recalculate_header
-def _recalculate_headers(bands, df):
+def _recalculate_headers(bands, dataframe):
     """
     Recalculate the minimum and maximum of each band in bands given a dataframe
     that contains data for each band.
 
     Returns: None
     """
-    assert list(df.columns) == [b.varname for b in bands], \
+    assert list(dataframe.columns) == [b.varname for b in bands], \
         "DataFrame column names do not match bands' variable names!"
 
-    for b in bands:
-        b.floatMin = df[b.varname].min()
-        b.floatMax = df[b.varname].max()
+    for band in bands:
+        band.floatMin = dataframe[band.varname].min()
+        band.floatMax = dataframe[band.varname].max()
+
+        if band.floatMin == band.floatMax:
+            band.floatMax = band.floatMin + 1.0
 
     return None
 
 
-class Band:
+class Band(object):
     """
     Container for band information
     """
@@ -352,3 +372,5 @@ class IPWLines:
         self.headerLines = lines[:-1]
 
         self.binaryData = lines[-1]
+
+
