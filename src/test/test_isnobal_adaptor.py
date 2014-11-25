@@ -273,9 +273,9 @@ class TestHeaderParser(unittest.TestCase):
         """
         Load an IPW file and save back to a new file; check contents are equal
         """
-        outfile = 'src/test/data/in.00.rewrite'
-        if os.path.isfile(outfile):
-            os.remove(outfile)
+        ### Note: can't test the building of headers because I'm stripping out
+        ### extraneous info like random variable units.
+        outfile = "src/test/data/in.00.rewrite"
 
         self.ipw.write(outfile)
 
@@ -295,4 +295,35 @@ class TestHeaderParser(unittest.TestCase):
         """
         Test start-to-finish steps of load, modify, and save an IPW file using the IPW class
         """
-        assert False, "Implement me!"
+        ipw = IPW("src/test/data/in.00")
+        ipw.dataFrame.T_a = ipw.dataFrame.T_a + 2.0
+        print ipw.dataFrame.head()
+        ipw.dataFrame['I_lw'] += 23.0
+
+        ipw.recalculate_header()
+
+        outfile = "src/test/data/in.00.modified"
+        ipw.write(outfile)
+        # read in the float data array from the modified IPW file we just wrote
+        ipwCmd = "primg -a -i src/test/data/in.00"
+        origTextArray = subprocess.check_output(ipwCmd, shell=True)
+
+        ipwCmd = "primg -a -i " + outfile
+        modTextArray = subprocess.check_output(ipwCmd, shell=True)
+
+        bands = self.bands
+        modifiedDf =\
+            pd.DataFrame(np.genfromtxt(StringIO(modTextArray), delimiter=" "),
+                         columns=[b.varname for b in bands])
+        originalDf =\
+            pd.DataFrame(np.genfromtxt(StringIO(origTextArray), delimiter=" "),
+                         columns=[b.varname for b in bands])
+
+        assert all(modifiedDf['T_a'] > originalDf['T_a']),\
+            "modified: %s\noriginal: %s" % \
+            (str(modifiedDf['T_a']), str(originalDf['T_a']))
+        assert all(modifiedDf['I_lw'] > originalDf['I_lw']),\
+            "modified: %s\noriginal: %s" % \
+            (str(modifiedDf['I_lw']), str(originalDf['I_lw']))
+
+        os.remove(outfile)
