@@ -5,9 +5,10 @@
 Tools for working with IPW binary data and running the iSNOBAL model
 """
 
+import logging
+import os
 import pandas as pd
 import numpy as np
-import logging
 
 import struct
 from collections import namedtuple, defaultdict
@@ -52,7 +53,7 @@ def get_varnames(fileType):
     return VARNAME_DICT[fileType]
 
 
-class IPW(pd.DataFrame):
+class IPW:
     """
     Represents an IPW file. Provides a dataFrame attribute to access the
     variables and their floating point representation as a dataframe. The
@@ -65,55 +66,63 @@ class IPW(pd.DataFrame):
     >>> ipw.writeBinary("in.plusOne.000")
 
     """
-    def __init__(self, ipwLines, fileType):
+    def __init__(self, dataFile):
 
-        header = _make_header_dict(ipwLines.headerLines)
+        ipwLines = IPWLines(dataFile)
+        fileType = os.path.basename(dataFile).split('.')[0]
 
-        df = _build_ipw_dataframe(header, ipwLines.binaryData)
+        # _make_bands
+        headerDict = _make_bands(ipwLines.headerLines, VARNAME_DICT[fileType])
+        bands = [band for band in headerDict.values()]
+        nonglobalBands =\
+            sorted([band for varname, band in headerDict.iteritems()
+                    if varname != 'global'],
+                   key=lambda b: b.bandIdx)
+
+        df = _build_ipw_dataframe(nonglobalBands, ipwLines.binaryData)
 
         self.fileType = fileType
-        self.header = header
+        self.headerDict = headerDict
+        self.bands = bands
+        self.nonglobalBands = nonglobalBands
         self.dataFrame = df
 
-    @classmethod
-    def from_lines(self, lines, fileType):
+    def recalculate_header(self):
         """
-        Build an IPW DataFrame using lines from an IPW file
+        Recalculate header values
         """
-        ipwLines = IPWLines(lines)
-        self.__init__(ipwLines, colnames)
+        _recalculate_headers(self.bands, self.dataFrame)
 
-    @classmethod
-    def from_file(self, dataFile):
+    def write(self, fileName):
         """
-        Build an IPW DataFrame starting from file
+        Write the IPW data to file
         """
-        ipwLines = _ipw_lines(dataFile)
+        lastLine = "!<header> image -1 $Revision: 1.5 $"
 
-        fileType = os.path.basename(dataFile).split('.')[0]
-        self.__init__(ipwLines, fileType)
+        with open(fileName, 'wb') as f:
+            for l in _bands_to_header_lines(self.headerDict):
+                f.write(l + '\n')
 
-    @property
-    def header(self):
-        """
-        Get the header associated with this IPW file
-        """
-        return self.header
+            f.write(lastLine + '\n')
+
+            f.write(_floatdf_to_binstring(self.nonglobalBands, self.dataFrame))
+
+        return None
 
 
-def _build_ipw_dataframe(bands, binaryData):
+def _build_ipw_dataframe(nonglobalBands, binaryData):
     """
     Build a pandas DataFrame using header info to assign column names
     """
-    colnames = [b.varname for b in bands]
+    colnames = [b.varname for b in nonglobalBands]
 
-    dtype = _bands_to_dtype(bands)
+    dtype = _bands_to_dtype(nonglobalBands)
 
     intData = np.fromstring(binaryData, dtype=dtype)
 
     df = pd.DataFrame(intData, columns=colnames)
 
-    for b in bands:
+    for b in nonglobalBands:
         df[b.varname] = _calc_float_value(b, df[b.varname])
 
     return df
@@ -219,7 +228,7 @@ def _bands_to_dtype(bands):
     return np.dtype([(b.varname, 'uint' + str(b.bits_)) for b in bands])
 
 
-def _bands_to_header(bandsDict):
+def _bands_to_header_lines(bandsDict):
     """
     Convert the bands to a new header assuming the float ranges are up to date
     for the current dataframe, df.
@@ -242,8 +251,8 @@ def _bands_to_header(bandsDict):
     # for some reason IPW has a space at the end of data lines
     for i, b in enumerate(bands):
         otherLines += ["!<header> basic_image {0} $Revision: 1.11 $".format(i),
-                       "nbytes = {0} ".format(b.bytes_),
-                       "nbits = {0} ".format(b.bits_)]
+                       "bytes = {0} ".format(b.bytes_),
+                       "bits = {0} ".format(b.bits_)]
 
     for i, b in enumerate(bands):
         # IPW writes integer floats without even a dec point, so strip decimal
@@ -267,14 +276,16 @@ def _floatdf_to_binstring(bands, df):
 
     for b in bands:
         # check that bands are appropriately made, that b.Max/Min really are
-        assert (b.floatMax > df[b.varname]).all(), \
-            "Bad band: max not really max"
-        assert (b.floatMin < df[b.varname]).all(), \
-            "Bad band: min not really min"
+        assert (b.floatMax >= df[b.varname]).all(), \
+            "Bad band: max not really max.\nb.floatMax = %s\n \
+            df[b.varname].max()  = %s" % (b.floatMax, df[b.varname].max())
+        assert (b.floatMin <= df[b.varname]).all(), \
+            "Bad band: min not really min.\nb.floatMin = %s\n \
+            df[b.varname].min()  = %s" % (b.floatMin, df[b.varname].min())
 
         # no need to include b.intMin, it's always zero
         mapFn = lambda x: \
-            np.floor(((x - b.floatMin) * b.intMax)/(b.floatMax - b.floatMin))
+            np.round(((x - b.floatMin) * b.intMax)/(b.floatMax - b.floatMin))
 
         intDf[b.varname] = mapFn(df[b.varname])
 
@@ -282,17 +293,35 @@ def _floatdf_to_binstring(bands, df):
 
     logging.debug("packStr: " + packStr)
 
-    logging.debug("intDf: " + str(intDf))
+    logging.debug("intDf: " + str(intDf.ix[:10]))
 
     return "".join([struct.pack(packStr, *r[1]) for r in intDf.iterrows()])
+
+
+# TODO: rename this to _recalculate_header
+def _recalculate_headers(bands, df):
+    """
+    Recalculate the minimum and maximum of each band in bands given a dataframe
+    that contains data for each band.
+
+    Returns: None
+    """
+    assert list(df.columns) == [b.varname for b in bands], \
+        "DataFrame column names do not match bands' variable names!"
+
+    for b in bands:
+        b.floatMin = df[b.varname].min()
+        b.floatMax = df[b.varname].max()
+
+    return None
 
 
 class Band:
     """
     Container for band information
     """
-    def __init__(self, varname="", bandIdx=0, nBytes=0, nBits=0, intMin=0,
-                 intMax=0, floatMin=0.0, floatMax=0.0):
+    def __init__(self, varname="", bandIdx=0, nBytes=0, nBits=0, intMin=0.0,
+                 intMax=0.0, floatMin=0.0, floatMax=0.0):
         """
         Can either pass this information or create an all-None Band.
         """

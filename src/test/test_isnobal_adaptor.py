@@ -4,6 +4,7 @@ Tests for the isnobal_adaptor module
 
 import numpy.testing as npt
 import numpy as np
+import os
 import pandas as pd
 import subprocess
 import struct
@@ -14,7 +15,7 @@ from nose.tools import raises
 from StringIO import StringIO
 from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_bands, \
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
-    _bands_to_header, _floatdf_to_binstring
+    _bands_to_header_lines, _floatdf_to_binstring, _recalculate_headers, IPW
 
 
 class TestHeaderParser(unittest.TestCase):
@@ -27,7 +28,9 @@ class TestHeaderParser(unittest.TestCase):
         # mirrors what is done in class IPWLines
         # there are five bands in this one, so we'll get to test handling of
         # the "sun-down" number of bands. There is one more in daylight hours
-        with open('src/test/data/in.00', 'rb') as f:
+        testFile = 'src/test/data/in.00'
+
+        with open(testFile, 'rb') as f:
             lines = f.readlines()
 
         self.headerLines = lines[:-1]
@@ -42,6 +45,8 @@ class TestHeaderParser(unittest.TestCase):
                       Band('e_a', 2, 2, 16, 0, 65535, 468.7428284, 469.7428284),
                       Band('u', 3, 2, 16, 0, 65535, 0.8422899842, 1.842289925),
                       Band('T_g', 4, 1, 8, 0, 255, 0, 1)]
+
+        self.ipw = IPW(testFile)
 
     def test_header_dict(self):
         """
@@ -142,7 +147,7 @@ class TestHeaderParser(unittest.TestCase):
         assert all(abs(expectedDf - df) < .01),\
             (abs(expectedDf - df) < .1).any(1)
 
-    def test_bands_to_header(self):
+    def test_bands_to_header_lines(self):
         """
         Check that IPW header is properly re-made
         """
@@ -153,20 +158,20 @@ class TestHeaderParser(unittest.TestCase):
              "nsamps = 170 ",
              "nbands = 5 ",
              "!<header> basic_image 0 $Revision: 1.11 $",
-             "nbytes = 1 ",
-             "nbits = 8 ",
+             "bytes = 1 ",
+             "bits = 8 ",
              "!<header> basic_image 1 $Revision: 1.11 $",
-             "nbytes = 1 ",
-             "nbits = 8 ",
+             "bytes = 1 ",
+             "bits = 8 ",
              "!<header> basic_image 2 $Revision: 1.11 $",
-             "nbytes = 2 ",
-             "nbits = 16 ",
+             "bytes = 2 ",
+             "bits = 16 ",
              "!<header> basic_image 3 $Revision: 1.11 $",
-             "nbytes = 2 ",
-             "nbits = 16 ",
+             "bytes = 2 ",
+             "bits = 16 ",
              "!<header> basic_image 4 $Revision: 1.11 $",
-             "nbytes = 1 ",
-             "nbits = 8 ",
+             "bytes = 1 ",
+             "bits = 8 ",
              "!<header> lq 0 $Revision: 1.6 $",
              "map = 0 0 ",
              "map = 255 500 ",
@@ -184,7 +189,7 @@ class TestHeaderParser(unittest.TestCase):
              "map = 255 1 "]
 
         # create the header from the bands
-        headerLines = _bands_to_header(self.headerDict)
+        headerLines = _bands_to_header_lines(self.headerDict)
 
         assert headerLines == expectedHeaderLines, \
             "%s != %s" % (headerLines, expectedHeaderLines)
@@ -214,7 +219,7 @@ class TestHeaderParser(unittest.TestCase):
 
         binStr = _floatdf_to_binstring(bands, df)
 
-        assert binStr == expectedBinStr, "Implement me!"
+        assert binStr == expectedBinStr
 
     @raises(AssertionError)
     def test_floatdf_to_binstring_fail_min(self):
@@ -243,8 +248,51 @@ class TestHeaderParser(unittest.TestCase):
 
         _floatdf_to_binstring(bands, df)
 
+    def test_recalculate_header(self):
+        """
+        Test that headers are successfully recalculated after data has been
+        changed.
+        """
+        df = pd.DataFrame([[101.0, -1.0, 16.0], [-85.0, 9.0, 25.0]],
+                          columns=['this', 'that', 'the other'])
+        bands = [Band('this', 0, 2, 16, 0, 65535, -100.0, 100.0),
+                 Band('that', 1, 1, 8, 0, 255, -5, 10.0),
+                 Band('the other', 2, 1, 8, 0, 255, 0, 30.0)]
+
+        # increase variable this by five degrees plus the Band's stated maximum
+        df['this'] = df['this'] + bands[0].floatMax + 5.0
+        # decrease variable the other to five less than the Band's minimum
+        df['the other'] = df['the other'] - (bands[2].floatMin - 5.0)
+
+        _recalculate_headers(bands, df)
+
+        assert bands[0].floatMax == df['this'].max()
+        assert bands[2].floatMin == df['the other'].min()
+
+    def test_save_ipw(self):
+        """
+        Load an IPW file and save back to a new file; check contents are equal
+        """
+        outfile = 'src/test/data/in.00.rewrite'
+        if os.path.isfile(outfile):
+            os.remove(outfile)
+
+        self.ipw.write(outfile)
+
+        ipwCmd = "primg -a -i src/test/data/in.00"
+        expectedTextArray = subprocess.check_output(ipwCmd, shell=True)
+
+        ipwCmd += ".rewrite"
+        textArray = subprocess.check_output(ipwCmd, shell=True)
+
+        assert expectedTextArray == textArray,\
+            "expected: %s\ngenerated: %s" % \
+            (expectedTextArray[:300], textArray[:300])
+
+        os.remove(outfile)
+
     def test_modify_save_ipw(self):
         """
-        Test start-to-finish steps of load, modify, and save an IPW file
+        Test start-to-finish steps of load, modify, and save an IPW file using the IPW class
         """
         assert False, "Implement me!"
