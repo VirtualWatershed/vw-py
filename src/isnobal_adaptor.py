@@ -8,10 +8,12 @@ Tools for working with IPW binary data and running the iSNOBAL model
 """
 
 import os
+import logging
 import pandas as pd
 import numpy as np
-
+import subprocess
 import struct
+
 from collections import namedtuple, defaultdict
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
@@ -41,6 +43,30 @@ PACK_DICT = \
         2: 'H',
         4: 'I'
     }
+
+
+def isnobal(data_tstep=60, nsteps=8754, init_img="data/init.ipw",
+            precip_file="data/ppt_desc", mask_file="tl2p5mask.ipw",
+            input_prefix="in", output_frequency=1):
+    """
+    Wrapper for running the ISNOBAL
+    (http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html) model.
+    """
+    isnobalcmd = "".join(["isnobal ",
+                          " -t " + data_tstep,
+                          " -n " + nsteps,
+                          " -I " + init_img,
+                          " -p " + precip_file,
+                          " -m " + mask_file,
+                          " -i " + input_prefix,
+                          " -O " + output_frequency,
+                          " -e em ",
+                          " -s snow"])
+    logging.debug("ISNOBAL shell command: " + isnobalcmd)
+
+    output = subprocess.check_output(isnobalcmd, shell=True)
+
+    logging.debug("ISNOBAL process output: " + output)
 
 
 class IPW:
