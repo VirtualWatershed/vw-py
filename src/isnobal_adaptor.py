@@ -1,6 +1,8 @@
+#
 # Copyright (c) 2014, Matthew Turner (maturner01.gmail.com)
 #
-# For the Tri-state EPSCoR Program
+# For the Tri-state EPSCoR Track II WC-WAVE Project
+#
 """
 Tools for working with IPW binary data and running the iSNOBAL model
 """
@@ -16,7 +18,6 @@ from collections import namedtuple, defaultdict
 BAND_TYPE_LOC = 1
 BAND_INDEX_LOC = 2
 
-
 #: Container for ISNOBAL Global Band information
 GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
 
@@ -27,8 +28,10 @@ IsHeaderStart = lambda headerLine: headerLine.split()[0] == "!<header>"
 VARNAME_DICT = \
     {
         'in': ["I_lw", "T_a", "e_a", "u", "T_g", "S_n"],
-        'em': [],
-        'snow': []
+        'em': ["R_n", "H", "L_v_E", "G", "M", "delta_Q", "E_s", "melt",
+               "ro_predict", "cc_s"],
+        'snow': ["z_s", "rho", "m_s", "h2o", "T_s_0", "T_s_l", "T_s",
+                 "z_s_l", "h2o_sat"]
     }
 
 #: Convert number of bytes to struct package code for unsigned integer type
@@ -38,21 +41,6 @@ PACK_DICT = \
         2: 'H',
         4: 'I'
     }
-
-
-def get_varnames(fileType):
-    """
-    Access variable names associated with the fileType via VARNAME_DICT.
-
-    Valid fileTypes: 'in', 'em', and 'snow'.
-
-    Returns: list of variable names
-    """
-    if fileType in ('em', 'snow'):
-        print "Not yet implemented for filetype " + fileType
-        return None
-
-    return VARNAME_DICT[fileType]
 
 
 class IPW:
