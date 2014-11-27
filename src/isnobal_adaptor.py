@@ -208,7 +208,8 @@ def _make_bands(headerLines, varnames):
 
         elif bandType == 'basic_image':
             # assign byte and bits info that's stored here
-            setattr(bands[bandIdx], spl[0] + "_", int(spl[2]))
+            if spl[0] in ['bits', 'bytes']:
+                setattr(bands[bandIdx], spl[0] + "_", int(spl[2]))
 
         elif bandType == 'lq':
             # assign integer and float min and max. ignore non-"map" fields
@@ -261,7 +262,7 @@ def _bands_to_dtype(bands):
     Given a list of Bands, convert them to a numpy.dtype for use in creating
     the IPW dataframe.
     """
-    return np.dtype([(b.varname, 'uint' + str(b.bits_)) for b in bands])
+    return np.dtype([(b.varname, 'uint' + str(b.bytes_ * 8)) for b in bands])
 
 
 def _bands_to_header_lines(bandsDict):
@@ -384,8 +385,11 @@ class IPWLines:
         with open(ipwFile, 'rb') as f:
             lines = f.readlines()
 
-        self.headerLines = lines[:-1]
+        lastHeaderIdx = [(i, l) for i, l in enumerate(lines) if "" in l][0][0]
+        splitIdx = lastHeaderIdx + 1
 
-        self.binaryData = lines[-1]
+        self.headerLines = lines[:splitIdx]
+
+        self.binaryData = "".join(lines[splitIdx:])
 
 
