@@ -27,3 +27,5 @@ ppt_images_dist/*
 *.ppt*
 scripts/gdal_metadata.py
 scripts/my-model-run.py
+
+examples/*
