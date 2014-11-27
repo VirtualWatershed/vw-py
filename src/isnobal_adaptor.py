@@ -141,6 +141,8 @@ def _build_ipw_dataframe(nonglobalBands, binaryData):
 
     dtype = _bands_to_dtype(nonglobalBands)
 
+
+
     intData = np.fromstring(binaryData, dtype=dtype)
 
     df = pd.DataFrame(intData, columns=colnames)
@@ -326,9 +328,9 @@ def _floatdf_to_binstring(bands, df):
 
         intDf[b.varname] = mapFn(df[b.varname])
 
-    packStr = "".join([PACK_DICT[b.bytes_] for b in bands])
+    packStr = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
 
-    return "".join([struct.pack(packStr, *r[1]) for r in intDf.iterrows()])
+    return b''.join([struct.pack(packStr, *r[1]) for r in intDf.iterrows()])
 
 
 # TODO: rename this to _recalculate_header
@@ -391,5 +393,3 @@ class IPWLines:
         self.headerLines = lines[:splitIdx]
 
         self.binaryData = "".join(lines[splitIdx:])
-
-
