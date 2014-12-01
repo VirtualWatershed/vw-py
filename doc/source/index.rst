@@ -24,6 +24,7 @@ be assigning multiple model runs into some sort of "project run" structure.
 
    vw_adaptor
    isnobal
+   isnobal_tutorial
 
 
 Quickstart
