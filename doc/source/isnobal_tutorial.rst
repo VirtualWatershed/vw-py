@@ -36,8 +36,8 @@ Example: Load a set of inputs; change ``T_a`` at every grid point and time step
     output_file = dest_dir + os.path.basename(source_file)
     ipw.write(output_file)
     
-Example: Plot outputs from five different "climate scenarios"
--------------------------------------------------------------
+Example: Plot outputs from eight different "climate scenario" simulations
+-------------------------------------------------------------------------
 
 I used the example above to build eight different warming scenarios, with
 temperatures increased by .5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, and 4.0 degrees Celsius, to see
@@ -122,8 +122,4 @@ This is meant to be run in the interactive IPython shell.
     We ran the ISNOBAL model for nine different temperatures, the observed 
     temperatures from Kormos, et al., and then the observed heated by 
     0.5, 1.0, ..., 4.0 degrees Celsius. This is the output from the above example.
-
-
-
-
 
