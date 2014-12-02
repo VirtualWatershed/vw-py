@@ -28,4 +28,4 @@ ppt_images_dist/*
 scripts/gdal_metadata.py
 scripts/my-model-run.py
 
-examples/*
+examples/data/*
