@@ -2,6 +2,7 @@
 Tests for the isnobal_adaptor module
 """
 
+import logging
 import numpy.testing as npt
 import numpy as np
 import os
@@ -15,7 +16,7 @@ from nose.tools import raises
 from StringIO import StringIO
 from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_bands, \
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
-    _bands_to_header_lines, _floatdf_to_binstring, _recalculate_headers, IPW
+    _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW
 
 
 class TestHeaderParser(unittest.TestCase):
@@ -28,7 +29,7 @@ class TestHeaderParser(unittest.TestCase):
         # mirrors what is done in class IPWLines
         # there are five bands in this one, so we'll get to test handling of
         # the "sun-down" number of bands. There is one more in daylight hours
-        testFile = 'src/test/data/in.00'
+        testFile = 'src/test/data/in.0000'
 
         with open(testFile, 'rb') as f:
             lines = f.readlines()
@@ -48,6 +49,8 @@ class TestHeaderParser(unittest.TestCase):
 
         self.ipw = IPW(testFile)
 
+        print self.ipw.data_frame['T_g'].max()
+
     def test_header_dict(self):
         """
         Check that header lines are properly built into a dictionary
@@ -55,15 +58,14 @@ class TestHeaderParser(unittest.TestCase):
         expectedHeaderDict = \
             {
                 'global': GlobalBand("0123", 148, 170, 5),
-                'I_lw': Band('I_lw', 0, 1, 8, 0, 255, 0, 500),
+                'I_lw': Band('I_lw', 0, 1, 8, 0, 255, 284.31372549, 390.196078431),
                 'T_a': Band('T_a', 1, 1, 8, 0, 255, 22.39999962, 23.39999962),
                 'e_a': Band('e_a', 2, 2, 16, 0, 65535, 468.7428284, 469.7428284),
-                'u': Band('u', 3, 2, 16, 0, 65535, 0.8422899842, 1.842289925),
+                'u': Band('u', 3, 2, 16, 0, 65535, 0.8422899842, 1.8422899842),
                 'T_g': Band('T_g', 4, 1, 8, 0, 255, 0, 1)
             }
 
-        headerDict =\
-            self.headerDict
+        headerDict = self.headerDict
 
         i = 0
         for variable, expectedBand in expectedHeaderDict.iteritems():
@@ -81,21 +83,22 @@ class TestHeaderParser(unittest.TestCase):
                 assert genBand.nBands == expectedBand.nBands
 
             else:
+
                 assert genBand.varname is not None
                 assert genBand.bytes_ is not None
                 assert genBand.bits_ is not None
-                assert genBand.intMin is not None
-                assert genBand.intMax is not None
-                assert genBand.floatMin is not None
-                assert genBand.floatMax is not None
+                assert genBand.int_min is not None
+                assert genBand.int_max is not None
+                assert genBand.float_min is not None
+                assert genBand.float_max is not None
 
                 assert genBand.varname == expectedBand.varname
                 assert genBand.bytes_ == expectedBand.bytes_
                 assert genBand.bits_ == expectedBand.bits_
-                assert genBand.intMin == expectedBand.intMin
-                assert genBand.intMax == expectedBand.intMax
-                assert genBand.floatMin == expectedBand.floatMin
-                assert genBand.floatMax == expectedBand.floatMax
+                assert genBand.int_min == expectedBand.int_min
+                assert genBand.int_max == expectedBand.int_max
+                assert genBand.float_min == expectedBand.float_min
+                assert genBand.float_max == expectedBand.float_max
 
             i += 1
 
@@ -137,10 +140,10 @@ class TestHeaderParser(unittest.TestCase):
 
         # fetch the floating point data using the IPW tool primg
         # <http://cgiss.boisestate.edu/~hpm/software/IPW/man1/primg.html>
-        ipwCmd = "primg -a -i src/test/data/in.00"
-        textArray = subprocess.check_output(ipwCmd, shell=True)
+        ipw_cmd = "primg -a -i src/test/data/in.0000"
+        text_array = subprocess.check_output(ipw_cmd, shell=True)
         expectedDf = \
-            pd.DataFrame(np.genfromtxt(StringIO(textArray), delimiter=" "),
+            pd.DataFrame(np.genfromtxt(StringIO(text_array), delimiter=" "),
                          columns=[b.varname for b in bands])
 
         # use .01 because of severe rounding by IPW primg
@@ -173,8 +176,8 @@ class TestHeaderParser(unittest.TestCase):
              "bytes = 1 ",
              "bits = 8 ",
              "!<header> lq 0 $Revision: 1.6 $",
-             "map = 0 0 ",
-             "map = 255 500 ",
+             "map = 0 284.31372549 ",
+             "map = 255 390.196078431 ",
              "!<header> lq 1 $Revision: 1.6 $",
              "map = 0 22.39999962 ",
              "map = 255 23.39999962 ",
@@ -183,7 +186,7 @@ class TestHeaderParser(unittest.TestCase):
              "map = 65535 469.7428284 ",
              "!<header> lq 3 $Revision: 1.6 $",
              "map = 0 0.8422899842 ",
-             "map = 65535 1.842289925 ",
+             "map = 65535 1.8422899842 ",
              "!<header> lq 4 $Revision: 1.6 $",
              "map = 0 0 ",
              "map = 255 1 "]
@@ -260,70 +263,90 @@ class TestHeaderParser(unittest.TestCase):
                  Band('the other', 2, 1, 8, 0, 255, 0, 30.0)]
 
         # increase variable this by five degrees plus the Band's stated maximum
-        df['this'] = df['this'] + bands[0].floatMax + 5.0
+        df['this'] = df['this'] + bands[0].float_max + 5.0
         # decrease variable the other to five less than the Band's minimum
-        df['the other'] = df['the other'] - (bands[2].floatMin - 5.0)
+        df['the other'] = df['the other'] - (bands[2].float_min - 5.0)
 
-        _recalculate_headers(bands, df)
+        _recalculate_header(bands, df)
 
-        assert bands[0].floatMax == df['this'].max()
-        assert bands[2].floatMin == df['the other'].min()
+        assert bands[0].float_max == df['this'].max()
+        assert bands[2].float_min == df['the other'].min()
 
     def test_save_ipw(self):
         """
-        Load an IPW file and save back to a new file; check contents are equal
+        Load 5- and 6-band input and em/snow output IPW files and save back to a new file
         """
         ### Note: can't test the building of headers because I'm stripping out
         ### extraneous info like random variable units.
-        outfile = "src/test/data/in.00.rewrite"
 
-        self.ipw.write(outfile)
+        def _tester(test_data):
+            logging.debug("testing load/save of file " + test_data)
+            # load test_data
+            ipw = IPW(test_data)
 
-        ipwCmd = "primg -a -i src/test/data/in.00"
-        expectedTextArray = subprocess.check_output(ipwCmd, shell=True)
+            # create and write IPW data to a new file
+            outfile = test_data + ".rewrite"
+            ipw.recalculate_header()
+            ipw.write(outfile)
 
-        ipwCmd += ".rewrite"
-        textArray = subprocess.check_output(ipwCmd, shell=True)
+            # use primg (http://cgiss.boisestate.edu/~hpm/software/IPW/man1/primg.html)
+            # to print the floating point data and capture in python for both
+            ipw_cmd = "primg -a -i " + test_data
+            expected_text_array = subprocess.check_output(ipw_cmd, shell=True)
 
-        assert expectedTextArray == textArray,\
-            "expected: %s\ngenerated: %s" % \
-            (expectedTextArray[:300], textArray[:300])
+            ipw_cmd += ".rewrite"
+            text_array = subprocess.check_output(ipw_cmd, shell=True)
 
-        os.remove(outfile)
+            # check equality
+            assert expected_text_array == text_array,\
+                "expected: %s\ngenerated: %s" % \
+                (expected_text_array[:300], text_array[:300])
+
+            os.remove(outfile)
+
+        test_data = ["src/test/data/" + f for f in
+                     ("in.0000", "in.0010", "em.0134", "snow.1345")]
+
+        i = 0
+        for d in test_data:
+            _tester(d)
+            i += 1
+
+        assert i == 4, "Tests did not run! i = %s" % i
 
     def test_modify_save_ipw(self):
         """
         Test start-to-finish steps of load, modify, and save an IPW file using the IPW class
         """
-        ipw = IPW("src/test/data/in.00")
-        ipw.dataFrame.T_a = ipw.dataFrame.T_a + 2.0
-        print ipw.dataFrame.head()
-        ipw.dataFrame['I_lw'] += 23.0
+        ipw = IPW("src/test/data/in.0000")
+        ipw.data_frame.T_a = ipw.data_frame.T_a + 2.0
+        print ipw.data_frame.head()
+        ipw.data_frame['I_lw'] += 23.0
 
         ipw.recalculate_header()
 
-        outfile = "src/test/data/in.00.modified"
+        outfile = "src/test/data/in.0000.modified"
         ipw.write(outfile)
         # read in the float data array from the modified IPW file we just wrote
-        ipwCmd = "primg -a -i src/test/data/in.00"
-        origTextArray = subprocess.check_output(ipwCmd, shell=True)
+        ipw_cmd = "primg -a -i src/test/data/in.0000"
+        origTextArray = subprocess.check_output(ipw_cmd, shell=True)
 
-        ipwCmd = "primg -a -i " + outfile
-        modTextArray = subprocess.check_output(ipwCmd, shell=True)
+        ipw_cmd = "primg -a -i " + outfile
+        modTextArray = subprocess.check_output(ipw_cmd, shell=True)
 
         bands = self.bands
-        modifiedDf =\
+        modified_df =\
             pd.DataFrame(np.genfromtxt(StringIO(modTextArray), delimiter=" "),
                          columns=[b.varname for b in bands])
-        originalDf =\
+        original_df =\
             pd.DataFrame(np.genfromtxt(StringIO(origTextArray), delimiter=" "),
                          columns=[b.varname for b in bands])
 
-        assert all(modifiedDf['T_a'] > originalDf['T_a']),\
+        assert all(modified_df['T_a'] > original_df['T_a']),\
             "modified: %s\noriginal: %s" % \
-            (str(modifiedDf['T_a']), str(originalDf['T_a']))
-        assert all(modifiedDf['I_lw'] > originalDf['I_lw']),\
+            (str(modified_df['T_a']), str(original_df['T_a']))
+        assert all(modified_df['I_lw'] > original_df['I_lw']),\
             "modified: %s\noriginal: %s" % \
-            (str(modifiedDf['I_lw']), str(originalDf['I_lw']))
+            (str(modified_df['I_lw']), str(original_df['I_lw']))
 
         os.remove(outfile)

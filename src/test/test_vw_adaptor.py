@@ -106,7 +106,7 @@ class TestFGDCMetadata(unittest.TestCase):
         self.config = get_config("src/test/test.conf")
 
         self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
-        self.dataFile = "src/test/data/in.00"
+        self.dataFile = "src/test/data/in.0000"
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
@@ -152,9 +152,9 @@ class TestVWClient(unittest.TestCase):
 
         modelRunUUID = result.text
 
-        self.vwClient.upload(modelRunUUID, "src/test/data/in.00")
+        self.vwClient.upload(modelRunUUID, "src/test/data/in.0000")
 
-        dataFile = "src/test/data/in.00"
+        dataFile = "src/test/data/in.0000"
 
         fgdcXML = \
             makeFGDCMetadata(dataFile, self.config, modelRunUUID=modelRunUUID)
@@ -181,7 +181,7 @@ class TestVWClient(unittest.TestCase):
     def test_upload(self):
         """ VW Client properly uploads data """
 
-        self.vwClient.upload(self.modelRunUUID, "src/test/data/in.00")
+        self.vwClient.upload(self.modelRunUUID, "src/test/data/in.0000")
 
         # fetch the file from the url we know from the VW file storage pattern
         results = \
@@ -189,7 +189,7 @@ class TestVWClient(unittest.TestCase):
 
         url = results.records[0]['downloads'][0]['bin']
 
-        outfile = "src/test/data/back_in.00"
+        outfile = "src/test/data/back_in.0000"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
