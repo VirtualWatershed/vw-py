@@ -30,6 +30,7 @@ for i, val in enumerate(["", "P0.5", "P1.0", "P1.5", "P2.0", "P2.5", "P3.0",
     files = ["/".join([dir_name, f])
              for f in os.listdir(dir_name)
              if f[:2] == 'em']
+    # print files
 
     melt_sum_list = [0.0]*len(files)
 
@@ -39,7 +40,7 @@ for i, val in enumerate(["", "P0.5", "P1.0", "P1.5", "P2.0", "P2.5", "P3.0",
 
     melt_sums[val] = melt_sum_list
 
-index = pd.date_range('10/01/2010', periods=8758, freq='H')
+index = pd.date_range('10/01/2010', periods=11, freq='H')
 
 df = pd.DataFrame(melt_sums, index=index)
 
@@ -49,4 +50,4 @@ cols[0] = "observed"
 df.columns = cols
 
 # write the dataframe to csv
-df.to_csv("temperature_sensitivity_example.csv")
+df.to_csv("data/temperature_sensitivity_example.csv")

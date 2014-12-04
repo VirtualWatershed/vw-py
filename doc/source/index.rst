@@ -3,28 +3,40 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Virtual Watershed Adaptors and Model Integration documentation!
-==========================================================================
+Welcome to the WC-WAVE Adaptors and Model Integration documentation!
+====================================================================
 
 Python API for Dynamic Waterhsed Science Modeling
 `````````````````````````````````````````````````
 
-The Virtual Watershed is an extension of the 
+This API targets two main tasks of watershed hydrology modeling: data management
+and model running and manipulation. The only model currently supported is the
+`iSNOBAL <http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html>`_ 
+model from the `Software Tools for Hydro-Climatic Modeling and Analysis 
+Image Processing Workbench (IPW) <http://cgiss.boisestate.edu/~hpm/software/IPW/index.html>`_. 
+
+For data management, this API provides a wrapper of the Virtual Watershed (VW)
+The VW is an extension of the 
 `GSToRE architecture <http://gstore.unm.edu/docs/index.html>`_ hosted by the
 Earth Data Analysis Center at the University of New Mexico. It is a specialized
 database for hydrological data. By properly utilizing metadata, we may, for 
 example, very intuitively create multiple "model runs", where a given 
 hydrological model or coupled hydrological models operate on a set of input 
 data. This input data may then be modified, fed to another model run, with 
-new outputs, and all this may be stored sanely. In the future we will also 
-be assigning multiple model runs into some sort of "project run" structure.
+new outputs, and all this may be stored sanely. 
+
+For a quick look at what's possible with the iSNOBAL interface, see the 
+`demonstration experiment of iSNOBAL <isnobal_experiment.html>`_ where we 
+modify some observed IPW binary data to increase the temperature, run iSNOBAL
+on every set of modified input data, and plot the results with 
+pandas/matplotlib.
 
 .. toctree::
    :maxdepth: 2
 
    vw_adaptor
    isnobal
-   isnobal_tutorial
+   isnobal_experiment
 
 
 Quickstart
