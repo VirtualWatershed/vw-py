@@ -29,3 +29,5 @@ scripts/gdal_metadata.py
 scripts/my-model-run.py
 
 examples/data/*
+examples/*.png
+*.tmp

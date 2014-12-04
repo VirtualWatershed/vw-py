@@ -20,6 +20,6 @@ snow_prefix = outputDir + "/snow"
 if not os.path.exists(outputDir):
     os.makedirs(outputDir)
 
-# assumes a full run with 8758 steps and 8759 input files
-isnobal(input_prefix=input_prefix, em_prefix=em_prefix,
+# in the quick example we just run everything with only the first eleven "in"s
+isnobal(nsteps=11, input_prefix=input_prefix, em_prefix=em_prefix,
         snow_prefix=snow_prefix)

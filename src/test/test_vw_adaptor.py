@@ -126,8 +126,7 @@ class TestVWClient(unittest.TestCase):
 
         self.vwClient = default_vw_client()
 
-        self.modelRunUUID = \
-            self.vwClient.search(limit=20).records[0]['model_run_uuid']
+        self.modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
         self.config = get_config("src/test/test.conf")
 
