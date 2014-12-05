@@ -1,4 +1,4 @@
-.. python ISNOBAL interface for use with the vw_adaptor
+.. python ISNOBAL interface for use with the watershed adaptor
 
 Python ISNOBAL Interface
 ========================
@@ -117,7 +117,7 @@ Reading IPW with Python
 The ``IPW`` class takes care of reading, modifying, and writing modified IPW 
 files. To use it, simply provide the file name you wish to load into Python.
 
-.. autoclass:: isnobal_adaptor.IPW
+.. autoclass:: isnobal.IPW
     :members:
 
 
@@ -126,5 +126,5 @@ Run ISNOBAL from Python
 
 The ISNOBAL interface is a simple, straight-forward wrapper for ISNOBAL. 
 
-.. autofunction:: isnobal_adaptor.isnobal
+.. autofunction:: isnobal.isnobal
     

@@ -34,7 +34,7 @@ pandas/matplotlib.
 .. toctree::
    :maxdepth: 2
 
-   vw_adaptor
+   watershed
    isnobal
    isnobal_experiment
 
@@ -97,16 +97,28 @@ Finally, run the unittests from the root ``adaptors`` directory like so
 
 .. code-block:: bash
 
-    nosetests
+    # -v for verbose
+    nosetests -v
 
 If all is well, you will see the following output:
 
 .. code-block:: bash
 
+    Check that IPW header is properly re-made ... ok
+    Check that the IPW dataframe has been correctly built ... ok
+    Check that _bands_to_dtype works as expected ... ok
+    Convert an integer to a float using the header information in a Band ... ok
+    Test that a DF with floats is correctly translated to a binary string ... ok
+    Error when a data val is less than a band maximum? ... ok
+    Error when a data val is less than a band minimum? ... ok
+    Check that header lines are properly built into a dictionary ... ok
+    Test start-to-finish steps of load, modify, and save an IPW file using the IPW class ... ok
+    Test that headers are successfully recalculated after data has been ... ok
+    Load 5- and 6-band input and em/snow output IPW files and save back to a new file ... ok
     Test that a single metadata JSON string is properly built (FGDC) ... ok
     Test that a single metadata JSON string is properly built (JSON) ... ok
     Test that failed authorization is correctly caught ... /Users/mturner/anaconda/lib/python2.7/site-packages/requests/packages/urllib3/connectionpool.py:730: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.org/en/latest/security.html (This warning will only appear once by default.)
-    InsecureRequestWarning)
+      InsecureRequestWarning)
     ok
     VW Client properly downloads data ... ok
     VW Client throws error on failed download ... ok
@@ -115,13 +127,9 @@ If all is well, you will see the following output:
     VW Client properly uploads data ... ok
 
     ----------------------------------------------------------------------
-    Ran 8 tests in 21.585s
+    Ran 19 tests in 16.700s
 
     OK
-
-
-
-
 
 
 Indices and tables

@@ -3,8 +3,8 @@
 Virtual Watershed Adaptor
 =========================
 
-The ``vw_adaptor`` module is designed as a general interface for any model
-or modeling framework, such as ISNOBAL or CSDMS. 
+The ``adaptors.watershed`` module is designed as a general interface for any 
+model or modeling framework, such as ISNOBAL or CSDMS. 
 
 VWClient: User Interface to the Virtual Watershed
 `````````````````````````````````````````````````
@@ -19,14 +19,14 @@ There are obvious ``download`` and ``upload`` functions. Finally there is
 an ``insert_metadata`` function that pushes JSON watershed metadata to the
 database.
 
-.. autoclass:: vw_adaptor.VWClient
+.. autoclass:: watershed.VWClient
     :members:
 
 Typically there will be no need to directly use the constructor to create a new
 ``VWClient`` instance. Instead use this convenience function that will read
 ``default.conf`` and establish a connection with 
 
-.. autofunction:: vw_adaptor.default_vw_client
+.. autofunction:: watershed.default_vw_client
 
 VW Client Examples
 ------------------
@@ -35,7 +35,7 @@ Assuming you have properly filled out your ``default.conf`` file with the
 IP address of the watershed and your login information, you can do the 
 following.
 
->>> import src.vw_adaptor as vw_adaptor
+>>> import adaptors.watershed as vw_adaptor
 >>> vwClient = vw_adaptor.default_vw_client()
 >>> modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 >>> records = vwClient.search(model_run_uuid=modelRunUUID)
@@ -70,9 +70,9 @@ Virtual Watershed metadata and one for generating XML-formatted FGDC "science"
 metadata. The templates used to implement these functions are stored in the
 ``resources/`` directory.
 
-.. autofunction:: vw_adaptor.makeWatershedMetadata
+.. autofunction:: watershed.makeWatershedMetadata
 
-.. autofunction:: vw_adaptor.makeFGDCMetadata
+.. autofunction:: watershed.makeFGDCMetadata
 
 Configuration File Getter
 `````````````````````````
@@ -84,7 +84,7 @@ Instead, we force the user to pass in the configuration file. It may be
 called with no arguments if called from the root folder. Otherwise the 
 configuration file must be specified. See below for an example.
 
-.. autofunction:: vw_adaptor.get_config
+.. autofunction:: watershed.get_config
 
 
 
