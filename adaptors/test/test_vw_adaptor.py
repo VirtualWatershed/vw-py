@@ -2,8 +2,11 @@
 Testing module for Virtual Watershed Data adaptor.
 """
 
-from vw_adaptor import *
+from adaptors.watershed import makeWatershedMetadata, makeFGDCMetadata, \
+    VWClient, default_vw_client, get_config
 
+import json
+import requests
 import unittest
 import os
 
@@ -46,7 +49,7 @@ class TestJSONMetadata(unittest.TestCase):
         initialize the class with some appropriate entry
         metadata from file
         """
-        self.config = get_config("src/test/test.conf")
+        self.config = get_config("adaptors/test/test.conf")
 
         self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
         self.parentModelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
@@ -59,7 +62,7 @@ class TestJSONMetadata(unittest.TestCase):
         description = "Testing metadata!"
         model_vars = "R_n,H,L_v_E,G,M,delta_Q"
         fgdcMetadata = "<XML>yup.</XML>"
-        dataFile = "src/test/data/i_dont_exist.data"
+        dataFile = "adaptors/test/data/i_dont_exist.data"
         generated = makeWatershedMetadata(dataFile,
                                           self.config,
                                           self.parentModelRunUUID,
@@ -70,13 +73,13 @@ class TestJSONMetadata(unittest.TestCase):
                                           fgdcMetadata
                                           )
         # load expected json metadata file
-        expected = open("src/test/data/expected1_in.json", 'r').read()
+        expected = open("adaptors/test/data/expected1_in.json", 'r').read()
 
         # check equality
         assert generated == expected, \
             showStringDiff(generated, expected)
 
-        dataFile = "src/test/data/fake_output.tif"
+        dataFile = "adaptors/test/data/fake_output.tif"
         model_set = "outputs"
         generated = makeWatershedMetadata(dataFile,
                                           self.config,
@@ -88,7 +91,7 @@ class TestJSONMetadata(unittest.TestCase):
                                           fgdcMetadata
                                           )
         # load expected json metadata file
-        expected = open("src/test/data/expected_w_services.json", 'r').read()
+        expected = open("adaptors/test/data/expected_w_services.json", 'r').read()
 
         # check equality
         assert generated == expected, \
@@ -103,18 +106,18 @@ class TestFGDCMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        self.config = get_config("src/test/test.conf")
+        self.config = get_config("adaptors/test/test.conf")
 
         self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
-        self.dataFile = "src/test/data/in.0000"
+        self.dataFile = "adaptors/test/data/in.0000"
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
 
         generated = makeFGDCMetadata(self.dataFile, self.config,
-                                      self.modelRunUUID)
+                                     self.modelRunUUID)
 
-        expected = open("src/test/data/expected1_in.xml", 'r').read()
+        expected = open("adaptors/test/data/expected1_in.xml", 'r').read()
         assert generated == expected, \
             showStringDiff(generated, expected)
 
@@ -128,7 +131,7 @@ class TestVWClient(unittest.TestCase):
 
         self.modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
-        self.config = get_config("src/test/test.conf")
+        self.config = get_config("adaptors/test/test.conf")
 
     @raises(HTTPError)
     def test_authFail(self):
@@ -151,9 +154,9 @@ class TestVWClient(unittest.TestCase):
 
         modelRunUUID = result.text
 
-        self.vwClient.upload(modelRunUUID, "src/test/data/in.0000")
+        self.vwClient.upload(modelRunUUID, "adaptors/test/data/in.0000")
 
-        dataFile = "src/test/data/in.0000"
+        dataFile = "adaptors/test/data/in.0000"
 
         fgdcXML = \
             makeFGDCMetadata(dataFile, self.config, modelRunUUID=modelRunUUID)
@@ -180,7 +183,7 @@ class TestVWClient(unittest.TestCase):
     def test_upload(self):
         """ VW Client properly uploads data """
 
-        self.vwClient.upload(self.modelRunUUID, "src/test/data/in.0000")
+        self.vwClient.upload(self.modelRunUUID, "adaptors/test/data/in.0000")
 
         # fetch the file from the url we know from the VW file storage pattern
         results = \
@@ -188,7 +191,7 @@ class TestVWClient(unittest.TestCase):
 
         url = results.records[0]['downloads'][0]['bin']
 
-        outfile = "src/test/data/back_in.0000"
+        outfile = "adaptors/test/data/back_in.0000"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
@@ -208,7 +211,7 @@ class TestVWClient(unittest.TestCase):
             self.vwClient.search(model_run_uuid=self.modelRunUUID, limit=1)
         url = result.records[0]['downloads'][0]['bin']
 
-        outfile = "src/test/data/test_dl.file"
+        outfile = "adaptors/test/data/test_dl.file"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
