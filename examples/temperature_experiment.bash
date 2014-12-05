@@ -22,7 +22,16 @@
 # $ sudo apt-get install parallel && sudo rm /etc/parallel/config
 # 
 # To do this, we first have to download and re-scale the original input data 
-# obtained from the icewater FTP site at Boise State University:
+# obtained from the icewater FTP site at Boise State University.
+
+# The first and only command to be passed to this script is whether this is a
+# test or not
+is_test=$1
+
+if [ "$is_test" != "isTest" ] && [ "$is_test" != "isFull" ]; then
+   echo "parameter must be exactly one of 'isTest' or 'isFull', not $1"
+   exit 1
+fi
 
 # Download data from ftp site (faster and more reliable than getting whole .zip)
 function make_full_addr {
@@ -45,17 +54,21 @@ export -f make_full_addr
 
 rm -f *.tmp
 
-# CHANGE FOR FULL toggle comments between 11/8758 to do test/full experiment
-for fnum in $(/usr/bin/seq 0 11); do
-#for fnum in $(/usr/bin/seq 0 8758); do
-    # these are the FTP addresses for the input files
-    make_full_addr $fnum >> addr.tmp
-    # make a file containing the expected 'in.0010' type names 
-    make_full_addr $fnum | sed 's/.*\///' >> expected.tmp
-done
+if [ "$is_test" = "isTest" ]; then
+    for fnum in $(/usr/bin/seq 0 11); do
+        # these are the FTP addresses for the input files
+        make_full_addr $fnum >> addr.tmp
+        # make a file containing the expected 'in.0010' type names 
+        make_full_addr $fnum | sed 's/.*\///' >> expected.tmp
+    done
+else
+    for fnum in $(/usr/bin/seq 0 8758); do
+        make_full_addr $fnum >> addr.tmp
+        make_full_addr $fnum | sed 's/.*\///' >> expected.tmp
+    done
+fi
 
 # Download input files
-
 full_save_dir=data/original_inputs
 
 mkdir -p $full_save_dir
@@ -97,16 +110,27 @@ mkdir -p $save_dir/ppt_images_dist
 
 printf "\nDownloading precipitation events\n"
 
-# CHANGE FOR FULL comment out 'head -n11' for a full run
-cut -f2 $save_dir/ppt_desc | \
-    head -n11 |\
-    parallel basename |\
-    parallel curl $root_ftp/ppt_images_dist/{} -o $save_dir/ppt_images_dist/{}
+if [ "$is_test" = "isTest" ]; then
+    cut -f2 $save_dir/ppt_desc | \
+        head -n11 |\
+        parallel basename |\
+        parallel curl $root_ftp/ppt_images_dist/{} -o $save_dir/ppt_images_dist/{}
+else
+    cut -f2 $save_dir/ppt_desc | 
+        parallel basename |
+        parallel curl $root_ftp/ppt_images_dist/{} -o $save_dir/ppt_images_dist/{}
+fi
 
 # now re-download all failed attempts for the precip ppt_images files
-#head -n11 data/ppt_desc | sed 's/.*\///' > expected.tmp
-cat data/ppt_desc | sed 's/.*\///' > expected.tmp
+if [ "$is_test" = "isTest" ]; then
+    head -n11 data/ppt_desc | sed 's/.*\///' > expected.tmp
+else
+    cat data/ppt_desc | sed 's/.*\///' > expected.tmp
+fi
+
 ls data/ppt_images_dist | sort -t"_" -k2g > downloaded.tmp
+
+# comm -3 will list the symmetric set difference 
 comm -3 expected.tmp downloaded.tmp > missing.tmp
 num_missing=$(wc -l missing.tmp | sed 's/ missing.tmp//')
 root_ftp="ftp://icewater.boisestate.edu/boisefront-products/other/projects/Kormos_iSNOBAL"
@@ -122,20 +146,21 @@ while [ $num_missing -gt 0 ]; do
     echo $num_missing
 done
 
-# one final wrinkle, on partial run 
-# we need to modify the file names to match our setup in the ppt_desc file
-# CHANGE FOR FULL toggle next three statements' comments for test/full
-file_nums=$(ls data/ppt_images_dist | \
-            egrep -o "_[0-9]+" | \
-            sed 's/_//' | \
-            sort -n)
+## one final wrinkle, on partial run 
+## we need to modify the file names to match our setup in the ppt_desc file
+if [ "$is_test" = "isTest" ]; then
+    file_nums=(`ls data/ppt_images_dist | \
+                egrep -o "_[0-9]+" | \
+                sed 's/_//' | \
+                sort -n`)
 
-# re-write data/ppt_desc with the sorted files
-rm -f data/ppt_desc
+    # re-write data/ppt_desc with the sorted files
+    rm -f data/ppt_desc
 
-for num in $file_nums; do
-    printf "$num\tdata/ppt_images_dist/ppt4b_$num.ipw\n" >> data/ppt_desc
-done
+    for num in ${file_nums[@]}; do
+        printf "$num\tdata/ppt_images_dist/ppt4b_$num.ipw\n" >> data/ppt_desc
+    done
+fi
 
 
 # Now that we've downloaded all the files, we re-quantize the data
@@ -145,14 +170,14 @@ rm -rf data/inputsP*
 
 find data/original_inputs -type f | parallel python recalc_input_headers.py
 
-# CHANGE FOR FULL Comment out or remove these next two for loops for a full run
-input_nums=$(ls data/inputs | egrep -o "[0-9]{2}$")
+if [ "$is_test" = "isTest" ]; then
+    input_nums=$(ls data/inputs | egrep -o "[0-9]{2}$")
 
-for fnum in $input_nums; do
-    printf "mv data/inputs/in.00$fnum data/inputs/in.$fnum\n"
-    mv "data/inputs/in.00$fnum" "data/inputs/in.$fnum"
-done
-
+    for fnum in $input_nums; do
+        printf "mv data/inputs/in.00$fnum data/inputs/in.$fnum\n"
+        mv "data/inputs/in.00$fnum" "data/inputs/in.$fnum"
+    done
+fi
 
 # Increase the temperatures by multiples of .5 degrees
 for mod_val in 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0; do
@@ -165,9 +190,9 @@ done
 # saved our modified data in folders like data/inputsP1.0 for the data that had
 # it's temperature increased by 1.0. Run these like so:
 
-parallel python run_isnobal.py data/inputsP{} data/outputsP{} ::: 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0
+parallel python run_isnobal.py data/inputsP{} data/outputsP{} $is_test ::: 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0
 
-python run_isnobal.py data/inputs data/outputs
+python run_isnobal.py data/inputs data/outputs $is_test 
 
 # Let's do one more time-intensive procedure, then it's time to have some fun 
 # and see if melting really was different for different temperature scenarios.
@@ -175,9 +200,9 @@ python run_isnobal.py data/inputs data/outputs
 # all grid points in the image using the nice properties of pandas resample
 # function.
 
-python create_summary_csv.py
+python create_summary_csv.py $is_test
 
 # Plot our results
-python plot_results.py
+python plot_results.py $is_test
 
 rm *.tmp

@@ -13,7 +13,7 @@ now in `original_inputs`
 import sys
 import os
 
-from adaptors.src.isnobal_adaptor import IPW
+from adaptors.isnobal import IPW
 
 input_file = sys.argv[1]
 

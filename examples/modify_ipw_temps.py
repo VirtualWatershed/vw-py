@@ -7,7 +7,7 @@ save the modified results
 import sys
 import os
 
-from adaptors.src.isnobal_adaptor import IPW
+from adaptors.isnobal import IPW
 
 amount = float(sys.argv[1])
 inputFile = sys.argv[2]
