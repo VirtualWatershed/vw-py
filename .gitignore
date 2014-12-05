@@ -33,3 +33,4 @@ scripts/my-model-run.py
 examples/data/*
 examples/*.png
 *.tmp
+examples/data*

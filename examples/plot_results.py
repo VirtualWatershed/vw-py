@@ -17,16 +17,17 @@ pd.options.display.mpl_style = "default"
 df = pd.read_csv("data/temperature_sensitivity_example.csv")
 # have to re-assign because pandas doesn't parse it automatically. probably a
 # way to tell it to read the index as a date_time.
-df.index = pd.date_range('10/01/2010', periods=11, freq='H')
 
 # set styles and plot
 styles = ['-', '--', '-', '--', '-', '--', '-', '--', '-']
 
 if not is_test == "isTest":
+    df.index = pd.date_range('10/01/2010', periods=8758, freq='H')
     df_3day = df.resample('3D', how=np.sum)
-    ax = df_3day.plot(lw=3.5, style=styles)
+    ax = df_3day.plot(lw=1.5, style=styles)
 else:
-    ax = df.plot(lw=3.5, style=styles)
+    ax = df.plot(lw=1.5, style=styles)
+    df.index = pd.date_range('10/01/2010', periods=11, freq='H')
 
 plt.title('Three-day sum of melt for observed/obs-plus temperatures',
           fontsize=12)
