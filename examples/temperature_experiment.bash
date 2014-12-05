@@ -104,8 +104,8 @@ cut -f2 $save_dir/ppt_desc | \
     parallel curl $root_ftp/ppt_images_dist/{} -o $save_dir/ppt_images_dist/{}
 
 # now re-download all failed attempts for the precip ppt_images files
-#head -n11 data/ppt_desc | sed 's/.*\///' > expected.tmp
-cat data/ppt_desc | sed 's/.*\///' > expected.tmp
+head -n11 data/ppt_desc | sed 's/.*\///' > expected.tmp
+#cat data/ppt_desc | sed 's/.*\///' > expected.tmp
 ls data/ppt_images_dist | sort -t"_" -k2g > downloaded.tmp
 comm -3 expected.tmp downloaded.tmp > missing.tmp
 num_missing=$(wc -l missing.tmp | sed 's/ missing.tmp//')
