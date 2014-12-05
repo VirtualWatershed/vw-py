@@ -117,7 +117,7 @@ Reading IPW with Python
 The ``IPW`` class takes care of reading, modifying, and writing modified IPW 
 files. To use it, simply provide the file name you wish to load into Python.
 
-.. autoclass:: adaptors.src.isnobal_adaptor.IPW
+.. autoclass:: isnobal_adaptor.IPW
     :members:
 
 
@@ -126,5 +126,5 @@ Run ISNOBAL from Python
 
 The ISNOBAL interface is a simple, straight-forward wrapper for ISNOBAL. 
 
-.. autofunction:: adaptors.src.isnobal_adaptor.isnobal
+.. autofunction:: isnobal_adaptor.isnobal
     
