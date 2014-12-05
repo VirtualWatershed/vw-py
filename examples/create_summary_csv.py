@@ -13,10 +13,13 @@ Hour 433: |  33.40        |    38.14     |     45.22    | ...
 Where each "Hour #" is replaced by the actual date_time of the observation hour
 """
 import os
+import sys
 import pandas as pd
 
-from adaptors.src.isnobal_adaptor import IPW
+from adaptors.isnobal import IPW
 from collections import defaultdict
+
+is_test = sys.argv[1]
 
 melt_sums = defaultdict(list)
 
@@ -40,7 +43,8 @@ for i, val in enumerate(["", "P0.5", "P1.0", "P1.5", "P2.0", "P2.5", "P3.0",
 
     melt_sums[val] = melt_sum_list
 
-index = pd.date_range('10/01/2010', periods=11, freq='H')
+periods = 11 if is_test == "isTest" else 8758
+index = pd.date_range('10/01/2010', periods=periods, freq='H')
 
 df = pd.DataFrame(melt_sums, index=index)
 
