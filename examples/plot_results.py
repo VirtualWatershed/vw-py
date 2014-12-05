@@ -17,15 +17,15 @@ df = pd.read_csv("data/temperature_sensitivity_example.csv")
 df.index = pd.date_range('10/01/2010', periods=11, freq='H')
 
 # CHANGE_FOR_FULL for full run, resample to 3-day sums
-df_3day = df.resample('3D', how=np.sum)
+# df_3day = df.resample('3D', how=np.sum)
 
 # set styles and plot
 styles = ['-', '--', '-', '--', '-', '--', '-', '--', '-']
 
 # CHANGE_FOR_FULL toggle commenting on next two lines when doing a full run
 # upper for test, lower for full
-# ax = df.plot(lw=3.5, style=styles)
-ax = df_3day.plot(lw=3.5, style=styles)
+ax = df.plot(lw=3.5, style=styles)
+# ax = df_3day.plot(lw=3.5, style=styles)
 
 plt.title('Three-day sum of melt for observed/obs-plus temperatures',
           fontsize=12)
