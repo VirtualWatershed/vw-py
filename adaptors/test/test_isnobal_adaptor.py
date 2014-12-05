@@ -14,7 +14,7 @@ import unittest
 from nose.tools import raises
 
 from StringIO import StringIO
-from adaptors.src.isnobal_adaptor import VARNAME_DICT, _make_bands, \
+from adaptors.isnobal import VARNAME_DICT, _make_bands, \
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
     _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW
 
@@ -29,7 +29,7 @@ class TestHeaderParser(unittest.TestCase):
         # mirrors what is done in class IPWLines
         # there are five bands in this one, so we'll get to test handling of
         # the "sun-down" number of bands. There is one more in daylight hours
-        testFile = 'src/test/data/in.0000'
+        testFile = 'adaptors/test/data/in.0000'
 
         with open(testFile, 'rb') as f:
             lines = f.readlines()
@@ -140,7 +140,7 @@ class TestHeaderParser(unittest.TestCase):
 
         # fetch the floating point data using the IPW tool primg
         # <http://cgiss.boisestate.edu/~hpm/software/IPW/man1/primg.html>
-        ipw_cmd = "primg -a -i src/test/data/in.0000"
+        ipw_cmd = "primg -a -i adaptors/test/data/in.0000"
         text_array = subprocess.check_output(ipw_cmd, shell=True)
         expectedDf = \
             pd.DataFrame(np.genfromtxt(StringIO(text_array), delimiter=" "),
@@ -304,7 +304,7 @@ class TestHeaderParser(unittest.TestCase):
 
             os.remove(outfile)
 
-        test_data = ["src/test/data/" + f for f in
+        test_data = ["adaptors/test/data/" + f for f in
                      ("in.0000", "in.0010", "em.0134", "snow.1345")]
 
         i = 0
@@ -318,17 +318,17 @@ class TestHeaderParser(unittest.TestCase):
         """
         Test start-to-finish steps of load, modify, and save an IPW file using the IPW class
         """
-        ipw = IPW("src/test/data/in.0000")
+        ipw = IPW("adaptors/test/data/in.0000")
         ipw.data_frame.T_a = ipw.data_frame.T_a + 2.0
         print ipw.data_frame.head()
         ipw.data_frame['I_lw'] += 23.0
 
         ipw.recalculate_header()
 
-        outfile = "src/test/data/in.0000.modified"
+        outfile = "adaptors/test/data/in.0000.modified"
         ipw.write(outfile)
         # read in the float data array from the modified IPW file we just wrote
-        ipw_cmd = "primg -a -i src/test/data/in.0000"
+        ipw_cmd = "primg -a -i adaptors/test/data/in.0000"
         origTextArray = subprocess.check_output(ipw_cmd, shell=True)
 
         ipw_cmd = "primg -a -i " + outfile
