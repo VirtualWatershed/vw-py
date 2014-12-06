@@ -33,6 +33,8 @@ if [ "$is_test" != "isTest" ] && [ "$is_test" != "isFull" ]; then
    exit 1
 fi
 
+mkdir -p data/
+
 # Download data from ftp site (faster and more reliable than getting whole .zip)
 function make_full_addr {
     filenum=$1
