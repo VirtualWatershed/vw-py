@@ -15,7 +15,7 @@ from difflib import Differ
 from requests.exceptions import HTTPError
 
 
-def showStringDiff(s1, s2):
+def show_string_diff(s1, s2):
     """ Writes differences between strings s1 and s2 """
     d = Differ()
     diff = d.compare(s1.splitlines(), s2.splitlines())
@@ -77,7 +77,7 @@ class TestJSONMetadata(unittest.TestCase):
 
         # check equality
         assert generated == expected, \
-            showStringDiff(generated, expected)
+            show_string_diff(generated, expected)
 
         dataFile = "adaptors/test/data/fake_output.tif"
         model_set = "outputs"
@@ -95,7 +95,7 @@ class TestJSONMetadata(unittest.TestCase):
 
         # check equality
         assert generated == expected, \
-            showStringDiff(generated, expected)
+            show_string_diff(generated, expected)
 
 
 class TestFGDCMetadata(unittest.TestCase):
@@ -119,7 +119,7 @@ class TestFGDCMetadata(unittest.TestCase):
 
         expected = open("adaptors/test/data/expected1_in.xml", 'r').read()
         assert generated == expected, \
-            showStringDiff(generated, expected)
+            show_string_diff(generated, expected)
 
 
 class TestVWClient(unittest.TestCase):

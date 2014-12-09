@@ -14,9 +14,12 @@ import unittest
 from nose.tools import raises
 
 from StringIO import StringIO
-from adaptors.isnobal import VARNAME_DICT, _make_bands, \
+from adaptors.isnobal import VARNAME_DICT, _make_bands,\
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
-    _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW
+    _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,\
+    metadata_from_file
+from adaptors.watershed import get_config
+from test_vw_adaptor import show_string_diff
 
 
 class TestHeaderParser(unittest.TestCase):
@@ -29,9 +32,9 @@ class TestHeaderParser(unittest.TestCase):
         # mirrors what is done in class IPWLines
         # there are five bands in this one, so we'll get to test handling of
         # the "sun-down" number of bands. There is one more in daylight hours
-        testFile = 'adaptors/test/data/in.0000'
+        test_file = 'adaptors/test/data/in.0000'
 
-        with open(testFile, 'rb') as f:
+        with open(test_file, 'rb') as f:
             lines = f.readlines()
 
         self.headerLines = lines[:-1]
@@ -47,7 +50,14 @@ class TestHeaderParser(unittest.TestCase):
                       Band('u', 3, 2, 16, 0, 65535, 0.8422899842, 1.842289925),
                       Band('T_g', 4, 1, 8, 0, 255, 0, 1)]
 
-        self.ipw = IPW(testFile)
+        self.ipw = IPW(test_file)
+
+        self.test_file = test_file
+
+        self.model_run_uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
+
+        self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+
 
     def test_header_dict(self):
         """
@@ -349,3 +359,21 @@ class TestHeaderParser(unittest.TestCase):
             (str(modified_df['I_lw']), str(original_df['I_lw']))
 
         os.remove(outfile)
+
+    def test_watershed_connection(self):
+        """
+        Test watershed functions operating on an IPW instance or as a static method
+        """
+        # load expected json metadata file
+        expected = open("adaptors/test/data/expected1_in.json", 'r').read()
+
+        description = "Testing metadata!"
+
+        generated = metadata_from_file(self.test_file,
+                                       self.parent_model_run_uuid,
+                                       self.model_run_uuid,
+                                       description,
+                                       config_file="adaptors/test/test.conf")
+
+        # check equality
+        assert generated == expected, show_string_diff(generated, expected)

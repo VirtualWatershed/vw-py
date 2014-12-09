@@ -14,7 +14,10 @@ import numpy as np
 import subprocess
 import struct
 
+import watershed
+
 from collections import namedtuple, defaultdict
+
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
 BAND_TYPE_LOC = 1
@@ -82,10 +85,10 @@ class IPW:
     >>> ipw.writeBinary("in.plusOne.000")
 
     """
-    def __init__(self, dataFile):
+    def __init__(self, input_file=None):
 
-        ipw_lines = IPWLines(dataFile)
-        file_type = os.path.basename(dataFile).split('.')[0]
+        ipw_lines = IPWLines(input_file)
+        file_type = os.path.basename(input_file).split('.')[0]
 
         # _make_bands
         header_dict = \
@@ -101,6 +104,7 @@ class IPW:
         # initialized when called for below
         self._data_frame = None
 
+        self.input_file = input_file
         self.file_type = file_type
         self.header_dict = header_dict
         self.geo_lines = geo_lines
@@ -124,6 +128,16 @@ class IPW:
                                      self.binary_data)
         return self._data_frame
 
+
+    def metadata(self):
+        """
+        Return an IPW instance's Watershed metadata, which includes the XML
+        metadata.
+        """
+        input_file = self.input_file
+        metadata = ""
+        return metadata
+
     def write(self, fileName):
         """
         Write the IPW data to file
@@ -143,6 +157,30 @@ class IPW:
                 _floatdf_to_binstring(self.nonglobal_bands, self._data_frame))
 
         return None
+
+
+def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
+                       description, config_file='../default.conf'):
+    """
+    Generate metadata for input_file.
+    """
+    config = watershed.get_config(config_file)
+    fgdc_metadata = watershed.makeFGDCMetadata(input_file, config,
+                                               model_run_uuid)
+    input_prefix = os.path.basename(input_file).split('.')[0]
+    model_set = ("outputs", "inputs")[input_prefix == "in"]
+
+    model_vars = ','.join(VARNAME_DICT[input_prefix])
+
+    return \
+        watershed.makeWatershedMetadata(input_file,
+                                        config,
+                                        parent_model_run_uuid,
+                                        model_run_uuid,
+                                        model_set,
+                                        description,
+                                        model_vars,
+                                        fgdc_metadata)
 
 
 def _build_ipw_dataframe(nonglobal_bands, binary_data):
