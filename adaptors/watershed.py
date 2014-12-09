@@ -79,7 +79,7 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
         Returns: JSON metadata string
     """
     assert model_set in ["inputs", "outputs"], "parameter model_set must be \
-            either 'inputs' or 'outputs'"
+            either 'inputs' or 'outputs', not %s" % model_set
 
     RECS = "1"
     FEATURES = "1"
