@@ -98,20 +98,31 @@ class IPW:
                     if varname != 'global'],
                    key=lambda b: b.bandIdx)
 
-        df = _build_ipw_dataframe(nonglobal_bands, ipw_lines.binary_data)
+        # initialized when called for below
+        self._data_frame = None
 
         self.file_type = file_type
         self.header_dict = header_dict
         self.geo_lines = geo_lines
+        self.binary_data = ipw_lines.binary_data
         self.bands = bands
         self.nonglobal_bands = nonglobal_bands
-        self.data_frame = df
 
     def recalculate_header(self):
         """
         Recalculate header values
         """
-        _recalculate_header(self.nonglobal_bands, self.data_frame)
+        _recalculate_header(self.nonglobal_bands, self.data_frame())
+
+    def data_frame(self):
+        """
+        Get the Pandas DataFrame representation of the IPW file
+        """
+        if self._data_frame is None:
+            self._data_frame = \
+                _build_ipw_dataframe(self.nonglobal_bands,
+                                     self.binary_data)
+        return self._data_frame
 
     def write(self, fileName):
         """
@@ -129,7 +140,7 @@ class IPW:
             f.write(last_line + '\n')
 
             f.write(
-                _floatdf_to_binstring(self.nonglobal_bands, self.data_frame))
+                _floatdf_to_binstring(self.nonglobal_bands, self._data_frame))
 
         return None
 

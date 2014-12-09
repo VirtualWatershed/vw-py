@@ -49,8 +49,6 @@ class TestHeaderParser(unittest.TestCase):
 
         self.ipw = IPW(testFile)
 
-        print self.ipw.data_frame['T_g'].max()
-
     def test_header_dict(self):
         """
         Check that header lines are properly built into a dictionary
@@ -319,9 +317,10 @@ class TestHeaderParser(unittest.TestCase):
         Test start-to-finish steps of load, modify, and save an IPW file using the IPW class
         """
         ipw = IPW("adaptors/test/data/in.0000")
-        ipw.data_frame.T_a = ipw.data_frame.T_a + 2.0
-        print ipw.data_frame.head()
-        ipw.data_frame['I_lw'] += 23.0
+        data_frame = ipw.data_frame()
+        data_frame.T_a = data_frame.T_a + 2.0
+        print data_frame.head()
+        data_frame['I_lw'] += 23.0
 
         ipw.recalculate_header()
 
