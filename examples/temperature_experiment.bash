@@ -56,6 +56,8 @@ export -f make_full_addr
 
 rm -f *.tmp
 
+printf "\nCreating address lists for curl-ing downloads\n"
+
 if [ "$is_test" = "isTest" ]; then
     for fnum in $(/usr/bin/seq 0 11); do
         # these are the FTP addresses for the input files
@@ -148,27 +150,28 @@ while [ $num_missing -gt 0 ]; do
     echo $num_missing
 done
 
-## one final wrinkle, on partial run 
+printf "\nModifying ppt_desc to correctly point to local precipitation files\n"
+
 ## we need to modify the file names to match our setup in the ppt_desc file
-if [ "$is_test" = "isTest" ]; then
-    file_nums=(`ls data/ppt_images_dist | \
-                egrep -o "_[0-9]+" | \
-                sed 's/_//' | \
-                sort -n`)
+file_nums=(`ls data/ppt_images_dist | \
+            egrep -o "_[0-9]+" | \
+            sed 's/_//' | \
+            sort -n`)
 
-    # re-write data/ppt_desc with the sorted files
-    rm -f data/ppt_desc
+# re-write data/ppt_desc with the sorted files
+rm -f data/ppt_desc
 
-    for num in ${file_nums[@]}; do
-        printf "$num\tdata/ppt_images_dist/ppt4b_$num.ipw\n" >> data/ppt_desc
-    done
-fi
+for num in ${file_nums[@]}; do
+    printf "$num\tdata/ppt_images_dist/ppt4b_$num.ipw\n" >> data/ppt_desc
+done
 
 
 # Now that we've downloaded all the files, we re-quantize the data
 # Data gets saved to 'data/inputs', defined in the python script
 rm -f data/inputs/*
 rm -rf data/inputsP*
+
+printf "\nRecalculating input headers\n"
 
 find data/original_inputs -type f | parallel python recalc_input_headers.py
 
@@ -181,6 +184,8 @@ if [ "$is_test" = "isTest" ]; then
     done
 fi
 
+printf "\nCreating modified temperature input data\n"
+
 # Increase the temperatures by multiples of .5 degrees
 for mod_val in 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0; do
     parallel python modify_ipw_temps.py $mod_val {} ::: $(find data/inputs -type f)
@@ -192,6 +197,8 @@ done
 # saved our modified data in folders like data/inputsP1.0 for the data that had
 # it's temperature increased by 1.0. Run these like so:
 
+printf "\nRunning ISNOBAL\n"
+
 parallel python run_isnobal.py data/inputsP{} data/outputsP{} $is_test ::: 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0
 
 python run_isnobal.py data/inputs data/outputs $is_test 
@@ -202,9 +209,11 @@ python run_isnobal.py data/inputs data/outputs $is_test
 # all grid points in the image using the nice properties of pandas resample
 # function.
 
+printf "\nCreating summary csv file\n"
 python create_summary_csv.py $is_test
 
 # Plot our results
+printf "\nPlotting results\n"
 python plot_results.py $is_test
 
 rm *.tmp
