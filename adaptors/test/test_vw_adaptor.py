@@ -56,8 +56,6 @@ class TestJSONMetadata(unittest.TestCase):
         self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
         self.parentModelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
-        # self.
-
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (JSON)"""
         # Run test for 'inputs' model_set
@@ -101,7 +99,8 @@ class TestJSONMetadata(unittest.TestCase):
                                           end_datetime
                                           )
         # load expected json metadata file
-        expected = open("adaptors/test/data/expected_w_services.json", 'r').read()
+        expected = \
+            open("adaptors/test/data/expected_w_services.json", 'r').read()
 
         # check equality
         assert generated == expected, \
@@ -137,11 +136,23 @@ class TestVWClient(unittest.TestCase):
 
     def setUp(self):
 
-        self.vwClient = default_vw_client()
+        self.vw_client = default_vw_client()
 
         self.modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
         self.config = get_config("adaptors/test/test.conf")
+
+    def test_initialize_model_run(self):
+        """
+        Test that a new model_run_uuid corresponding to new model run is properly initialized
+        """
+        new_uuid = \
+            self.vw_client.initialize_model_run("testing initialization")
+
+        result = self.vw_client.search(model_run_uuid=new_uuid)
+
+        assert result.total == 0, \
+            "Result does not exist?? result.total = %d" % result.total
 
     @raises(HTTPError)
     def test_authFail(self):
@@ -159,12 +170,12 @@ class TestVWClient(unittest.TestCase):
 
         result = \
             requests.post(modelIdUrl, data=json.dumps(data),
-                          auth=(self.vwClient.uname, self.vwClient.passwd),
+                          auth=(self.vw_client.uname, self.vw_client.passwd),
                           verify=False)
 
         modelRunUUID = result.text
 
-        self.vwClient.upload(modelRunUUID, "adaptors/test/data/in.0000")
+        self.vw_client.upload(modelRunUUID, "adaptors/test/data/in.0000")
 
         dataFile = "adaptors/test/data/in.0000"
 
@@ -178,9 +189,9 @@ class TestVWClient(unittest.TestCase):
                                   model_vars="R_n,H,L_v_E,G,M,delta_Q",
                                   fgdcMetadata=fgdcXML)
 
-        self.vwClient.insert_metadata(watershedJSON)
+        self.vw_client.insert_metadata(watershedJSON)
 
-        vwTestUUIDEntries = self.vwClient.search(model_run_uuid=modelRunUUID)
+        vwTestUUIDEntries = self.vw_client.search(model_run_uuid=modelRunUUID)
 
         assert vwTestUUIDEntries,\
             "No VW Entries corresponding to the test UUID"
@@ -188,16 +199,16 @@ class TestVWClient(unittest.TestCase):
     @raises(HTTPError)
     def test_insertFail(self):
         """ VW Client throws error on failed insert"""
-        self.vwClient.insert_metadata('{"metadata": {"xml": "mo garbage"}}')
+        self.vw_client.insert_metadata('{"metadata": {"xml": "mo garbage"}}')
 
     def test_upload(self):
         """ VW Client properly uploads data """
 
-        self.vwClient.upload(self.modelRunUUID, "adaptors/test/data/in.0000")
+        self.vw_client.upload(self.modelRunUUID, "adaptors/test/data/in.0000")
 
         # fetch the file from the url we know from the VW file storage pattern
         results = \
-            self.vwClient.search(model_run_uuid=self.modelRunUUID, limit=1)
+            self.vw_client.search(model_run_uuid=self.modelRunUUID, limit=1)
 
         url = results.records[0]['downloads'][0]['bin']
 
@@ -206,7 +217,7 @@ class TestVWClient(unittest.TestCase):
         if os.path.isfile(outfile):
             os.remove(outfile)
 
-        self.vwClient.download(url, outfile)
+        self.vw_client.download(url, outfile)
 
         # check that the file now exists in the file system as expected
         assert os.path.isfile(outfile)
@@ -218,7 +229,7 @@ class TestVWClient(unittest.TestCase):
         VW Client properly downloads data
         """
         result = \
-            self.vwClient.search(model_run_uuid=self.modelRunUUID, limit=1)
+            self.vw_client.search(model_run_uuid=self.modelRunUUID, limit=1)
         url = result.records[0]['downloads'][0]['bin']
 
         outfile = "adaptors/test/data/test_dl.file"
@@ -226,7 +237,7 @@ class TestVWClient(unittest.TestCase):
         if os.path.isfile(outfile):
             os.remove(outfile)
 
-        self.vwClient.download(url, outfile)
+        self.vw_client.download(url, outfile)
 
         assert os.path.isfile(outfile)
 
@@ -237,4 +248,4 @@ class TestVWClient(unittest.TestCase):
         """ VW Client throws error on failed download """
         url = "http://httpbin.org/status/404"
 
-        self.vwClient.download(url, "this won't ever exist")
+        self.vw_client.download(url, "this won't ever exist")
