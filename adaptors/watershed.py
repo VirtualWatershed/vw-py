@@ -184,11 +184,11 @@ class VWClient:
     is essentially a structured database with certain rules for its
     metadata and for uploading or inserting data.
     """
-    def __init__(self, ipAddress, uname, passwd):
+    def __init__(self, ip_address, uname, passwd):
         """ Initialize a new connection to the virtual watershed """
 
         # Check our credentials
-        authUrl = "https://" + ipAddress + "/apps/my_app/auth"
+        authUrl = "https://" + ip_address + "/apps/my_app/auth"
         r = requests.get(authUrl, auth=(uname, passwd), verify=False)
         r.raise_for_status()
 
@@ -196,13 +196,42 @@ class VWClient:
         self.passwd = passwd
 
         # Initialize URLS used by class methods
-        self.insertDatasetUrl = "https://" + ipAddress + \
+        self.insertDatasetUrl = "https://" + ip_address + \
             "/apps/my_app/datasets"
-        self.dataUploadUrl = "https://" + ipAddress + "/apps/my_app/data"
-        self.uuidCheckUrl = "https://" + ipAddress + \
+
+        self.dataUploadUrl = "https://" + ip_address + "/apps/my_app/data"
+
+        self.uuidCheckUrl = "https://" + ip_address + \
             "/apps/my_app/checkmodeluuid"
-        self.searchUrl = "https://" + ipAddress + \
+
+        self.searchUrl = "https://" + ip_address + \
             "/apps/my_app/search/datasets.json?version=3"
+
+        self.new_run_url = "https://" + ip_address + \
+            "/apps/my_app/newmodelrun"
+
+        # number of times to re-try an http request
+        self._retry_num = 3
+
+    def initialize_model_run(self, description):
+        """
+        Iniitalize a new model run.
+
+        Returns: (str) a newly-intialized model_run_uuid
+        """
+        assert description, \
+            "You must provide a description for your new model run"
+
+        data = {'description': description}
+
+        auth = (self.uname, self.passwd)
+
+        result = requests.post(self.new_run_url, data=json.dumps(data),
+                               auth=auth, verify=False)
+
+        result.raise_for_status()
+
+        return result.text
 
     def search(self, **kwargs):
         """
@@ -250,27 +279,50 @@ class VWClient:
         logging.debug("insertDatasetUrl:\n" + self.insertDatasetUrl)
         logging.debug("post data dumped:\n" + json.dumps(watershedMetadata))
 
-        result = requests.put(self.insertDatasetUrl, data=watershedMetadata,
-                              auth=(self.uname, self.passwd), verify=False)
+        num_tries = 0
+        while num_tries < self._retry_num:
+            try:
+                result = requests.put(self.insertDatasetUrl,
+                                      data=watershedMetadata,
+                                      auth=(self.uname, self.passwd),
+                                      verify=False)
 
-        logging.debug(result.content)
+                logging.debug(result.content)
 
-        result.raise_for_status()
+                result.raise_for_status()
+                return None
 
-        return None
+            except requests.HTTPError:
+                num_tries += 1
+                continue
+
+        raise requests.HTTPError()
 
     def upload(self, modelRunUUID, dataFilePath):
         """ Upload data for a given modelRunUUID to the VW """
 
-        dataPayload = {"name": "test", "modelid": modelRunUUID}
+        # currently 'name' is unused
+        dataPayload = {'name': os.path.basename(dataFilePath),
+                       'modelid': modelRunUUID}
 
-        result = requests.post(self.dataUploadUrl, data=dataPayload,
-                               files={'file': open(dataFilePath, 'rb')},
-                               auth=(self.uname, self.passwd), verify=False)
+        num_tries = 0
+        while num_tries < self._retry_num:
+            try:
+                result = \
+                    requests.post(self.dataUploadUrl, data=dataPayload,
+                                  files={'file': open(dataFilePath, 'rb')},
+                                  auth=(self.uname, self.passwd), verify=False)
 
-        result.raise_for_status()
+                logging.debug(result.content)
 
-        return None
+                result.raise_for_status()
+                return None
+
+            except requests.HTTPError:
+                num_tries += 1
+                continue
+
+        raise requests.HTTPError()
 
 
 class QueryResult:
