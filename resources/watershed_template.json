@@ -16,6 +16,10 @@
         "features":"$features",
         "bbox": "$westBnd,$southBnd,$eastBnd,$northBnd"
     },
+    "dates": {
+        "start": "$start_datetime",
+        "end": "$end_datetime"
+    },
     "records": "$recs",
     "active": "true",
     "services": [

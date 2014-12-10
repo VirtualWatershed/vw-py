@@ -365,7 +365,7 @@ class TestHeaderParser(unittest.TestCase):
         Test watershed functions operating on an IPW instance or as a static method
         """
         # load expected json metadata file
-        expected = open("adaptors/test/data/expected1_in.json", 'r').read()
+        expected = open("adaptors/test/data/expected_ipw_metadata.json", 'r').read()
 
         description = "Testing metadata!"
 
@@ -374,6 +374,9 @@ class TestHeaderParser(unittest.TestCase):
                                        self.model_run_uuid,
                                        description,
                                        config_file="adaptors/test/test.conf")
+
+        # with open("adaptors/test/data/expected_ipw_metadata.json", 'w') as f:
+            # f.write(generated)
 
         # check equality
         assert generated == expected, show_string_diff(generated, expected)

@@ -6,6 +6,7 @@ associated metadata.
 """
 
 import configparser
+from datetime import datetime
 import logging
 import json
 import os
@@ -66,7 +67,8 @@ def makeFGDCMetadata(dataFile, config, modelRunUUID):
 
 def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
                           modelRunUUID, model_set, description="",
-                          model_vars="", fgdcMetadata=""):
+                          model_vars="", fgdcMetadata="", start_datetime=None,
+                          end_datetime=None):
 
     """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
         metadata.
@@ -126,6 +128,17 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
     # properly escape xml metadata escape chars
     fgdcMetadata = fgdcMetadata.replace('\n','\\n').replace('\t','\\t')
 
+    # If one of the datetimes is missing
+    if start_datetime is None or end_datetime is None:
+        start_datetime = "1970-10-01 00:00:00"
+        end_datetime = "1970-10-01 01:00:00"
+    elif type(start_datetime) is datetime and type(end_datetime) is datetime:
+        fmt = lambda dt: dt.strftime('%Y-%m-%d %H:%M:%S')
+        start_datetime, end_datetime = map(fmt, (start_datetime, end_datetime))
+    else:
+        raise Exception("Either pass no start/end datetime or pass a \
+                         datetime object")
+
     # write the metadata for a file
     output = template.substitute(# determined by file ext, set within function
                                  wcs=wcs,
@@ -153,6 +166,8 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
                                  eastBnd=commonConfig['eastBnd'],
                                  northBnd=commonConfig['northBnd'],
                                  southBnd=commonConfig['southBnd'],
+                                 start_datetime=start_datetime,
+                                 end_datetime=end_datetime,
                                  epsg=watershedConfig['epsg'],
                                  location=watershedConfig['location'],
                                  # static default values defined at top of func

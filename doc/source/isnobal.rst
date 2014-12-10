@@ -110,6 +110,11 @@ Note that
 is equal to the number of lines times the number of samples, which makes
 "lines" seem a bit of a misnomer.
 
+Make Watershed Metadata
+```````````````````````
+
+.. autofunction:: isnobal.metadata_from_file
+
 
 Reading IPW with Python
 ```````````````````````
