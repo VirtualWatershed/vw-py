@@ -10,9 +10,11 @@ import requests
 import unittest
 import os
 
-from nose.tools import raises
 from difflib import Differ
+from datetime import datetime
 from requests.exceptions import HTTPError
+
+from nose.tools import raises
 
 
 def show_string_diff(s1, s2):
@@ -54,6 +56,8 @@ class TestJSONMetadata(unittest.TestCase):
         self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
         self.parentModelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
+        # self.
+
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (JSON)"""
         # Run test for 'inputs' model_set
@@ -63,6 +67,8 @@ class TestJSONMetadata(unittest.TestCase):
         model_vars = "R_n,H,L_v_E,G,M,delta_Q"
         fgdcMetadata = "<XML>yup.</XML>"
         dataFile = "adaptors/test/data/i_dont_exist.data"
+        start_datetime = datetime(2010, 10, 01, 0)
+        end_datetime = datetime(2010, 10, 01, 1)
         generated = makeWatershedMetadata(dataFile,
                                           self.config,
                                           self.parentModelRunUUID,
@@ -70,7 +76,9 @@ class TestJSONMetadata(unittest.TestCase):
                                           model_set,
                                           description,
                                           model_vars,
-                                          fgdcMetadata
+                                          fgdcMetadata,
+                                          start_datetime,
+                                          end_datetime
                                           )
         # load expected json metadata file
         expected = open("adaptors/test/data/expected1_in.json", 'r').read()
@@ -88,7 +96,9 @@ class TestJSONMetadata(unittest.TestCase):
                                           model_set,
                                           description,
                                           model_vars,
-                                          fgdcMetadata
+                                          fgdcMetadata,
+                                          start_datetime,
+                                          end_datetime
                                           )
         # load expected json metadata file
         expected = open("adaptors/test/data/expected_w_services.json", 'r').read()

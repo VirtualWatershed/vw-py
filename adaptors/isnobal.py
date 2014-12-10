@@ -7,6 +7,7 @@
 Tools for working with IPW binary data and running the iSNOBAL model
 """
 
+import datetime
 import os
 import logging
 import pandas as pd
@@ -160,17 +161,29 @@ class IPW:
 
 
 def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
-                       description, config_file='../default.conf'):
+                       description, water_year_start=2010, water_year_end=2011,
+                       dt=1, config_file='../default.conf'):
     """
     Generate metadata for input_file.
     """
     config = watershed.get_config(config_file)
     fgdc_metadata = watershed.makeFGDCMetadata(input_file, config,
                                                model_run_uuid)
-    input_prefix = os.path.basename(input_file).split('.')[0]
+
+    input_split = os.path.basename(input_file).split('.')
+    input_prefix = input_split[0]
+
     model_set = ("outputs", "inputs")[input_prefix == "in"]
 
     model_vars = ','.join(VARNAME_DICT[input_prefix])
+
+    # note that we have not generalized for non-hour timestep data
+    start_hours_delta = datetime.timedelta(hours=int(input_split[1]))
+
+    start_datetime = \
+        datetime.datetime(water_year_start, 10, 01) + start_hours_delta
+
+    end_datetime = start_datetime + datetime.timedelta(hours=dt)
 
     return \
         watershed.makeWatershedMetadata(input_file,
@@ -180,7 +193,9 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                                         model_set,
                                         description,
                                         model_vars,
-                                        fgdc_metadata)
+                                        fgdc_metadata,
+                                        start_datetime,
+                                        end_datetime)
 
 
 def _build_ipw_dataframe(nonglobal_bands, binary_data):
