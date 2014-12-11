@@ -86,9 +86,6 @@ configuration file must be specified. See below for an example.
 
 .. autofunction:: watershed.get_config
 
-
-
-
 Example using metadata builders and the VW Client
 `````````````````````````````````````````````````
 
@@ -99,36 +96,30 @@ input files. This is the procedure for inserting a brand-new, parent-free
 model run set of data. Soon the "initial insert" section of this will be 
 automated.
 
-Set up and initialize watershed
--------------------------------
-
->>> configFile = 'adaptors/default.conf'
->>> config = get_config(configFile)
->>> hostname = config['Common']['watershedIP']
->>> modelIdUrl = "https://" + hostname + "/apps/my_app/newmodelrun"
->>> data = {"description": "inital insert"}
->>> commonConfig = config['Common']
->>> result = requests.post(modelIdUrl, data=json.dumps(data), auth=(commonConfig['user'], commonConfig['passwd']), verify=False)
->>> modelRunUUID = result.text
-
 Get a VW Client connection (will soon be done during initialization)
 --------------------------------------------------------------------
 
->>> vwClient = default_vw_client(configFile) # gets connection info from file
+>>> vw_client = default_vw_client(configFile) # gets connection info from file
+
+Initialize a new model run
+--------------------------
+
+>>> description = "New model run for doing SCIENCE!!!"
+>>> new_uuid = vw_client.initialize_model_run(description)
 
 Upload File
 -----------
 
 >>> dataFile = "src/test/data/in.0001"
->>> vwClient.upload(modelRunUUID, "src/test/data/in.0001")
+>>> vw_client.upload(new_uuid, "src/test/data/in.0001")
 
 Build metadata
 --------------
 
->>> fgdcXML = makeFGDCMetadata(dataFile, config, modelRunUUID=modelRunUUID)
->>> watershedJSON = makeWatershedMetadata(dataFile, config, modelRunUUID, modelRunUUID, "inputs", "Description of the data", model_vars="R_n,H,L_v_E,G,M,delta_Q", fgdcMetadata=fgdcXML) 
+>>> fgdcXML = makeFGDCMetadata(dataFile, config, new_uuid=new_uuid)
+>>> watershedJSON = makeWatershedMetadata(dataFile, config, new_uuid, new_uuid, "inputs", "Description of the data", model_vars="R_n,H,L_v_E,G,M,delta_Q", fgdcMetadata=fgdcXML) 
 
 Insert Metadata
 ---------------
 
->>> vwClient.insert_metadata(watershedJSON)
+>>> vw_client.insert_metadata(watershedJSON)
