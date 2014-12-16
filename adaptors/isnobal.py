@@ -8,17 +8,20 @@ Tools for working with IPW binary data and running the iSNOBAL model
 """
 
 import datetime
-import os
 import logging
-import pandas as pd
+import multiprocessing
 import numpy as np
+import os
+import pandas as pd
 import subprocess
 import struct
 
 import watershed
 
 from collections import namedtuple, defaultdict
+from joblib import Parallel, delayed
 
+from watershed import default_vw_client
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
 BAND_TYPE_LOC = 1
@@ -162,18 +165,27 @@ class IPW:
 
 def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        description, water_year_start=2010, water_year_end=2011,
-                       dt=1, config_file='../default.conf'):
+                       dt=1, config_file=None):
     """
     Generate metadata for input_file.
     """
-    config = watershed.get_config(config_file)
+    print input_file
+    if config_file:
+        config = watershed.get_config(config_file)
+    else:
+        config = watershed.get_config(
+            os.path.join(os.path.dirname(__file__), '../default.conf'))
+
     fgdc_metadata = watershed.makeFGDCMetadata(input_file, config,
                                                model_run_uuid)
 
     input_split = os.path.basename(input_file).split('.')
+    print input_split
     input_prefix = input_split[0]
 
     model_set = ("outputs", "inputs")[input_prefix == "in"]
+
+    print input_prefix
 
     model_vars = ','.join(VARNAME_DICT[input_prefix])
 
@@ -196,6 +208,64 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                                         fgdc_metadata,
                                         start_datetime,
                                         end_datetime)
+
+
+def upsert(input_path, description, parent_model_run_uuid=None,
+           model_run_uuid=None, config_file=None):
+    """
+    Upload the file or files located at input_path, which could be a directory.
+
+    Inputs: input_path and description are required. If parent_model_run_uuid
+            is not provided, this assumes that it is a new model run, the
+            model_run_uuid will be the same as the parent_model_run_uuid.
+            If parent_model_run_uuid is provided and model_run_uuid is not,
+            a new model_run_uuid will be created.
+    Returns: A two-tuple of parent_model_run_uuid and model_run_uuid.
+    """
+    assert not (model_run_uuid is not None and parent_model_run_uuid is None),\
+        "If model_run_uuid is given, its parent must also be given!"
+
+    # get the configuration file path if not given
+    if not config_file:
+        config_file = \
+            os.path.join(os.path.dirname(__file__), '../default.conf')
+
+    # build a list of files to be upserted
+    if os.path.isdir(input_path):
+        print input_path
+        files = [input_path + el for el in os.listdir(input_path)
+                 if os.path.isfile(input_path + el)]
+    elif os.path.isfile(input_path):
+        files = [input_path]
+    else:
+        raise os.error(input_path + " is not a valid file or directory!")
+
+    print files
+
+    vw_client = default_vw_client(config_file)
+
+    # get either parent_model_run_uuid and/or model_run_uuid if need be
+    # final case to handle is if model_run_uuid is given but not its parent
+    if not parent_model_run_uuid:
+        parent_model_run_uuid = vw_client.initialize_model_run(description)
+        model_run_uuid = parent_model_run_uuid
+    elif not model_run_uuid and parent_model_run_uuid:
+        model_run_uuid = vw_client.initialize_model_run(description)
+
+    # closure to do the upsert on each file
+    def _upsert(file_):
+        json = metadata_from_file(file_, parent_model_run_uuid,
+                                  model_run_uuid, description)
+
+        vw_client.upload(model_run_uuid, file_)
+
+        vw_client.insert_metadata(json)
+
+    for file_ in files:
+        print "on " + file_
+        _upsert(file_)
+
+    return (parent_model_run_uuid, model_run_uuid)
 
 
 def _build_ipw_dataframe(nonglobal_bands, binary_data):

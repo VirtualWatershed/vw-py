@@ -22,7 +22,7 @@ from adaptors.watershed import get_config
 from test_vw_adaptor import show_string_diff
 
 
-class TestHeaderParser(unittest.TestCase):
+class TestIPW(unittest.TestCase):
     """
     Test the creation of the header dictionary to be used as a member of the
     IPW class.
@@ -380,3 +380,9 @@ class TestHeaderParser(unittest.TestCase):
 
         # check equality
         assert generated == expected, show_string_diff(generated, expected)
+
+    def test_upsert_ipw(self):
+        """
+        Check that a directory and individual files are correctly uploaded/inserted to VW
+        """
+        assert False
