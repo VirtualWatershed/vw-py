@@ -34,3 +34,4 @@ examples/data/*
 examples/*.png
 *.tmp
 examples/data*
+*.csv

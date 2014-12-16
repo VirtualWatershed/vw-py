@@ -112,13 +112,10 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
 
     firstTwoParentUUID = parentModelRunUUID[:2]
 
-    if model_set == "inputs":
-        inputFilePath = os.path.join("/geodata/watershed-data",
-                                     firstTwoParentUUID,
-                                     parentModelRunUUID,
-                                     os.path.basename(dataFile))
-    else:
-        inputFilePath = ""
+    inputFilePath = os.path.join("/geodata/watershed-data",
+                                 firstTwoParentUUID,
+                                 parentModelRunUUID,
+                                 os.path.basename(dataFile))
 
     json_template = watershedConfig['template_path']
 
@@ -290,7 +287,7 @@ class VWClient:
                 logging.debug(result.content)
 
                 result.raise_for_status()
-                return None
+                return result
 
             except requests.HTTPError:
                 num_tries += 1
@@ -316,7 +313,7 @@ class VWClient:
                 logging.debug(result.content)
 
                 result.raise_for_status()
-                return None
+                return result
 
             except requests.HTTPError:
                 num_tries += 1
