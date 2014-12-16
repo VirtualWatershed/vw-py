@@ -357,22 +357,31 @@ class QueryResult:
         return self.json['results']
 
 
-def default_vw_client(configFile="default.conf"):
-    """ Use the credentials in configFile to initialize a new VWClient instance
+def default_vw_client(config_file="default.conf"):
+    """ Use the credentials in config_file to initialize a new VWClient instance
 
-        Returns: VWClient connected to the ip address given in configFile
+        Returns: VWClient connected to the ip address given in config_file
     """
-    config = get_config(configFile)
+    config = get_config(config_file)
     common = config['Common']
 
     return VWClient(common['watershedIP'], common['user'], common['passwd'])
 
 
-def get_config(configFile="../default.conf"):
-    """ Provide user with a ConfigParser that has read the `configFile`
+def get_config(config_file=None):
+    """ Provide user with a ConfigParser that has read the `config_file`
 
         Returns: ConfigParser()
     """
+    if not config_file:
+        config_file = \
+            os.path.join(os.path.dirname(__file__), '../default.conf')
+
+    print os.path.dirname(__file__)
+
+    assert os.path.isfile(config_file), "Config file %s does not exist!" \
+        % os.path.abspath(config_file)
+
     config = configparser.ConfigParser()
-    config.read(configFile)
+    config.read(config_file)
     return config
