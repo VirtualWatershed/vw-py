@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/epscor-wc-wave-adaptors/badge/?version=latest)](https://readthedocs.org/projects/epscor-wc-wave-adaptors/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/epscor-wc-wave-adaptors/badge/?version=latest)](http://epscor-wc-wave-adaptors.readthedocs.org/en/latest/)
 # Adaptors for ISNOBAL in the Virtual Watershed
 
 Contributors:
