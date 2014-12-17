@@ -33,7 +33,7 @@
         }],
     "sources": [{
         "mimetype": "application/x-zip-compressed",
-        "files": [""],
+        "files": ["/geodata/watershed-data/37/373ae181-a0b2-4998-ba32-e27da190f6dd/fake_output.tif"],
         "set": "original",
         "external": "False",
         "extension": "tif"

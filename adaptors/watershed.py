@@ -250,6 +250,8 @@ class VWClient:
 
         r = requests.get(fullUrl, verify=False)
 
+        print r.content
+
         return QueryResult(r.json())
 
     def download(self, url, outFile):
@@ -273,8 +275,8 @@ class VWClient:
             Returns: None
         """
 
-        logging.debug("insertDatasetUrl:\n" + self.insertDatasetUrl)
-        logging.debug("post data dumped:\n" + json.dumps(watershedMetadata))
+        # logging.debug("insertDatasetUrl:\n" + self.insertDatasetUrl)
+        # logging.debug("post data dumped:\n" + json.dumps(watershedMetadata))
 
         num_tries = 0
         while num_tries < self._retry_num:
@@ -310,12 +312,13 @@ class VWClient:
                                   files={'file': open(dataFilePath, 'rb')},
                                   auth=(self.uname, self.passwd), verify=False)
 
-                logging.debug(result.content)
+                # logging.debug(result.content)
 
                 result.raise_for_status()
                 return result
 
             except requests.HTTPError:
+                print result.content
                 num_tries += 1
                 continue
 
