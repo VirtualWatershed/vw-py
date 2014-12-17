@@ -125,6 +125,39 @@ files. To use it, simply provide the file name you wish to load into Python.
 .. autoclass:: isnobal.IPW
     :members:
 
+Insert IPW file or directory of files to Virtual Watershed
+``````````````````````````````````````````````````````````
+
+.. autofunction:: isnobal.upsert
+    
+If we have some iSNOBAL data in the folders ``data/inputs`` and 
+``data/outputs``, we can either upload
+all the files in thosy directories or indivdual files. Providing a 
+description is required. If the parent or model run IDs are provided, they will
+be used. If not provided, ``upsert`` will create new ones. If the model run 
+UUID is provided, its parent must also be provided, though this is may be 
+changed in the near future. Some examples are shown below.
+
+.. code-block:: python
+
+    # set base data directory and description for this model run
+    data_dir = "data/"
+    description = "iSNOBAL model run with Treeline observed data"
+
+    # upload the entire directory, creating a new parent and model run uuid
+    input_dir = data_dir + "inputs"
+    parent_uuid, uuid = upsert(input_dir, description)
+
+    # use the existing parent_uuid and uuid to insert the output data
+    input_dir = data_dir + "outputs"
+    parent_uuid, uuid = upsert(output_dir, description, 
+                               parent_model_run_uuid=parent_uuid,
+                               model_run_uuid=uuid)
+
+``upsert`` uses a config file and ``watershed.default_vw_client`` to connect to
+the virtual watershed. You can set which configuration file ``upser`` uses
+using the last keyword argument, ``config_file``.
+
 
 Run ISNOBAL from Python
 ```````````````````````

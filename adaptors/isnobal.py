@@ -232,11 +232,16 @@ def upsert(input_path, description, parent_model_run_uuid=None,
 
     # build a list of files to be upserted
     if os.path.isdir(input_path):
-        print input_path
+
+        if input_path[-1] != '/':
+            input_path += '/'
+
         files = [input_path + el for el in os.listdir(input_path)
                  if os.path.isfile(input_path + el)]
+
     elif os.path.isfile(input_path):
         files = [input_path]
+
     else:
         raise os.error(input_path + " is not a valid file or directory!")
 
@@ -249,6 +254,7 @@ def upsert(input_path, description, parent_model_run_uuid=None,
     if not parent_model_run_uuid:
         parent_model_run_uuid = vw_client.initialize_model_run(description)
         model_run_uuid = parent_model_run_uuid
+
     elif not model_run_uuid and parent_model_run_uuid:
         model_run_uuid = vw_client.initialize_model_run(description)
 

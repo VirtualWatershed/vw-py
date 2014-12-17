@@ -6,15 +6,19 @@ from adaptors.watershed import makeWatershedMetadata, makeFGDCMetadata, \
     VWClient, default_vw_client, get_config
 
 import json
-import requests
-import unittest
 import os
+import requests
+import time
+import unittest
 
 from difflib import Differ
 from datetime import datetime
 from requests.exceptions import HTTPError
 
 from nose.tools import raises
+
+# for convenience
+from adaptors.isnobal import upsert
 
 
 def show_string_diff(s1, s2):
@@ -136,11 +140,18 @@ class TestVWClient(unittest.TestCase):
 
     def setUp(self):
 
-        self.vw_client = default_vw_client()
+        self.vw_client = default_vw_client("adaptors/test/test.conf")
 
-        self.modelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+        self.uuid = self.vw_client.initialize_model_run("unittest")
+        self.parent_uuid = self.uuid
 
         self.config = get_config("adaptors/test/test.conf")
+
+        upsert("adaptors/test/data/in.0000", "unittest insert for download",
+               parent_model_run_uuid=self.parent_uuid,
+               model_run_uuid=self.uuid, config_file="adaptors/test/test.conf")
+
+        time.sleep(1)
 
     def test_initialize_model_run(self):
         """
@@ -173,25 +184,25 @@ class TestVWClient(unittest.TestCase):
                           auth=(self.vw_client.uname, self.vw_client.passwd),
                           verify=False)
 
-        modelRunUUID = result.text
+        uuid = result.text
 
-        self.vw_client.upload(modelRunUUID, "adaptors/test/data/in.0000")
+        self.vw_client.upload(uuid, "adaptors/test/data/in.0000")
 
         dataFile = "adaptors/test/data/in.0000"
 
         fgdcXML = \
-            makeFGDCMetadata(dataFile, self.config, modelRunUUID=modelRunUUID)
+            makeFGDCMetadata(dataFile, self.config, modelRunUUID=uuid)
 
         watershedJSON = \
-            makeWatershedMetadata(dataFile, self.config, modelRunUUID,
-                                  modelRunUUID, "inputs",
+            makeWatershedMetadata(dataFile, self.config, uuid,
+                                  uuid, "inputs",
                                   "Description of the data",
                                   model_vars="R_n,H,L_v_E,G,M,delta_Q",
                                   fgdcMetadata=fgdcXML)
 
         self.vw_client.insert_metadata(watershedJSON)
 
-        vwTestUUIDEntries = self.vw_client.search(model_run_uuid=modelRunUUID)
+        vwTestUUIDEntries = self.vw_client.search(model_run_uuid=uuid)
 
         assert vwTestUUIDEntries,\
             "No VW Entries corresponding to the test UUID"
@@ -203,12 +214,9 @@ class TestVWClient(unittest.TestCase):
 
     def test_upload(self):
         """ VW Client properly uploads data """
-
-        self.vw_client.upload(self.modelRunUUID, "adaptors/test/data/in.0000")
-
         # fetch the file from the url we know from the VW file storage pattern
         results = \
-            self.vw_client.search(model_run_uuid=self.modelRunUUID, limit=1)
+            self.vw_client.search(model_run_uuid=self.uuid, limit=1)
 
         url = results.records[0]['downloads'][0]['bin']
 
@@ -229,8 +237,10 @@ class TestVWClient(unittest.TestCase):
         VW Client properly downloads data
         """
         result = \
-            self.vw_client.search(model_run_uuid=self.modelRunUUID, limit=1)
-        url = result.records[0]['downloads'][0]['bin']
+            self.vw_client.search(model_run_uuid=self.uuid, limit=1)
+
+        r0 = result.records[0]
+        url = r0['downloads'][0]['bin']
 
         outfile = "adaptors/test/data/test_dl.file"
 
