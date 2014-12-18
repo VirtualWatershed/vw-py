@@ -97,13 +97,12 @@ class IPW:
         # _make_bands
         header_dict = \
             _make_bands(ipw_lines.header_lines, VARNAME_DICT[file_type])
-        geo_lines = _parse_geo_header(ipw_lines.header_lines)
 
         bands = [band for band in header_dict.values()]
         nonglobal_bands =\
             sorted([band for varname, band in header_dict.iteritems()
                     if varname != 'global'],
-                   key=lambda b: b.bandIdx)
+                   key=lambda b: b.band_idx)
 
         # initialized when called for below
         self._data_frame = None
@@ -111,7 +110,6 @@ class IPW:
         self.input_file = input_file
         self.file_type = file_type
         self.header_dict = header_dict
-        self.geo_lines = geo_lines
         self.binary_data = ipw_lines.binary_data
         self.bands = bands
         self.nonglobal_bands = nonglobal_bands
@@ -132,16 +130,6 @@ class IPW:
                                      self.binary_data)
         return self._data_frame
 
-
-    def metadata(self):
-        """
-        Return an IPW instance's Watershed metadata, which includes the XML
-        metadata.
-        """
-        input_file = self.input_file
-        metadata = ""
-        return metadata
-
     def write(self, fileName):
         """
         Write the IPW data to file
@@ -151,9 +139,6 @@ class IPW:
         with open(fileName, 'wb') as f:
             for l in _bands_to_header_lines(self.header_dict):
                 f.write(l + '\n')
-            for l in self.geo_lines:
-                # geo_lines have not been altered; still have line ends
-                f.write(l)
 
             f.write(last_line + '\n')
 
@@ -305,23 +290,23 @@ def _make_bands(header_lines, varnames):
             globalEndIdx = i
             break
 
-    globalHeaderLines = header_lines[1:globalEndIdx+1]
+    global_header_lines = header_lines[1:globalEndIdx+1]
 
     # tried a prettier dictionary comprehension, but wouldn't fly
-    globalBandDict = defaultdict(int)
-    for l in globalHeaderLines:
+    global_band_dict = defaultdict(int)
+    for l in global_header_lines:
         if l:
             spl = l.strip().split()
             if spl[0] == 'byteorder':
-                globalBandDict[spl[0]] = spl[2]
+                global_band_dict[spl[0]] = spl[2]
             else:
-                globalBandDict[spl[0]] = int(spl[2])
+                global_band_dict[spl[0]] = int(spl[2])
 
     # these are the standard names in an ISNOBAL header file
-    byteorder = globalBandDict['byteorder']
-    nLines = globalBandDict['nlines']
-    nSamps = globalBandDict['nsamps']
-    nBands = globalBandDict['nbands']
+    byteorder = global_band_dict['byteorder']
+    nLines = global_band_dict['nlines']
+    nSamps = global_band_dict['nsamps']
+    nBands = global_band_dict['nbands']
 
     # this will be put into the return dictionary at the return statement
     globalBand = GlobalBand(byteorder, nLines, nSamps, nBands)
@@ -332,56 +317,87 @@ def _make_bands(header_lines, varnames):
     # bandDict = {'global': globalBand}
     for i, b in enumerate(bands):
         b.varname = varnames[i]
-        b.bandIdx = i
+        b.band_idx = i
 
-    bandType = None
-    bandIdx = None
+    band_type = None
+    band_idx = None
+    geo_parsed = False
+    ref_band = Band()
+    geo_count = 0
     for line in header_lines[globalEndIdx:]:
 
         spl = line.strip().split()
+        attr = spl[0]
 
         if IsHeaderStart(line):
 
-            bandType = spl[BAND_TYPE_LOC]
-            bandIdx = int(spl[BAND_INDEX_LOC])
+            band_type = spl[BAND_TYPE_LOC]
+            band_idx = int(spl[BAND_INDEX_LOC])
 
             lqCounter = 0
 
-        elif bandType == 'basic_image':
-            # assign byte and bits info that's stored here
-            if spl[0] in ['bits', 'bytes']:
-                setattr(bands[bandIdx], spl[0] + "_", int(spl[2]))
+            if band_type == 'geo':
+                geo_count += 1
+                if geo_count == 2:
+                    geo_parsed = True
 
-        elif bandType == 'lq':
+        elif band_type == 'basic_image':
+            # assign byte and bits info that's stored here
+            if attr in ['bits', 'bytes']:
+                setattr(bands[band_idx], attr + "_", int(spl[2]))
+
+        elif band_type == 'lq':
             # assign integer and float min and max. ignore non-"map" fields
-            if spl[0] == "map":
+            if attr == "map":
                 # minimum values are listed first by IPW
                 if lqCounter == 0:
-                    bands[bandIdx].int_min = float(spl[2])
-                    bands[bandIdx].float_min = float(spl[3])
+                    bands[band_idx].int_min = float(spl[2])
+                    bands[band_idx].float_min = float(spl[3])
                     lqCounter += 1
 
                 elif lqCounter == 1:
-                    bands[bandIdx].int_max = float(spl[2])
-                    bands[bandIdx].float_max = float(spl[3])
+                    bands[band_idx].int_max = float(spl[2])
+                    bands[band_idx].float_max = float(spl[3])
+
+        elif band_type == 'geo':
+            # Not all bands have geo information. The ones that do are
+            # expected to be redundant. Check that all available are equal
+            # and for any that don't have geo information, set them to the
+            # geo information
+            if not geo_parsed:
+
+                if attr in ["bline", "bsamp", "dline", "dsamp"]:
+                    setattr(ref_band, attr, float(spl[2]))
+                    # setattr(bands[band_idx], attr, float(spl[2]))
+
+                elif attr in ["units", "coord_sys_ID"]:
+                    if attr == "units":
+                        attr = "geo_units"
+                    setattr(ref_band, attr, spl[2])
+                    # setattr(bands[band_idx], attr, spl[2])
+                else:
+                    raise Exception(
+                        "'geo' attribute %s from IPW file not recognized!" %
+                        attr)
+
+            else:
+                if attr == "units":
+                    attr = "geo_units"
+
+                assert\
+                    getattr(ref_band, attr) == getattr(bands[band_idx], attr)
+
+        # now set all bands to the reference band
+        for band in bands:
+
+            band.bline = ref_band.bline
+            band.bsamp = ref_band.bsamp
+            band.dline = ref_band.dline
+            band.dsamp = ref_band.dsamp
+            band.geo_units = ref_band.geo_units
+            band.coord_sys_ID = ref_band.coord_sys_ID
 
     return dict(zip(['global']+varnames[:nBands], [globalBand]+bands))
-
-
-def _parse_geo_header(header_lines):
-    """
-    For now, just returns all the geographic lines within the header lines.
-
-    Returns: list of geographic header lines ONLY. not the last header line
-    """
-    first_geo_idx = 0
-    for idx, line in enumerate(header_lines):
-        if IsHeaderStart(line) and line.split()[1] == 'geo':
-            first_geo_idx = idx
-            break
-
-    # exclude last line because it's just !<header> image -1 $Revision: 1.5 $
-    return header_lines[first_geo_idx:-1]
 
 
 def _calc_float_value(band, integerValue):
@@ -424,7 +440,7 @@ def _bands_to_header_lines(bandsDict):
     otherLines = []
     bands = [b for varname, b in bandsDict.iteritems() if varname != 'global']
 
-    bands = sorted(bands, key=lambda b: b.bandIdx)
+    bands = sorted(bands, key=lambda b: b.band_idx)
 
     # for some reason IPW has a space at the end of data lines
     for i, b in enumerate(bands):
@@ -500,14 +516,16 @@ class Band(object):
     """
     Container for band information
     """
-    def __init__(self, varname="", bandIdx=0, nBytes=0, nBits=0, int_min=0.0,
-                 int_max=0.0, float_min=0.0, float_max=0.0):
+    def __init__(self, varname="", band_idx=0, nBytes=0, nBits=0, int_min=0.0,
+                 int_max=0.0, float_min=0.0, float_max=0.0,
+                 bline=0.0, bsamp=0.0, dline=0.0, dsamp=0.0,
+                 units="meters", coord_sys_ID="UTM"):
         """
         Can either pass this information or create an all-None Band.
         """
         self.varname = varname
 
-        self.bandIdx = bandIdx
+        self.band_idx = band_idx
 
         self.bytes_ = nBytes
         self.bits_ = nBits
@@ -516,6 +534,17 @@ class Band(object):
         self.int_max = float(int_max)
         self.float_min = float(float_min)
         self.float_max = float(float_max)
+
+        self.bline = float(bline)
+        self.bsamp = float(bsamp)
+        self.dline = float(dline)
+        self.dsamp = float(dsamp)
+
+        assert type(units) is str
+        self.geo_units = units
+
+        assert type(coord_sys_ID) is str
+        self.coord_sys_ID = coord_sys_ID
 
     def __str__(self):
         return "-- " + self.varname + " --\n" +\

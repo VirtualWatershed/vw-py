@@ -59,7 +59,6 @@ class TestIPW(unittest.TestCase):
 
         self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
-
     def test_header_dict(self):
         """
         Check that header lines are properly built into a dictionary
@@ -67,11 +66,16 @@ class TestIPW(unittest.TestCase):
         expectedHeaderDict = \
             {
                 'global': GlobalBand("0123", 148, 170, 5),
-                'I_lw': Band('I_lw', 0, 1, 8, 0, 255, 284.31372549, 390.196078431),
-                'T_a': Band('T_a', 1, 1, 8, 0, 255, 22.39999962, 23.39999962),
-                'e_a': Band('e_a', 2, 2, 16, 0, 65535, 468.7428284, 469.7428284),
-                'u': Band('u', 3, 2, 16, 0, 65535, 0.8422899842, 1.8422899842),
-                'T_g': Band('T_g', 4, 1, 8, 0, 255, 0, 1)
+                'I_lw': Band('I_lw', 0, 1, 8, 0, 255, 284.31372549, 390.196078431,
+                             4842544.9, 569029.6, -2.5, 2.5, "meters", "UTM"),
+                'T_a': Band('T_a', 1, 1, 8, 0, 255, 22.39999962, 23.39999962,
+                            4842544.9, 569029.6, -2.5, 2.5, "meters", "UTM"),
+                'e_a': Band('e_a', 2, 2, 16, 0, 65535, 468.7428284, 469.7428284,
+                            4842544.9, 569029.6, -2.5, 2.5, "meters", "UTM"),
+                'u': Band('u', 3, 2, 16, 0, 65535, 0.8422899842, 1.8422899842,
+                          4842544.9, 569029.6, -2.5, 2.5, "meters", "UTM"),
+                'T_g': Band('T_g', 4, 1, 8, 0, 255, 0, 1,
+                            4842544.9, 569029.6, -2.5, 2.5, "meters", "UTM")
             }
 
         headerDict = self.headerDict
@@ -100,6 +104,12 @@ class TestIPW(unittest.TestCase):
                 assert genBand.int_max is not None
                 assert genBand.float_min is not None
                 assert genBand.float_max is not None
+                assert genBand.bline is not None
+                assert genBand.bsamp is not None
+                assert genBand.dline is not None
+                assert genBand.dsamp is not None
+                assert genBand.geo_units is not None
+                assert genBand.coord_sys_ID is not None
 
                 assert genBand.varname == expectedBand.varname
                 assert genBand.bytes_ == expectedBand.bytes_
@@ -108,6 +118,15 @@ class TestIPW(unittest.TestCase):
                 assert genBand.int_max == expectedBand.int_max
                 assert genBand.float_min == expectedBand.float_min
                 assert genBand.float_max == expectedBand.float_max
+                assert genBand.bline == expectedBand.bline
+                assert genBand.bsamp == expectedBand.bsamp,\
+                    "Variable: %s\nGenerated: %s, Expected: %s" % \
+                    (variable, genBand.bsamp, expectedBand.bsamp)
+
+                assert genBand.dline == expectedBand.dline
+                assert genBand.dsamp == expectedBand.dsamp
+                assert genBand.geo_units == expectedBand.geo_units
+                assert genBand.coord_sys_ID == expectedBand.coord_sys_ID
 
             i += 1
 
