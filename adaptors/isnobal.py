@@ -9,17 +9,18 @@ Tools for working with IPW binary data and running the iSNOBAL model
 
 import datetime
 import logging
-import multiprocessing
 import numpy as np
 import os
 import pandas as pd
 import subprocess
 import struct
+import warnings
 
-import watershed
+from watershed import get_config, makeFGDCMetadata, makeWatershedMetadata
+
 
 from collections import namedtuple, defaultdict
-from joblib import Parallel, delayed
+from osgeo import gdal, gdalconst, osr
 
 from watershed import default_vw_client
 
@@ -89,7 +90,7 @@ class IPW:
     >>> ipw.writeBinary("in.plusOne.000")
 
     """
-    def __init__(self, input_file=None):
+    def __init__(self, input_file=None, config_file=None):
 
         ipw_lines = IPWLines(input_file)
         file_type = os.path.basename(input_file).split('.')[0]
@@ -104,6 +105,10 @@ class IPW:
                     if varname != 'global'],
                    key=lambda b: b.band_idx)
 
+        if config_file is None:
+            config_file = \
+                os.path.join(os.path.dirname(__file__), '../default.conf')
+
         # initialized when called for below
         self._data_frame = None
 
@@ -113,6 +118,17 @@ class IPW:
         self.binary_data = ipw_lines.binary_data
         self.bands = bands
         self.nonglobal_bands = nonglobal_bands
+
+        # use geo information in band0; all bands have equiv geo info
+        band0 = bands[0]
+        self.geotransform = [band0.bsamp - band0.dsamp / 2.0,
+                             band0.dsamp,
+                             0.0,
+                             band0.bline - band0.dline / 2.0,
+                             0.0,
+                             band0.dline]
+
+        self.config_file = config_file
 
     def recalculate_header(self):
         """
@@ -147,6 +163,77 @@ class IPW:
 
         return None
 
+    def export_geotiff(self, output_root=None, output_dir='./', bands="All"):
+        """
+        Export the given bands to geotiff. "All" writes all. Use either the
+        band index (0 - nBands) or the band's variable name, e.g. 'T_a' for
+        atmospheric temperature or 'melt' for snow melt.
+        """
+        data_frame = self.data_frame()
+        print bands
+
+        print "data_frame.columns: " + str(list(data_frame.columns))
+        print type(bands)
+
+        if type(bands) is list:
+            if type(bands[0]) is int:
+                cols = list(data_frame.columns[bands])
+            elif type(bands[0]) is str:
+                cols = bands
+
+        elif type(bands) is str:
+            if bands == "All":
+                cols = list(data_frame.columns)
+            else:
+                cols = [bands]
+
+        elif type(bands) is int:
+            cols = [data_frame.columns[bands]]
+
+        else:
+            raise Exception("argument 'bands' must be an int, str, or list of \
+                             int or str")
+
+        # Ready the root filename and output directory for name building
+        # in loop over requested bands below
+        if output_root is None:
+            output_root = os.path.basename(self.input_file)
+
+        if output_dir[-1] != '/':
+            output_dir += '/'
+
+        # since dataframe columns are already floating point and that's what's
+        # required, we just use that
+        gdal_type = gdalconst.GDT_Float32
+
+        # get the epsg from the config file
+        config = get_config(self.config_file)
+        epsg = int(config['Watershed Metadata']['orig_epsg'])
+
+        driver = gdal.GetDriverByName('Gtiff')
+        proj = osr.SpatialReference()
+        status = proj.ImportFromEPSG(epsg)
+        if status != 0:
+            warnings.warn("Importing epsg %i return error code %i"
+                          % (epsg, status))
+
+        global_band = self.header_dict['global']
+        nsamps = global_band.nSamps
+        nlines = global_band.nLines
+
+        for col in cols:
+            print "col: " + col
+            output_file = output_dir + output_root + '.' + col + '.tif'
+            ds = driver.Create(output_file, nsamps, nlines,
+                               1, gdal_type)
+
+            ds.SetProjection(proj.ExportToWkt())
+            ds.SetGeoTransform(self.geotransform)
+            ds.GetRasterBand(1)\
+              .WriteArray(data_frame[col].reshape(nlines, nsamps))
+
+            ds = None  # writes and closes file
+
 
 def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        description, water_year_start=2010, water_year_end=2011,
@@ -156,12 +243,12 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     """
     print input_file
     if config_file:
-        config = watershed.get_config(config_file)
+        config = get_config(config_file)
     else:
-        config = watershed.get_config(
+        config = get_config(
             os.path.join(os.path.dirname(__file__), '../default.conf'))
 
-    fgdc_metadata = watershed.makeFGDCMetadata(input_file, config,
+    fgdc_metadata = makeFGDCMetadata(input_file, config,
                                                model_run_uuid)
 
     input_split = os.path.basename(input_file).split('.')
@@ -183,7 +270,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     end_datetime = start_datetime + datetime.timedelta(hours=dt)
 
     return \
-        watershed.makeWatershedMetadata(input_file,
+        makeWatershedMetadata(input_file,
                                         config,
                                         parent_model_run_uuid,
                                         model_run_uuid,
@@ -510,6 +597,9 @@ def _recalculate_header(bands, dataframe):
             band.float_max = band.float_min + 1.0
 
     return None
+
+
+# def _export_geotiff(output_root, output_dir="./",
 
 
 class Band(object):
