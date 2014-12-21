@@ -376,7 +376,7 @@ def get_config(config_file=None):
 
         Returns: ConfigParser()
     """
-    if not config_file:
+    if config_file is None:
         config_file = \
             os.path.join(os.path.dirname(__file__), '../default.conf')
 
