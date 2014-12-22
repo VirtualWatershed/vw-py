@@ -401,6 +401,21 @@ class TestIPW(unittest.TestCase):
         # check equality
         assert generated == expected, show_string_diff(generated, expected)
 
+    def test_metadata_from_file(self):
+        """
+        Test that metdata is properly generated from an IPW or .tif file
+        """
+        # TODO test the IPW version
+
+        # .tif
+        generated = metadata_from_file("test/data/em.0134.melt.tif",
+            self.parent_model_run_uuid, self.model_run_uuid,
+            "Testing metadata!", config_file="adaptors/test/test.conf")
+
+        expected = open("adaptors/test/data/expected_tif.json", 'r').read()
+        assert generated == expected, \
+            show_string_diff(generated, expected)
+
     def test_upsert_ipw(self):
         """
         Check that a directory and individual files are correctly uploaded/inserted to VW
@@ -454,13 +469,11 @@ class TestIPW(unittest.TestCase):
         _worked(parent_uuid, uuid)
 
         # with no slash after directory name
-        print "On test 2"
         parent_uuid, uuid = upsert('adaptors/test/data/upsert_test',
                                    description, config_file=test_conf)
         _worked(parent_uuid, uuid)
 
         # as an existing model run
-        print "On test 3"
         inherit_parent = parent_uuid
         parent_uuid, uuid = upsert(upsert_dir, description, inherit_parent,
                                    uuid, config_file=test_conf)
