@@ -241,7 +241,6 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     """
     Generate metadata for input_file.
     """
-    print input_file
     if config_file:
         config = get_config(config_file)
     else:
@@ -249,17 +248,19 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
             os.path.join(os.path.dirname(__file__), '../default.conf'))
 
     fgdc_metadata = makeFGDCMetadata(input_file, config,
-                                               model_run_uuid)
+                                     model_run_uuid)
 
     input_split = os.path.basename(input_file).split('.')
-    print input_split
+
     input_prefix = input_split[0]
+    output_ext = os.path.splitext(input_file)[-1]
 
     model_set = ("outputs", "inputs")[input_prefix == "in"]
 
-    print input_prefix
-
-    model_vars = ','.join(VARNAME_DICT[input_prefix])
+    if output_ext == ".tif":
+        model_vars = input_split[-2]
+    else:
+        model_vars = ','.join(VARNAME_DICT[input_prefix])
 
     # note that we have not generalized for non-hour timestep data
     start_hours_delta = datetime.timedelta(hours=int(input_split[1]))
@@ -271,15 +272,15 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     return \
         makeWatershedMetadata(input_file,
-                                        config,
-                                        parent_model_run_uuid,
-                                        model_run_uuid,
-                                        model_set,
-                                        description,
-                                        model_vars,
-                                        fgdc_metadata,
-                                        start_datetime,
-                                        end_datetime)
+                              config,
+                              parent_model_run_uuid,
+                              model_run_uuid,
+                              model_set,
+                              description,
+                              model_vars,
+                              fgdc_metadata,
+                              start_datetime,
+                              end_datetime)
 
 
 def upsert(input_path, description, parent_model_run_uuid=None,
