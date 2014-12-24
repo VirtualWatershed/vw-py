@@ -170,10 +170,6 @@ class IPW:
         atmospheric temperature or 'melt' for snow melt.
         """
         data_frame = self.data_frame()
-        print bands
-
-        print "data_frame.columns: " + str(list(data_frame.columns))
-        print type(bands)
 
         if type(bands) is list:
             if type(bands[0]) is int:
@@ -222,7 +218,6 @@ class IPW:
         nlines = global_band.nLines
 
         for col in cols:
-            print "col: " + col
             output_file = output_dir + output_root + '.' + col + '.tif'
             ds = driver.Create(output_file, nsamps, nlines,
                                1, gdal_type)
@@ -318,8 +313,6 @@ def upsert(input_path, description, parent_model_run_uuid=None,
     else:
         raise os.error(input_path + " is not a valid file or directory!")
 
-    print files
-
     vw_client = default_vw_client(config_file)
 
     # get either parent_model_run_uuid and/or model_run_uuid if need be
@@ -340,8 +333,9 @@ def upsert(input_path, description, parent_model_run_uuid=None,
 
         vw_client.insert_metadata(json)
 
+    print "upserting model_run_uuid " + model_run_uuid
+
     for file_ in files:
-        print "on " + file_
         _upsert(file_)
 
     return (parent_model_run_uuid, model_run_uuid)

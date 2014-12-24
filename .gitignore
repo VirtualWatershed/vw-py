@@ -36,3 +36,5 @@ examples/*.png
 examples/data*
 *.csv
 *.tif
+*.txt
+tdata
