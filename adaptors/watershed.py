@@ -250,7 +250,6 @@ class VWClient:
 
         r = requests.get(fullUrl, verify=False)
 
-        print r.content
 
         return QueryResult(r.json())
 
@@ -318,7 +317,6 @@ class VWClient:
                 return result
 
             except requests.HTTPError:
-                print result.content
                 num_tries += 1
                 continue
 
@@ -379,8 +377,6 @@ def get_config(config_file=None):
     if config_file is None:
         config_file = \
             os.path.join(os.path.dirname(__file__), '../default.conf')
-
-    print os.path.dirname(__file__)
 
     assert os.path.isfile(config_file), "Config file %s does not exist!" \
         % os.path.abspath(config_file)
