@@ -19,7 +19,7 @@ import warnings
 from watershed import get_config, makeFGDCMetadata, makeWatershedMetadata
 
 
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, Iterable
 from osgeo import gdal, gdalconst, osr
 
 from watershed import default_vw_client
@@ -77,7 +77,7 @@ def isnobal(data_tstep=60, nsteps=8758, init_img="data/init.ipw",
     logging.debug("ISNOBAL process output: " + output)
 
 
-class IPW:
+class IPW(object):
     """
     Represents an IPW file. Provides a data_frame attribute to access the
     variables and their floating point representation as a dataframe. The
@@ -85,50 +85,81 @@ class IPW:
     recalculateHeaders, and then written back to IPW binary with
     writeBinary.
 
-    >>> ipw = IPW().from_file("in.0000")
+    >>> ipw = IPW("in.0000")
     >>> ipw.data_frame.T_a = ipw.data_frame.T_a + 1.0 # add 1 dg C to each temp
     >>> ipw.writeBinary("in.plusOne.000")
 
     """
     def __init__(self, input_file=None, config_file=None):
 
-        ipw_lines = IPWLines(input_file)
-        file_type = os.path.basename(input_file).split('.')[0]
+        if input_file is not None:
 
-        # _make_bands
-        header_dict = \
-            _make_bands(ipw_lines.header_lines, VARNAME_DICT[file_type])
+            ipw_lines = IPWLines(input_file)
+            input_split = os.path.basename(input_file).split('.')
+            file_type = input_split[0]
 
-        bands = [band for band in header_dict.values()]
-        nonglobal_bands =\
-            sorted([band for varname, band in header_dict.iteritems()
-                    if varname != 'global'],
-                   key=lambda b: b.band_idx)
+            # _make_bands
+            header_dict = \
+                _make_bands(ipw_lines.header_lines, VARNAME_DICT[file_type])
 
-        if config_file is None:
-            config_file = \
-                os.path.join(os.path.dirname(__file__), '../default.conf')
+            bands = [band for band in header_dict.values()]
+            nonglobal_bands =\
+                sorted([band for varname, band in header_dict.iteritems()
+                        if varname != 'global'],
+                       key=lambda b: b.band_idx)
 
-        # initialized when called for below
-        self._data_frame = None
+            if config_file is None:
+                config_file = \
+                    os.path.join(os.path.dirname(__file__), '../default.conf')
 
-        self.input_file = input_file
-        self.file_type = file_type
-        self.header_dict = header_dict
-        self.binary_data = ipw_lines.binary_data
-        self.bands = bands
-        self.nonglobal_bands = nonglobal_bands
+            # note that we have not generalized for non-hour timestep data
+            start_hours_delta = datetime.timedelta(hours=int(input_split[-1]))
 
-        # use geo information in band0; all bands have equiv geo info
-        band0 = bands[0]
-        self.geotransform = [band0.bsamp - band0.dsamp / 2.0,
-                             band0.dsamp,
-                             0.0,
-                             band0.bline - band0.dline / 2.0,
-                             0.0,
-                             band0.dline]
+            config = get_config(config_file)
+            water_year_start = int(config['Common']['water_year'])
 
-        self.config_file = config_file
+            start_datetime = \
+                datetime.datetime(water_year_start, 10, 01) + start_hours_delta
+
+            end_datetime = start_datetime + datetime.timedelta(hours=1)
+
+            # initialized when called for below
+            self._data_frame = None
+
+            self.input_file = input_file
+            self.file_type = file_type
+            self.header_dict = header_dict
+            self.binary_data = ipw_lines.binary_data
+            self.bands = bands
+            self.nonglobal_bands = nonglobal_bands
+
+            # use geo information in band0; all bands have equiv geo info
+            band0 = bands[0]
+            self.geotransform = [band0.bsamp - band0.dsamp / 2.0,
+                                 band0.dsamp,
+                                 0.0,
+                                 band0.bline - band0.dline / 2.0,
+                                 0.0,
+                                 band0.dline]
+
+            self.config_file = config_file
+
+            self.start_datetime = start_datetime
+            self.end_datetime = end_datetime
+
+        else:
+
+            self._data_frame = None
+            self.input_file = None
+            self.file_type = None
+            self.header_dict = None
+            self.binary_data = None
+            self.bands = None
+            self.nonglobal_bands = None
+            self.geotransform = None
+            self.start_datetime = None
+            self.end_datetime = None
+
 
     def recalculate_header(self):
         """
@@ -145,6 +176,7 @@ class IPW:
                 _build_ipw_dataframe(self.nonglobal_bands,
                                      self.binary_data)
         return self._data_frame
+
 
     def write(self, fileName):
         """
@@ -278,6 +310,39 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                               end_datetime)
 
 
+def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
+                      description, model_set=None):
+    """
+    Create the metadata for the IPW object, even if it doesn't existed as
+    a file on disk.
+
+    WARNING: Does not check that output_file exists. Should be used when, e.g.,
+    a re-sampled IPW file or geotiff is being created and saved, and the
+    metadata also needs to be created and either saved or sent to the
+    waterhsed.
+
+    Returns: None
+    """
+    fgdc_metadata = makeFGDCMetadata(output_file,
+                                     ipw.config, model_run_uuid)
+
+    input_prefix = output_file.split('.')[0]
+
+    if model_set is None:
+        model_set = ("outputs", "inputs")[input_prefix == "in"]
+
+    return makeWatershedMetadata(output_file,
+                                 ipw.config,
+                                 parent_model_run_uuid,
+                                 model_run_uuid,
+                                 model_set,
+                                 description,
+                                 ipw.model_vars,
+                                 fgdc_metadata,
+                                 ipw.start_datetime,
+                                 ipw.end_datetime)
+
+
 def upsert(input_path, description, parent_model_run_uuid=None,
            model_run_uuid=None, config_file=None):
     """
@@ -339,6 +404,66 @@ def upsert(input_path, description, parent_model_run_uuid=None,
         _upsert(file_)
 
     return (parent_model_run_uuid, model_run_uuid)
+
+
+def reaggregate_ipws(ipws, fun=np.sum, freq='H', rule='D'):
+    """
+    Resample IPWs using the function fun, but only sum is supported.
+    `freq` corresponds to the actual frequency of the ipws; rule corresponds to
+    one of the resampling 'rules' given here:
+    http://pandas.pydata.org/pandas-docs/dev/timeseries.html#time-date-components
+    """
+    assert fun is np.sum, "Cannot use " + fun.func_name + \
+        ", only np.sum has been implemented"
+
+    assert _is_consecutive(ipws)
+
+    ipw0 = ipws[0]
+    start_datetime = ipw0.start_datetime
+
+    idx = pd.date_range(start=start_datetime, periods=len(ipws), freq=freq)
+
+    series = pd.Series(map(lambda ipw: ipw.data_frame(), ipws), index=idx)
+
+    resampled = series.resample(rule, how=np.sum)
+    resampled_idx = resampled.index
+
+    resampled_dt = resampled_idx[1] - resampled_idx[0]
+
+    resampled_ipws = [IPW() for el in resampled]
+
+    header_dict = ipw0.header_dict
+    file_type = ipw0.file_type
+    bands = ipw0.bands
+    nonglobal_bands = ipw0.nonglobal_bands
+    geotransform = ipw0.geotransform
+    for ipw_idx, ipw in enumerate(resampled_ipws):
+
+        ipw._data_frame = resampled[ipw_idx]
+        ipw.start_datetime = resampled_idx[ipw_idx]
+        ipw.end_datetime = resampled_idx[ipw_idx] + resampled_dt
+        ipw.header_dict = header_dict
+        ipw.file_type = file_type
+        ipw.bands = bands
+        ipw.nonglobal_bands = nonglobal_bands
+        ipw.geotransform = geotransform
+
+        ipw.recalculate_header()
+
+    return resampled_ipws
+
+
+def _is_consecutive(ipws):
+    """
+    Check that a list of ipws is consecutive
+    """
+    ret = True
+    ipw_prev = ipws[0]
+    for ipw in ipws[1:]:
+        ret &= ipw_prev.end_datetime == ipw.start_datetime
+        ipw_prev = ipw
+
+    return ret
 
 
 def _build_ipw_dataframe(nonglobal_bands, binary_data):
@@ -594,9 +719,6 @@ def _recalculate_header(bands, dataframe):
     return None
 
 
-# def _export_geotiff(output_root, output_dir="./",
-
-
 class Band(object):
     """
     Container for band information
@@ -638,7 +760,7 @@ class Band(object):
                      self.__dict__.iteritems()])
 
 
-class IPWLines:
+class IPWLines(object):
     """
     Data structure to wrap header and binary parts of an IPW file.
 
