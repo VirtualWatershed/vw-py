@@ -10,6 +10,7 @@ northBnd = 43.7326972222
 southBnd = 43.7294055556
 model = isnobal
 model_set_taxonomy = grid
+water_year = 2010
 
 [FGDC Metadata]
 template_path = /EDIT-THIS-PATH-TO/adaptors/resources/fgdc_template.xml

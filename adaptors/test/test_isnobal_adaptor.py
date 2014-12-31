@@ -3,6 +3,7 @@ Tests for the isnobal_adaptor module
 """
 
 import logging
+import datetime
 import numpy.testing as npt
 import numpy as np
 import os
@@ -18,7 +19,7 @@ from StringIO import StringIO
 from adaptors.isnobal import VARNAME_DICT, _make_bands,\
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
     _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,\
-    metadata_from_file, upsert
+    metadata_from_file, upsert, reaggregate_ipws, _is_consecutive
 from adaptors.watershed import default_vw_client
 from test_vw_adaptor import show_string_diff
 
@@ -300,6 +301,7 @@ class TestIPW(unittest.TestCase):
         assert bands[0].float_max == df['this'].max()
         assert bands[2].float_min == df['the other'].min()
 
+
     def test_save_ipw(self):
         """
         Load 5- and 6-band input and em/snow output IPW files and save back to a new file
@@ -502,3 +504,160 @@ class TestIPW(unittest.TestCase):
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
 
         _worked(parent_uuid, uuid, dir_=False, inherited=True)
+
+
+class TestResampleIPW(unittest.TestCase):
+    """
+    Test resampling capabilities of a series of IPW objects
+    """
+    def test_resample_throws_on_nonconsecutive(self):
+        """
+        Test that resample_ipws throws error when ipws aren't consecutive
+        """
+        ipws = [IPW() for f in range(3)]
+
+        water_year_start = 2010
+
+        ipws[0].start_datetime = datetime.datetime(water_year_start, 10, 01, 0)
+        ipws[0].end_datetime = datetime.datetime(water_year_start, 10, 01, 1)
+
+        ipws[1].start_datetime = datetime.datetime(water_year_start, 10, 01, 1)
+        ipws[1].end_datetime = datetime.datetime(water_year_start, 10, 01, 2)
+
+        ipws[2].start_datetime = datetime.datetime(water_year_start, 10, 01, 2)
+        ipws[2].end_datetime = datetime.datetime(water_year_start, 10, 01, 3)
+
+        assert _is_consecutive(ipws)
+
+        ipws[2].start_datetime = datetime.datetime(water_year_start, 10, 01, 5)
+        ipws[2].end_datetime = datetime.datetime(water_year_start, 10, 01, 6)
+
+        assert not _is_consecutive(ipws)
+
+    def test_resample_and_save(self):
+        """
+        Resample the data and check that the metadata reflects the resampling
+        """
+        # initialize dataframes
+        df1 = pd.DataFrame([[1, 2], [0, 1], [1, 1]], columns=['melt', 'T_s'])
+        df2 = df1.copy()
+        df3 = df1.copy()
+        df4 = df1.copy()
+        # put in some different data for each of the other two
+        df2.melt[1] = 4
+        df3.melt[1] = 2  # sum should be 6, mean 2
+        df4.melt[1] = 0  # sum should be 6, mean 2
+
+        df2.melt[0] = 3.0
+        df3.melt[0] = 5.0
+        df4.melt[0] = 1.0
+
+        time_idx = pd.date_range("2010-10-01", freq='H', periods=5)
+
+        ipws = []
+        for df in [df1, df2, df3, df4]:
+            ipw = IPW()
+            ipw._data_frame = df
+            ipws.append(ipw)
+
+        ipws = pd.Series(ipws, time_idx[:4])
+
+        # making sure attributes are properly transferred
+        # for this they don't need to make physical sense
+        geotransform = [2.0, 0.0, 2.0, 5.0, 1.1, 2.2]
+        header_dict = {"global": "yo", "melt": "melty", "T_s": "snow temp"}
+        file_type = "out"
+        bands = [Band("melt", 0, 2, 16, 0, 65535, -100.0, 100.0),
+                 Band("T_s", 2, 1, 8, 0, 255, 0, 30.0)]
+        nonglobal_bands = bands
+        for ipw_idx, ipw in enumerate(ipws):
+            ipw.start_datetime = time_idx[ipw_idx]
+            ipw.end_datetime = time_idx[ipw_idx + 1]
+            ipw.geotransform = geotransform
+            ipw.header_dict = header_dict
+            ipw.file_type = file_type
+            ipw.bands = bands
+            ipw.nonglobal_bands = nonglobal_bands
+
+        reaggregated_ipws = reaggregate_ipws(ipws, rule='2H')
+
+        assert len(reaggregated_ipws) == 2
+
+        df_new1 = reaggregated_ipws[0].data_frame()
+        df_new2 = reaggregated_ipws[1].data_frame()
+
+        assert df_new1.melt[0] == 4.0
+        assert df_new2.melt[0] == 6.0
+        assert df_new1.melt[1] == 4.0
+        assert df_new2.melt[1] == 2.0
+        assert df_new1.melt[2] == 2.0
+        assert df_new2.melt[2] == 2.0
+
+        assert df_new1.T_s[0] == 4.0
+        assert df_new2.T_s[0] == 4.0
+        assert df_new1.T_s[1] == 2.0
+        assert df_new2.T_s[1] == 2.0
+        assert df_new1.T_s[2] == 2.0
+        assert df_new2.T_s[2] == 2.0
+
+        # check that the start and end times of each IPW are as expected
+        assert reaggregated_ipws[0].start_datetime == time_idx[0]
+        assert reaggregated_ipws[1].start_datetime == time_idx[2]
+        assert reaggregated_ipws[0].end_datetime == time_idx[2]
+        assert reaggregated_ipws[1].end_datetime == time_idx[4]
+
+        for reagg_ipw in reaggregated_ipws:
+            assert reagg_ipw.geotransform == geotransform
+            assert reagg_ipw.header_dict == header_dict
+            assert reagg_ipw.file_type == file_type
+            assert reagg_ipw.bands == bands
+            assert reagg_ipw.nonglobal_bands == nonglobal_bands
+
+        # check that saving and re-loading the individual IPWs succeeds.
+        # for this part, we'll use one real file so that the sum is just a prod
+
+        # create ipws
+        test_file = "adaptors/test/data/in.0000"
+        ipws = [IPW(test_file) for i in range(4)]
+
+        # artificially modify the start and end times
+        dt = datetime.timedelta(0, 3600)
+
+        ipws[1].start_datetime += dt
+        ipws[2].start_datetime += 2*dt
+        ipws[3].start_datetime += 3*dt
+
+        ipws[1].end_datetime += dt
+        ipws[2].end_datetime += 2*dt
+        ipws[3].end_datetime += 3*dt
+
+        reagg_ipws = reaggregate_ipws(ipws, rule='2H')
+
+        expected_df = ipws[0].data_frame() * 2.0
+
+        # check that loaded-from-file data has been properly aggregated
+        t = 0
+        for i in range(len(reagg_ipws)):
+            assert (reagg_ipws[i].data_frame() ==
+                    expected_df).all().all(), "reagg: %s\nexpect: %s" % \
+                   (reagg_ipws[i].data_frame().head(), expected_df.head())
+            t += 1
+
+        assert t == 2
+
+        # now save and re-load to check that all is well with headers
+        rtest0 = "adaptors/test/data/in.tmp_reagg.0"
+        rtest1 = "adaptors/test/data/in.tmp_reagg.1"
+        rtest_files = [rtest0, rtest1]
+
+        for i, reagg_ipw in enumerate(reagg_ipws):
+            if os.path.isfile(rtest_files[i]):
+                os.remove(rtest_files[i])
+            reagg_ipw.write(rtest_files[i])
+
+            reimported = IPW(rtest_files[i])
+
+            assert (reimported.data_frame()
+                    == reagg_ipw.data_frame()).all().all()
+
+            os.remove(rtest_files[i])
