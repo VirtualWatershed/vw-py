@@ -165,4 +165,24 @@ Run ISNOBAL from Python
 The ISNOBAL interface is a simple, straight-forward wrapper for ISNOBAL. 
 
 .. autofunction:: isnobal.isnobal
-    
+
+Aggregate a list or series of IPW instances to decrease timestep
+````````````````````````````````````````````````````````````````
+
+Use this function when you want to, for example, transform a list of IPW instances 
+that represent one hour's worth of data to represent some larger amount of time's
+data. For a specific example, we might want to sum three days' worth of hourly
+data to create a single IPW instance:
+
+.. code-block:: python
+
+    # assume we have 21 day's worth of data, meaning 504 IPW binary files
+    ipws = [IPW(f) for f in files]
+    assert len(ipws) == 504
+
+    # sum every 72 hours worth of data ('3D' = 3 days) 
+    three_day_ipws = reaggregate_ipws(ipws, rule='3D')
+    assert len(ipws) == 7
+
+.. autofunction:: isnobal.reaggregate_ipws
+
