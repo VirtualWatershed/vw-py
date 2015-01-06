@@ -539,18 +539,50 @@ class TestResampleIPW(unittest.TestCase):
         Resample the data and check that the metadata reflects the resampling
         """
         # initialize dataframes
-        df1 = pd.DataFrame([[1, 2], [0, 1], [1, 1]], columns=['melt', 'T_s'])
+        df1 = pd.DataFrame([[1, 2],
+                            [0, 1],
+                            [1, 1],
+                            [1, 1]],
+                columns=['melt', 'z_s'],
+                dtype='float64')
+
         df2 = df1.copy()
         df3 = df1.copy()
         df4 = df1.copy()
-        # put in some different data for each of the other two
-        df2.melt[1] = 4
-        df3.melt[1] = 2  # sum should be 6, mean 2
-        df4.melt[1] = 0  # sum should be 6, mean 2
 
-        df2.melt[0] = 3.0
+        # modify the melt variables of the first column
+        df2.melt[0] = 4.0
+        df2.melt[1] = 0.0
+        df2.melt[2] = 0.0
+        df2.melt[3] = 2.0
+
+        # have more melt than previous so to check recalc'd min doesn't trfr
         df3.melt[0] = 5.0
+        df3.melt[1] = 2.0
+        df3.melt[2] = 2.0
+        df3.melt[3] = 2.0
+
         df4.melt[0] = 1.0
+        df4.melt[1] = 0.0
+        df4.melt[2] = 2.0
+        df4.melt[3] = 2.0
+
+        # modify the snow temperature variable (z_s) of the second column
+        df2.z_s[0] = 2.0
+        df2.z_s[1] = 4.0
+        df2.z_s[2] = 3.0
+        df2.z_s[3] = 3.0
+
+        # have larger snow depth than previous so to make sure max is recal'd
+        df3.z_s[0] = 10.0
+        df3.z_s[1] = 12.0
+        df3.z_s[2] = 2.0
+        df3.z_s[3] = 4.0
+
+        df4.z_s[0] = 11.0
+        df4.z_s[1] = 0.0
+        df4.z_s[2] = 2.0
+        df4.z_s[3] = 1.0
 
         time_idx = pd.date_range("2010-10-01", freq='H', periods=5)
 
@@ -565,10 +597,15 @@ class TestResampleIPW(unittest.TestCase):
         # making sure attributes are properly transferred
         # for this they don't need to make physical sense
         geotransform = [2.0, 0.0, 2.0, 5.0, 1.1, 2.2]
-        header_dict = {"global": "yo", "melt": "melty", "T_s": "snow temp"}
+
+# GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
+        header_dict = {"global": GlobalBand('0123', 2, 2, 2),
+                       "melt": Band("melt", 0, 2, 16, 0, 65535, -100.0, 100.0),
+                       "z_s": Band("z_s", 1, 1, 8, 0, 255, 0, 30.0), }
         file_type = "out"
         bands = [Band("melt", 0, 2, 16, 0, 65535, -100.0, 100.0),
-                 Band("T_s", 2, 1, 8, 0, 255, 0, 30.0)]
+                 Band("z_s", 1, 1, 8, 0, 255, 0, 30.0)]
+
         nonglobal_bands = bands
         for ipw_idx, ipw in enumerate(ipws):
             ipw.start_datetime = time_idx[ipw_idx]
@@ -586,19 +623,23 @@ class TestResampleIPW(unittest.TestCase):
         df_new1 = reaggregated_ipws[0].data_frame()
         df_new2 = reaggregated_ipws[1].data_frame()
 
-        assert df_new1.melt[0] == 4.0
+        assert df_new1.melt[0] == 5.0
         assert df_new2.melt[0] == 6.0
-        assert df_new1.melt[1] == 4.0
+        assert df_new1.melt[1] == 0.0
         assert df_new2.melt[1] == 2.0
-        assert df_new1.melt[2] == 2.0
-        assert df_new2.melt[2] == 2.0
+        assert df_new1.melt[2] == 1.0
+        assert df_new2.melt[2] == 4.0
+        assert df_new1.melt[3] == 3.0
+        assert df_new2.melt[3] == 4.0
 
-        assert df_new1.T_s[0] == 4.0
-        assert df_new2.T_s[0] == 4.0
-        assert df_new1.T_s[1] == 2.0
-        assert df_new2.T_s[1] == 2.0
-        assert df_new1.T_s[2] == 2.0
-        assert df_new2.T_s[2] == 2.0
+        assert df_new1.z_s[0] == 4.0
+        assert df_new2.z_s[0] == 21.0
+        assert df_new1.z_s[1] == 5.0
+        assert df_new2.z_s[1] == 12.0
+        assert df_new1.z_s[2] == 4.0
+        assert df_new2.z_s[2] == 4.0
+        assert df_new1.z_s[3] == 4.0
+        assert df_new2.z_s[3] == 5.0
 
         # check that the start and end times of each IPW are as expected
         assert reaggregated_ipws[0].start_datetime == time_idx[0]
@@ -606,13 +647,47 @@ class TestResampleIPW(unittest.TestCase):
         assert reaggregated_ipws[0].end_datetime == time_idx[2]
         assert reaggregated_ipws[1].end_datetime == time_idx[4]
 
-        for reagg_ipw in reaggregated_ipws:
+        i = 0
+        for j, reagg_ipw in enumerate(reaggregated_ipws):
             assert reagg_ipw.geotransform == geotransform
-            assert reagg_ipw.header_dict == header_dict
             assert reagg_ipw.file_type == file_type
-            assert reagg_ipw.bands == bands
-            assert reagg_ipw.nonglobal_bands == nonglobal_bands
 
+            expected_nonglob = nonglobal_bands
+            gen_nonglob = reagg_ipw.nonglobal_bands
+
+            for i, b in enumerate(gen_nonglob):
+                exp = expected_nonglob[i]
+                assert b.bits_ == exp.bits_
+                assert b.bytes_ == exp.bytes_
+                assert b.bline == exp.bline
+                assert b.bsamp == exp.bsamp
+                assert b.dline == exp.dline
+                assert b.dsamp == exp.dsamp
+                assert b.varname == exp.varname
+
+            for key in reagg_ipw.header_dict:
+                if key != "global":
+                    band = reagg_ipw.header_dict[key]
+                    expected = header_dict[key]
+                    assert band.bits_ == expected.bits_
+                    assert band.bytes_ == expected.bytes_
+                    assert band.bline == expected.bline
+                    assert band.bsamp == expected.bsamp
+                    assert band.dline == expected.dline
+                    assert band.dsamp == expected.dsamp
+                    assert band.varname == expected.varname
+
+            # make sure file can be written-implicitly checks bands are correct
+            write_file = "adaptors/test/data/tmp_write_reagg"
+            if os.path.isfile(write_file):
+                os.remove(write_file)
+
+            reagg_ipw.write(write_file)
+
+            i += 1
+
+        assert i == 2
+        del i
         # check that saving and re-loading the individual IPWs succeeds.
         # for this part, we'll use one real file so that the sum is just a prod
 
@@ -650,14 +725,22 @@ class TestResampleIPW(unittest.TestCase):
         rtest1 = "adaptors/test/data/in.tmp_reagg.1"
         rtest_files = [rtest0, rtest1]
 
+        dt = pd.Timedelta('2 hours')
         for i, reagg_ipw in enumerate(reagg_ipws):
             if os.path.isfile(rtest_files[i]):
                 os.remove(rtest_files[i])
             reagg_ipw.write(rtest_files[i])
 
-            reimported = IPW(rtest_files[i])
+            reimported = IPW(rtest_files[i], dt=dt)
 
-            assert (reimported.data_frame()
-                    == reagg_ipw.data_frame()).all().all()
+            assert (reimported.data_frame() ==
+                    reagg_ipw.data_frame()).all().all(), \
+                "reimported: %s\nreagg: %s" % \
+                (str(reimported.data_frame().head()),
+                 str(reagg_ipw.data_frame().head()))
 
             os.remove(rtest_files[i])
+
+            assert reimported.end_datetime ==\
+               datetime.datetime(2010, 10, 1, 2*(i+1), 0), \
+               "reimported datetime: %s" % str(reimported.end_datetime)
