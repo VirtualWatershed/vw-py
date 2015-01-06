@@ -407,14 +407,24 @@ class TestIPW(unittest.TestCase):
         """
         Test that metdata is properly generated from an IPW or .tif file
         """
-        # TODO test the IPW version
-
         # .tif
         generated = metadata_from_file("test/data/em.0134.melt.tif",
             self.parent_model_run_uuid, self.model_run_uuid,
             "Testing metadata!", config_file="adaptors/test/test.conf")
 
         expected = open("adaptors/test/data/expected_tif.json", 'r').read()
+        assert generated == expected, \
+            show_string_diff(generated, expected)
+
+        # now assume we have resampled to 3-day intervals
+        dt = pd.Timedelta('3 days')
+        generated = metadata_from_file("test/data/em.100.melt.tif",
+            self.parent_model_run_uuid, self.model_run_uuid,
+            "Testing metadata!", config_file="adaptors/test/test.conf",
+            dt=dt)
+
+        expected = open("adaptors/test/data/expected_tif_nonhourdt.json",
+                        'r').read()
         assert generated == expected, \
             show_string_diff(generated, expected)
 
