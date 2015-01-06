@@ -1,11 +1,14 @@
+"""
+Tools for working with IPW binary data and running the iSNOBAL model.
+"""
 #
 # Copyright (c) 2014, Matthew Turner (maturner01.gmail.com)
 #
 # For the Tri-state EPSCoR Track II WC-WAVE Project
 #
-"""
-Tools for working with IPW binary data and running the iSNOBAL model
-"""
+# Acknowledgements to Robert Lew for inspiration in the design of the IPW
+# class (see https://github.com/rogerlew/RL_GIS_Sandbox/tree/master/isnobal).
+#
 
 from copy import deepcopy
 import datetime
@@ -121,10 +124,10 @@ class IPW(object):
             if dt is None:
                 dt = pd.Timedelta('1 hour')
 
-            start_hours_delta = dt * int(input_split[-1])
+            start_dt = dt * int(input_split[-1])
 
             start_datetime = \
-                datetime.datetime(water_year_start, 10, 01) + start_hours_delta
+                datetime.datetime(water_year_start, 10, 01) + start_dt
 
             end_datetime = start_datetime + dt
 
@@ -270,10 +273,12 @@ class IPW(object):
 
 def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        description, water_year_start=2010, water_year_end=2011,
-                       dt=1, config_file=None):
+                       dt=None, config_file=None):
     """
     Generate metadata for input_file.
     """
+    assert dt is None or issubclass(type(dt), datetime.timedelta)
+
     if config_file:
         config = get_config(config_file)
     else:
@@ -287,6 +292,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     input_prefix = input_split[0]
     output_ext = os.path.splitext(input_file)[-1]
+    dt_multiplier = int(input_split[1])
 
     model_set = ("outputs", "inputs")[input_prefix == "in"]
 
@@ -295,13 +301,16 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     else:
         model_vars = ','.join(VARNAME_DICT[input_prefix])
 
-    # note that we have not generalized for non-hour timestep data
-    start_hours_delta = datetime.timedelta(hours=int(input_split[1]))
+    if dt is None:
+        dt = pd.Timedelta('1 hour')
+
+    # calculate the "dates" fields for the watershed JSON metadata
+    start_dt = dt * dt_multiplier
 
     start_datetime = \
-        datetime.datetime(water_year_start, 10, 01) + start_hours_delta
+        datetime.datetime(water_year_start, 10, 01) + start_dt
 
-    end_datetime = start_datetime + datetime.timedelta(hours=dt)
+    end_datetime = start_datetime + dt
 
     return \
         makeWatershedMetadata(input_file,
@@ -499,6 +508,7 @@ def _make_bands(header_lines, varnames):
 
     Returns: dict
     """
+    globalEndIdx = 0
     # parse global information from global header
     for i, l in enumerate(header_lines[1:-1]):
         if IsHeaderStart(l):
