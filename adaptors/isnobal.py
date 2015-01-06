@@ -273,7 +273,7 @@ class IPW(object):
 
 def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        description, water_year_start=2010, water_year_end=2011,
-                       dt=None, config_file=None):
+                       config_file=None, dt=None):
     """
     Generate metadata for input_file.
     """
@@ -359,7 +359,7 @@ def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
 
 
 def upsert(input_path, description, parent_model_run_uuid=None,
-           model_run_uuid=None, config_file=None):
+           model_run_uuid=None, config_file=None, dt=None):
     """
     Upload the file or files located at input_path, which could be a directory.
 
@@ -372,6 +372,9 @@ def upsert(input_path, description, parent_model_run_uuid=None,
     """
     assert not (model_run_uuid is not None and parent_model_run_uuid is None),\
         "If model_run_uuid is given, its parent must also be given!"
+
+    # redundant, but better to catch this before we continue
+    assert dt is None or issubclass(type(dt), datetime.timedelta)
 
     # get the configuration file path if not given
     if not config_file:
@@ -407,15 +410,17 @@ def upsert(input_path, description, parent_model_run_uuid=None,
     # closure to do the upsert on each file
     def _upsert(file_):
         json = metadata_from_file(file_, parent_model_run_uuid,
-                                  model_run_uuid, description)
+                                  model_run_uuid, description,
+                                  config_file=config_file, dt=dt)
 
         vw_client.upload(model_run_uuid, file_)
-
+        print json
         vw_client.insert_metadata(json)
 
     print "upserting model_run_uuid " + model_run_uuid
 
     for file_ in files:
+        print "on file %s" % file_
         _upsert(file_)
 
     return (parent_model_run_uuid, model_run_uuid)
