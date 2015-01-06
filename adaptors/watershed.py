@@ -110,11 +110,10 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
     watershedConfig = config['Watershed Metadata']
     commonConfig = config['Common']
 
-    firstTwoParentUUID = parentModelRunUUID[:2]
-
+    firstTwoUUID = modelRunUUID[:2]
     inputFilePath = os.path.join("/geodata/watershed-data",
-                                 firstTwoParentUUID,
-                                 parentModelRunUUID,
+                                 firstTwoUUID,
+                                 modelRunUUID,
                                  os.path.basename(dataFile))
 
     json_template = watershedConfig['template_path']
@@ -294,6 +293,7 @@ class VWClient:
                 num_tries += 1
                 continue
 
+        print result.content
         raise requests.HTTPError()
 
     def upload(self, modelRunUUID, dataFilePath):
@@ -303,6 +303,7 @@ class VWClient:
         dataPayload = {'name': os.path.basename(dataFilePath),
                        'modelid': modelRunUUID}
 
+        print self.dataUploadUrl
         num_tries = 0
         while num_tries < self._retry_num:
             try:
@@ -311,7 +312,7 @@ class VWClient:
                                   files={'file': open(dataFilePath, 'rb')},
                                   auth=(self.uname, self.passwd), verify=False)
 
-                # logging.debug(result.content)
+                print result.content
 
                 result.raise_for_status()
                 return result
