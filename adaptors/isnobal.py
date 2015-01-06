@@ -7,6 +7,7 @@
 Tools for working with IPW binary data and running the iSNOBAL model
 """
 
+from copy import deepcopy
 import datetime
 import logging
 import numpy as np
@@ -18,8 +19,7 @@ import warnings
 
 from watershed import get_config, makeFGDCMetadata, makeWatershedMetadata
 
-
-from collections import namedtuple, defaultdict, Iterable
+from collections import namedtuple, defaultdict
 from osgeo import gdal, gdalconst, osr
 
 from watershed import default_vw_client
@@ -90,7 +90,9 @@ class IPW(object):
     >>> ipw.writeBinary("in.plusOne.000")
 
     """
-    def __init__(self, input_file=None, config_file=None):
+    def __init__(self, input_file=None, config_file=None, dt=None):
+
+        assert dt is None or issubclass(type(dt), datetime.timedelta)
 
         if input_file is not None:
 
@@ -112,16 +114,19 @@ class IPW(object):
                 config_file = \
                     os.path.join(os.path.dirname(__file__), '../default.conf')
 
-            # note that we have not generalized for non-hour timestep data
-            start_hours_delta = datetime.timedelta(hours=int(input_split[-1]))
-
             config = get_config(config_file)
             water_year_start = int(config['Common']['water_year'])
+
+            # note that we have not generalized for non-hour timestep data
+            if dt is None:
+                dt = pd.Timedelta('1 hour')
+
+            start_hours_delta = dt * int(input_split[-1])
 
             start_datetime = \
                 datetime.datetime(water_year_start, 10, 01) + start_hours_delta
 
-            end_datetime = start_datetime + datetime.timedelta(hours=1)
+            end_datetime = start_datetime + dt
 
             # initialized when called for below
             self._data_frame = None
@@ -160,12 +165,13 @@ class IPW(object):
             self.start_datetime = None
             self.end_datetime = None
 
-
     def recalculate_header(self):
         """
         Recalculate header values
         """
         _recalculate_header(self.nonglobal_bands, self.data_frame())
+        for band in self.nonglobal_bands:
+            self.header_dict[band.varname] = band
 
     def data_frame(self):
         """
@@ -432,9 +438,11 @@ def reaggregate_ipws(ipws, fun=np.sum, freq='H', rule='D'):
 
     resampled_ipws = [IPW() for el in resampled]
 
-    header_dict = ipw0.header_dict
+    header_dict = deepcopy(ipw0.header_dict)
     file_type = ipw0.file_type
+    # bands = deepcopy(ipw0.bands)
     bands = ipw0.bands
+    # nonglobal_bands = deepcopy(ipw0.nonglobal_bands)
     nonglobal_bands = ipw0.nonglobal_bands
     geotransform = ipw0.geotransform
     for ipw_idx, ipw in enumerate(resampled_ipws):
@@ -442,10 +450,10 @@ def reaggregate_ipws(ipws, fun=np.sum, freq='H', rule='D'):
         ipw._data_frame = resampled[ipw_idx]
         ipw.start_datetime = resampled_idx[ipw_idx]
         ipw.end_datetime = resampled_idx[ipw_idx] + resampled_dt
-        ipw.header_dict = header_dict
+        ipw.header_dict = deepcopy(header_dict)
         ipw.file_type = file_type
-        ipw.bands = bands
-        ipw.nonglobal_bands = nonglobal_bands
+        ipw.bands = deepcopy(bands)
+        ipw.nonglobal_bands = deepcopy(nonglobal_bands)
         ipw.geotransform = geotransform
 
         ipw.recalculate_header()
@@ -679,11 +687,11 @@ def _floatdf_to_binstring(bands, df):
 
     for b in bands:
         # check that bands are appropriately made, that b.Max/Min really are
-        assert len(df[b.float_max < df[b.varname]]) == 0, \
+        assert df[b.varname].le(b.float_max).all(), \
             "Bad band: max not really max.\nb.float_max = %2.10f\n \
             df[b.varname].max()  = %s" % (b.float_max, df[b.varname].max())
 
-        assert (b.float_min <= df[b.varname]).all(), \
+        assert df[b.varname].ge(b.float_min).all(), \
             "Bad band: min not really min.\nb.float_min = %s\n \
             df[b.varname].min()  = %2.10f" % (b.float_min, df[b.varname].min())
 
@@ -694,6 +702,8 @@ def _floatdf_to_binstring(bands, df):
 
         int_df[b.varname] = map_fn(df[b.varname])
 
+    # use the struct package to pack ints to bytes; use '=' to prevent padding
+    # that causes problems with the IPW scheme
     pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
 
     return b''.join([struct.pack(pack_str, *r[1]) for r in int_df.iterrows()])
