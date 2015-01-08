@@ -33,7 +33,7 @@
         }],
     "sources": [{
         "mimetype": "application/x-zip-compressed",
-        "files": ["/geodata/watershed-data/37/373ae181-a0b2-4998-ba32-e27da190f6dd/em.100.melt.tif"],
+        "files": ["/geodata/watershed-data/09/09079630-5ef8-11e4-9803-0800200c9a66/em.100.melt.tif"],
         "set": "original",
         "external": "False",
         "extension": "tif"
