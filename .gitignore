@@ -38,3 +38,5 @@ examples/data*
 *.tif
 *.txt
 tdata
+
+*.coverage

@@ -186,7 +186,6 @@ class IPW(object):
                                      self.binary_data)
         return self._data_frame
 
-
     def write(self, fileName):
         """
         Write the IPW data to file
@@ -202,74 +201,7 @@ class IPW(object):
             f.write(
                 _floatdf_to_binstring(self.nonglobal_bands, self._data_frame))
 
-        return None
-
-    def export_geotiff(self, output_root=None, output_dir='./', bands="All"):
-        """
-        Export the given bands to geotiff. "All" writes all. Use either the
-        band index (0 - nBands) or the band's variable name, e.g. 'T_a' for
-        atmospheric temperature or 'melt' for snow melt.
-        """
-        data_frame = self.data_frame()
-
-        if type(bands) is list:
-            if type(bands[0]) is int:
-                cols = list(data_frame.columns[bands])
-            elif type(bands[0]) is str:
-                cols = bands
-
-        elif type(bands) is str:
-            if bands == "All":
-                cols = list(data_frame.columns)
-            else:
-                cols = [bands]
-
-        elif type(bands) is int:
-            cols = [data_frame.columns[bands]]
-
-        else:
-            raise Exception("argument 'bands' must be an int, str, or list of \
-                             int or str")
-
-        # Ready the root filename and output directory for name building
-        # in loop over requested bands below
-        if output_root is None:
-            output_root = os.path.basename(self.input_file)
-
-        if output_dir[-1] != '/':
-            output_dir += '/'
-
-        # since dataframe columns are already floating point and that's what's
-        # required, we just use that
-        gdal_type = gdalconst.GDT_Float32
-
-        # get the epsg from the config file
-        config = get_config(self.config_file)
-        epsg = int(config['Watershed Metadata']['orig_epsg'])
-
-        driver = gdal.GetDriverByName('Gtiff')
-        proj = osr.SpatialReference()
-        status = proj.ImportFromEPSG(epsg)
-        if status != 0:
-            warnings.warn("Importing epsg %i return error code %i"
-                          % (epsg, status))
-
-        global_band = self.header_dict['global']
-        nsamps = global_band.nSamps
-        nlines = global_band.nLines
-
-        for col in cols:
-            output_file = output_dir + output_root + '.' + col + '.tif'
-            ds = driver.Create(output_file, nsamps, nlines,
-                               1, gdal_type)
-
-            ds.SetProjection(proj.ExportToWkt())
-            ds.SetGeoTransform(self.geotransform)
-            ds.GetRasterBand(1)\
-              .WriteArray(data_frame[col].reshape(nlines, nsamps))
-
-            ds = None  # writes and closes file
-
+            return None
 
 def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        description, water_year_start=2010, water_year_end=2011,
@@ -652,14 +584,14 @@ def _bands_to_dtype(bands):
     return np.dtype([(b.varname, 'uint' + str(b.bytes_ * 8)) for b in bands])
 
 
-def _bands_to_header_lines(bandsDict):
+def _bands_to_header_lines(bands_dict):
     """
     Convert the bands to a new header assuming the float ranges are up to date
     for the current dataframe, df.
     """
     firstLine = "!<header> basic_image_i -1 $Revision: 1.11 $"
 
-    global_ = bandsDict['global']
+    global_ = bands_dict['global']
 
     firstLines = [firstLine,
                   "byteorder = {0} ".format(global_.byteorder),
@@ -667,30 +599,49 @@ def _bands_to_header_lines(bandsDict):
                   "nsamps = {0} ".format(global_.nSamps),
                   "nbands = {0} ".format(global_.nBands)]
 
-    otherLines = []
-    bands = [b for varname, b in bandsDict.iteritems() if varname != 'global']
+    other_lines = []
+    bands = [b for varname, b in bands_dict.iteritems() if varname != 'global']
 
     bands = sorted(bands, key=lambda b: b.band_idx)
 
     # for some reason IPW has a space at the end of data lines
     for i, b in enumerate(bands):
-        otherLines += ["!<header> basic_image {0} $Revision: 1.11 $".format(i),
+        other_lines += ["!<header> basic_image {0} $Revision: 1.11 $".format(i),
                        "bytes = {0} ".format(b.bytes_),
                        "bits = {0} ".format(b.bits_)]
 
+    # build the linear quantization (lq) headers
     for i, b in enumerate(bands):
-        # IPW writes integer floats without even a dec point, so strip decimal
         int_min = int(b.int_min)
         int_max = int(b.int_max)
+
+        # IPW writes integer floats without a dec point, so remove if necessary
         float_min = \
             (b.float_min, int(b.float_min))[b.float_min == int(b.float_min)]
         float_max = \
             (b.float_max, int(b.float_max))[b.float_max == int(b.float_max)]
-        otherLines += ["!<header> lq {0} $Revision: 1.6 $".format(i),
+        other_lines += ["!<header> lq {0} $Revision: 1.6 $".format(i),
                        "map = {0} {1} ".format(int_min, float_min),
                        "map = {0} {1} ".format(int_max, float_max)]
 
-    return firstLines + otherLines
+    # build the geographic header
+    for i, b in enumerate(bands):
+        bline = b.bline
+        bsamp = b.bsamp
+        dline = b.dline
+        dsamp = b.dsamp
+        units = b.geo_units
+        coord_sys_ID = b.coord_sys_ID
+
+        other_lines += ["!<header> geo {0} $Revision: 1.7 $".format(i),
+                        "bline = {0} ".format(bline),
+                        "bsamp = {0} ".format(bsamp),
+                        "dline = {0} ".format(dline),
+                        "dsamp = {0} ".format(dsamp),
+                        "units = {0} ".format(units),
+                        "coord_sys_ID = {0} ".format(coord_sys_ID)]
+
+    return firstLines + other_lines
 
 
 def _floatdf_to_binstring(bands, df):
