@@ -303,7 +303,6 @@ class VWClient:
         dataPayload = {'name': os.path.basename(dataFilePath),
                        'modelid': modelRunUUID}
 
-        print self.dataUploadUrl
         num_tries = 0
         while num_tries < self._retry_num:
             try:
@@ -311,8 +310,6 @@ class VWClient:
                     requests.post(self.dataUploadUrl, data=dataPayload,
                                   files={'file': open(dataFilePath, 'rb')},
                                   auth=(self.uname, self.passwd), verify=False)
-
-                print result.content
 
                 result.raise_for_status()
                 return result

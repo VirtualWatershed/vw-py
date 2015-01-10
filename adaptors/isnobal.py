@@ -290,7 +290,7 @@ def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
                                  ipw.end_datetime)
 
 
-def upsert(input_path, description, parent_model_run_uuid=None,
+def upsert_ipw(input_path, description, parent_model_run_uuid=None,
            model_run_uuid=None, config_file=None, dt=None):
     """
     Upload the file or files located at input_path, which could be a directory.
@@ -346,13 +346,12 @@ def upsert(input_path, description, parent_model_run_uuid=None,
                                   config_file=config_file, dt=dt)
 
         vw_client.upload(model_run_uuid, file_)
-        print json
         vw_client.insert_metadata(json)
 
-    print "upserting model_run_uuid " + model_run_uuid
+    print "upserting file(s) from %s with model_run_uuid %s" % \
+            (input_path, model_run_uuid)
 
     for file_ in files:
-        print "on file %s" % file_
         _upsert(file_)
 
     return (parent_model_run_uuid, model_run_uuid)

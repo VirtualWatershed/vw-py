@@ -128,7 +128,7 @@ files. To use it, simply provide the file name you wish to load into Python.
 Insert IPW file or directory of files to Virtual Watershed
 ``````````````````````````````````````````````````````````
 
-.. autofunction:: isnobal.upsert
+.. autofunction:: isnobal.upsert_ipw
     
 If we have some iSNOBAL data in the folders ``data/inputs`` and 
 ``data/outputs``, we can either upload
