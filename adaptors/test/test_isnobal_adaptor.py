@@ -19,7 +19,7 @@ from StringIO import StringIO
 from adaptors.isnobal import VARNAME_DICT, _make_bands,\
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
     _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,\
-    metadata_from_file, upsert, reaggregate_ipws, _is_consecutive
+    metadata_from_file, upsert_ipw, reaggregate_ipws, _is_consecutive
 from adaptors.watershed import default_vw_client
 from test_vw_adaptor import show_string_diff
 
@@ -469,7 +469,7 @@ class TestIPW(unittest.TestCase):
         """
         test_conf = "adaptors/test/test.conf"
         vwc = default_vw_client(test_conf)
-        description = "Unit testing upsert"
+        description = "Unit testing upsert_ipw"
 
         # convenience for testing upsert performed as expected
         def _worked(p_uuid, uuid, dir_=True, inherited=False):
@@ -511,18 +511,18 @@ class TestIPW(unittest.TestCase):
         ## test upsert of entire directory
         # as a brand-new parent/model run
         print "On test 1"
-        parent_uuid, uuid = upsert(upsert_dir, description,
+        parent_uuid, uuid = upsert_ipw(upsert_dir, description,
                                    config_file=test_conf)
         _worked(parent_uuid, uuid)
 
         # with no slash after directory name
-        parent_uuid, uuid = upsert('adaptors/test/data/upsert_test',
+        parent_uuid, uuid = upsert_ipw('adaptors/test/data/upsert_test',
                                    description, config_file=test_conf)
         _worked(parent_uuid, uuid)
 
         # as an existing model run
         inherit_parent = parent_uuid
-        parent_uuid, uuid = upsert(upsert_dir, description, inherit_parent,
+        parent_uuid, uuid = upsert_ipw(upsert_dir, description, inherit_parent,
                                    uuid, config_file=test_conf)
 
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
@@ -532,18 +532,18 @@ class TestIPW(unittest.TestCase):
         ## test upsert of a single file
         upsert_file = upsert_dir + "/snow.1345"
         # as a brand-new parent/model run
-        parent_uuid, uuid = upsert(upsert_file, description,
+        parent_uuid, uuid = upsert_ipw(upsert_file, description,
                                    config_file=test_conf)
         _worked(parent_uuid, uuid, dir_=False)
 
         # with no slash after directory name
-        parent_uuid, uuid = upsert(upsert_file, description,
+        parent_uuid, uuid = upsert_ipw(upsert_file, description,
                                    config_file=test_conf)
         _worked(parent_uuid, uuid, dir_=False)
 
         # as a new model run with a parent
         inherit_parent = parent_uuid
-        parent_uuid, uuid = upsert(upsert_file, description, inherit_parent,
+        parent_uuid, uuid = upsert_ipw(upsert_file, description, inherit_parent,
                                    uuid, config_file=test_conf)
 
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"

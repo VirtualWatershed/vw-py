@@ -17,8 +17,7 @@ from requests.exceptions import HTTPError
 
 from nose.tools import raises
 
-# for convenience
-from adaptors.isnobal import upsert
+from adaptors.isnobal import upsert_ipw
 
 
 def show_string_diff(s1, s2):
@@ -147,7 +146,7 @@ class TestVWClient(unittest.TestCase):
 
         self.config = get_config("adaptors/test/test.conf")
 
-        upsert("adaptors/test/data/in.0000", "unittest insert for download",
+        upsert_ipw("adaptors/test/data/in.0000", "unittest insert for download",
                parent_model_run_uuid=self.parent_uuid,
                model_run_uuid=self.uuid, config_file="adaptors/test/test.conf")
 
