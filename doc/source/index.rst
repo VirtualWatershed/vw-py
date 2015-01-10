@@ -52,6 +52,9 @@ This part is very simple and basically consists of three parts:
    templates
 4. Check that all is well by running the unittests
 
+If you have any questions, please don't hesitate to `email me with questions 
+<mailto:maturner@uidaho.edu>`_ or `post an issue on github <https://github.com/tri-state-epscor/adaptors/issues>`_.
+
 Clone repository
 ----------------
 
@@ -66,7 +69,7 @@ like so:
 Install dependencies
 --------------------
 
-You need `pip <https://pypi.python.org/pypi/pip>`_ installed to complete this
+1. You need `pip <https://pypi.python.org/pypi/pip>`_ installed to complete this
 step.
 
 From the root folder of the repository, run
@@ -75,10 +78,23 @@ From the root folder of the repository, run
 
     pip install -r requirements.txt
 
+2. You also need to `install gdal <https://trac.osgeo.org/gdal/wiki/BuildingOnMac>`_.
+
+3. Make sure you have the latest IPW installed. Download here: 
+   `download </downloads/ipw-2.1.0.tar.gz>`_ To install, follow the instructions
+   in the ``Install`` text file in the root of the IPW directory.
+
+4. Now you should be able to run the unittests once you finish the next step.
+
 Copy configuration files and edit them appropriately
 ----------------------------------------------------
 
-First, copy the configuration file templates:
+The adaptors work their magic by requiring the user to fill out a configuration
+file. This is a bit of a hassle at first, but it is worth it. From now on, 
+your username, password, virtual watershed URL, and more will be available
+and not need to be written in your programs.
+
+To do this, first copy the configuration file templates:
 
 .. code-block:: bash
 
@@ -100,7 +116,7 @@ Finally, run the unittests from the root ``adaptors`` directory like so
     # -v for verbose
     nosetests -v
 
-If all is well, you will see the following output:
+If all is well, you will something like this:
 
 .. code-block:: bash
 
@@ -131,6 +147,9 @@ If all is well, you will see the following output:
 
     OK
 
+It's ok if there are more tests as tests are added with new functionality. The
+important thing is that the tests run and that they pass (i.e. you see "OK"
+as the last line of output.
 
 Indices and tables
 ==================
