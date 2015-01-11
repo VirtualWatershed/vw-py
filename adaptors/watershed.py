@@ -11,7 +11,9 @@ import logging
 import json
 import os
 import requests
+requests.packages.urllib3.disable_warnings()
 import urllib
+import pandas as pd
 
 from string import Template
 
@@ -382,3 +384,133 @@ def get_config(config_file=None):
     config = configparser.ConfigParser()
     config.read(config_file)
     return config
+
+
+def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
+                       description, water_year_start=2010, water_year_end=2011,
+                       config_file=None, dt=None):
+    """
+    Generate metadata for input_file.
+    """
+    assert dt is None or issubclass(type(dt), datetime.timedelta)
+
+    if config_file:
+        config = get_config(config_file)
+    else:
+        config = get_config(
+            os.path.join(os.path.dirname(__file__), '../default.conf'))
+
+    fgdc_metadata = makeFGDCMetadata(input_file, config,
+                                     model_run_uuid)
+
+    input_split = os.path.basename(input_file).split('.')
+
+    input_prefix = input_split[0]
+    output_ext = os.path.splitext(input_file)[-1]
+    dt_multiplier = int(input_split[1])
+
+    model_set = ("outputs", "inputs")[input_prefix == "in"]
+
+    if output_ext == ".tif":
+        model_vars = input_split[-2]
+    else:
+#: ISNOBAL variable names to be looked up to make dataframes and write metadata
+        VARNAME_DICT = \
+            {
+                'in': ["I_lw", "T_a", "e_a", "u", "T_g", "S_n"],
+                'em': ["R_n", "H", "L_v_E", "G", "M", "delta_Q", "E_s", "melt",
+                       "ro_predict", "cc_s"],
+                'snow': ["z_s", "rho", "m_s", "h2o", "T_s_0", "T_s_l", "T_s",
+                         "z_s_l", "h2o_sat"]
+            }
+        model_vars = ','.join(VARNAME_DICT[input_prefix])
+
+    if dt is None:
+        dt = pd.Timedelta('1 hour')
+
+    # calculate the "dates" fields for the watershed JSON metadata
+    start_dt = dt * dt_multiplier
+
+    start_datetime = \
+        datetime(water_year_start, 10, 01) + start_dt
+
+    end_datetime = start_datetime + dt
+
+    return \
+        makeWatershedMetadata(input_file,
+                              config,
+                              parent_model_run_uuid,
+                              model_run_uuid,
+                              model_set,
+                              description,
+                              model_vars,
+                              fgdc_metadata,
+                              start_datetime,
+                              end_datetime)
+
+
+def upsert(input_path, description, parent_model_run_uuid=None,
+           model_run_uuid=None, config_file=None, dt=None):
+    """
+    Upload the file or files located at input_path, which could be a directory.
+
+    Inputs: input_path and description are required. If parent_model_run_uuid
+            is not provided, this assumes that it is a new model run, the
+            model_run_uuid will be the same as the parent_model_run_uuid.
+            If parent_model_run_uuid is provided and model_run_uuid is not,
+            a new model_run_uuid will be created.
+    Returns: A two-tuple of parent_model_run_uuid and model_run_uuid.
+    """
+    assert not (model_run_uuid is not None and parent_model_run_uuid is None),\
+        "If model_run_uuid is given, its parent must also be given!"
+
+    # redundant, but better to catch this before we continue
+    assert dt is None or issubclass(type(dt), datetime.timedelta)
+
+    # get the configuration file path if not given
+    if not config_file:
+        config_file = \
+            os.path.join(os.path.dirname(__file__), '../default.conf')
+
+    # build a list of files to be upserted
+    if os.path.isdir(input_path):
+
+        if input_path[-1] != '/':
+            input_path += '/'
+
+        files = [input_path + el for el in os.listdir(input_path)
+                 if os.path.isfile(input_path + el)]
+
+    elif os.path.isfile(input_path):
+        files = [input_path]
+
+    else:
+        raise os.error(input_path + " is not a valid file or directory!")
+
+    vw_client = default_vw_client(config_file)
+
+    # get either parent_model_run_uuid and/or model_run_uuid if need be
+    # final case to handle is if model_run_uuid is given but not its parent
+    if not parent_model_run_uuid:
+        parent_model_run_uuid = vw_client.initialize_model_run(description)
+        model_run_uuid = parent_model_run_uuid
+
+    elif not model_run_uuid and parent_model_run_uuid:
+        model_run_uuid = vw_client.initialize_model_run(description)
+
+    # closure to do the upsert on each file
+    def _upsert(file_):
+        json = metadata_from_file(file_, parent_model_run_uuid,
+                                  model_run_uuid, description,
+                                  config_file=config_file, dt=dt)
+
+        vw_client.upload(model_run_uuid, file_)
+        vw_client.insert_metadata(json)
+
+    print "upserting file(s) from %s with model_run_uuid %s" % \
+            (input_path, model_run_uuid)
+
+    for file_ in files:
+        _upsert(file_)
+
+    return (parent_model_run_uuid, model_run_uuid)

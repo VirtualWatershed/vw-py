@@ -10,7 +10,6 @@ import os
 import pandas as pd
 import subprocess
 import struct
-import time
 import unittest
 
 from nose.tools import raises
@@ -19,9 +18,7 @@ from StringIO import StringIO
 from adaptors.isnobal import VARNAME_DICT, _make_bands,\
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
     _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,\
-    metadata_from_file, upsert_ipw, reaggregate_ipws, _is_consecutive
-from adaptors.watershed import default_vw_client
-from test_vw_adaptor import show_string_diff
+    reaggregate_ipws, _is_consecutive
 
 
 class TestIPW(unittest.TestCase):
@@ -417,138 +414,6 @@ class TestIPW(unittest.TestCase):
 
         os.remove(outfile)
 
-    def test_watershed_connection(self):
-        """
-        Test watershed functions operating on an IPW instance or as a static method
-        """
-        # load expected json metadata file
-        expected = open("adaptors/test/data/expected_ipw_metadata.json", 'r').read()
-
-        description = "Testing metadata!"
-
-        generated = metadata_from_file(self.test_file,
-                                       self.parent_model_run_uuid,
-                                       self.model_run_uuid,
-                                       description,
-                                       config_file="adaptors/test/test.conf")
-
-        # with open("adaptors/test/data/expected_ipw_metadata.json", 'w') as f:
-            # f.write(generated)
-
-        # check equality
-        assert generated == expected, show_string_diff(generated, expected)
-
-    def test_metadata_from_file(self):
-        """
-        Test that metdata is properly generated from an IPW or .tif file
-        """
-        # .tif
-        generated = metadata_from_file("test/data/em.0134.melt.tif",
-            self.parent_model_run_uuid, self.model_run_uuid,
-            "Testing metadata!", config_file="adaptors/test/test.conf")
-
-        expected = open("adaptors/test/data/expected_tif.json", 'r').read()
-        assert generated == expected, \
-            show_string_diff(generated, expected)
-
-        # now assume we have resampled to 3-day intervals
-        dt = pd.Timedelta('3 days')
-        generated = metadata_from_file("test/data/em.100.melt.tif",
-            self.parent_model_run_uuid, self.model_run_uuid,
-            "Testing metadata!", config_file="adaptors/test/test.conf",
-            dt=dt)
-
-        expected = open("adaptors/test/data/expected_tif_nonhourdt.json",
-                        'r').read()
-        assert generated == expected, \
-            show_string_diff(generated, expected)
-
-    def test_upsert_ipw(self):
-        """
-        Check that a directory and individual files are correctly uploaded/inserted to VW
-        """
-        test_conf = "adaptors/test/test.conf"
-        vwc = default_vw_client(test_conf)
-        description = "Unit testing upsert_ipw"
-
-        # convenience for testing upsert performed as expected
-        def _worked(p_uuid, uuid, dir_=True, inherited=False):
-            time.sleep(1) # pause to let watershed catch up
-
-            if inherited:
-                factor = 2
-            else:
-                factor = 1
-
-            if dir_:
-                num_expected = 4 * factor
-            else:
-                num_expected = 1 * factor
-
-            res = vwc.search(model_run_uuid=uuid)
-            print "testing model_run_uuid %s" % uuid
-            assert res.total == num_expected, \
-                "Data was not upserted as expected.\n" +\
-                "Total inserted: %s, Expected: %s\n" %\
-                (res.total, num_expected)
-                # "For test on p_uuid=%s, uuid=%s" %\
-
-            i = 0
-            for r in res.records:
-                assert r['parent_model_run_uuid']
-                i += 1
-
-                ftype = r['name'].split('.')[0]
-                assert r['model_vars'] == ','.join(VARNAME_DICT[ftype]),\
-                    "model vars were not appropriately set!\n" + \
-                    "Expected: %s, Generated: %s" %\
-                    (','.join(VARNAME_DICT[ftype]), r['model_vars'])
-
-            assert i == num_expected
-
-        upsert_dir = 'adaptors/test/data/upsert_test/'
-
-        ## test upsert of entire directory
-        # as a brand-new parent/model run
-        print "On test 1"
-        parent_uuid, uuid = upsert_ipw(upsert_dir, description,
-                                   config_file=test_conf)
-        _worked(parent_uuid, uuid)
-
-        # with no slash after directory name
-        parent_uuid, uuid = upsert_ipw('adaptors/test/data/upsert_test',
-                                   description, config_file=test_conf)
-        _worked(parent_uuid, uuid)
-
-        # as an existing model run
-        inherit_parent = parent_uuid
-        parent_uuid, uuid = upsert_ipw(upsert_dir, description, inherit_parent,
-                                   uuid, config_file=test_conf)
-
-        assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
-
-        _worked(parent_uuid, uuid, inherited=True)
-
-        ## test upsert of a single file
-        upsert_file = upsert_dir + "/snow.1345"
-        # as a brand-new parent/model run
-        parent_uuid, uuid = upsert_ipw(upsert_file, description,
-                                   config_file=test_conf)
-        _worked(parent_uuid, uuid, dir_=False)
-
-        # with no slash after directory name
-        parent_uuid, uuid = upsert_ipw(upsert_file, description,
-                                   config_file=test_conf)
-        _worked(parent_uuid, uuid, dir_=False)
-
-        # as a new model run with a parent
-        inherit_parent = parent_uuid
-        parent_uuid, uuid = upsert_ipw(upsert_file, description, inherit_parent,
-                                   uuid, config_file=test_conf)
-
-        assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
-
-        _worked(parent_uuid, uuid, dir_=False, inherited=True)
 
 
 class TestResampleIPW(unittest.TestCase):
