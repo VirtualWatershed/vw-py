@@ -1,21 +1,9 @@
-## January Demo: Adaptors for a run of ISNOBAL using Kormos, et al, data
+# WC-WAVE Adaptors: Tools for watershed modeling and data management
 
-Based on the work done in this paper,
-[Snow distribution, melt and surface water inputs to the soil in the mountain
-rain-snow transition zone, Kormos, et. al., Journal of Hydrology
-2014](http://www.sciencedirect.com/science/article/pii/S0022169414005113), we
-will tweak and enhance a "virtual watershed" (VW) based on the data Kormos, et al, collected. 
-There they describe their setup for collecting data and describe their iSNOBAL
-model run. See the [Image Processing Workbench (IPW) User's
-Guide](http://cgiss.boisestate.edu/~hpm/software/IPW/userGuide/index.html) for
-more information on the commands we use from this software package. The 
-Virtual Watershed already exists as a customized instance of the
-[GSToRE](http://gstore.unm.edu/) "data framework for data discovery, delivery and
-documentation". In addition to guiding the development of the VW itself, we will
-develop a set of "adaptors" to connect models with the VW and models with each
-other, and the output of models (stored in the VW) to the visualization team.
+Welcome to the home for the WC-WAVE `adaptors`! Here you can clone the source
+code, raise issues if you'd like to have a feature added or if you run into a
+bug or other error, and collaborate with us by submitting your own additions or
+changes.
 
-Here is the map of the Treeline Catchment from the paper:
-
-![Map of the treeline catchment](doc/figures/treeline_map.jpg)
-
+For the full documentation and installation instructions, visit the 
+[Adaptor Documentation Site](https://northwestknowledge.net/AdaptorDocs/).
