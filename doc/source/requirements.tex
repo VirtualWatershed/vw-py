@@ -1,0 +1,97 @@
+\documentclass[
+11pt, % Main document font size
+a4paper, % Paper type, use 'letterpaper' for US Letter paper
+%oneside, % One page layout (no page indentation)
+twoside, % Two page layout (page indentation for binding and different headers)
+headinclude,footinclude, % Extra spacing for the header and footer
+BCOR5mm, % Binding correction
+]{scrartcl}
+
+\usepackage[
+nochapters, % Turn off chapters since this is an article        
+beramono, % Use the Bera Mono font for monospaced text (\texttt)
+eulermath,% Use the Euler font for mathematics
+pdfspacing, % Makes use of pdftex’ letter spacing capabilities via the microtype package
+dottedtoc % Dotted lines leading to the page numbers in the table of contents
+]{classicthesis} % The layout is based on the Classic Thesis style
+
+\usepackage{arsclassica} % Modifies the Classic Thesis package
+
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+
+\usepackage[utf8]{inputenc} % Required for including letters with accents
+
+\usepackage{graphicx} % Required for including images
+\graphicspath{{Figures/}} % Set the default folder for images
+\usepackage[total={6.5in, 9.0in}]{geometry}
+
+\usepackage{enumitem} % Required for manipulating the whitespace between and within lists
+
+%----------------------------------------------------------------------------------------
+%	TITLE AND AUTHOR(S)
+%----------------------------------------------------------------------------------------
+
+\title{\normalfont\spacedallcaps{Article Title}} % The article title
+
+\author{\spacedlowsmallcaps{Matthew A. Turner*}} % The article author(s) - author affiliations need to be specified in the AUTHOR AFFILIATIONS block
+
+%----------------------------------------------------------------------------------------
+%	HYPERLINKS
+%---------------------------------------------------------------------------------------
+
+\hypersetup{
+%draft, % Uncomment to remove all links (useful for printing in black and white)
+colorlinks=true, breaklinks=true, bookmarks=true,bookmarksnumbered,
+urlcolor=webbrown, linkcolor=RoyalBlue, citecolor=webgreen, % Link colors
+pdftitle={}, % PDF title
+pdfauthor={\textcopyright}, % PDF Author
+pdfsubject={}, % PDF Subject
+pdfkeywords={}, % PDF Keywords
+pdfcreator={pdfLaTeX}, % PDF Creator
+pdfproducer={LaTeX with hyperref and ClassicThesis} % PDF producer
+}
+
+\begin{document}
+\maketitle % Print the title/author/date block
+
+\setcounter{tocdepth}{2} % Set the depth of the table of contents to show sections and subsections only
+
+\tableofcontents % Print the table of contents
+\section*{abstract}
+
+After gathering requirements and working to understand the needs of the 
+WC-WAVE waterhsed scientists and modelers, we report the results and present a
+proposal for a focusing long-range vision of our final product. We plan to 
+reach our goal for this final product by a series of demonstration projects that
+in themselves will be publishable works.
+
+In the long run, we plan to build a system that can deliver data through either
+a web client or via a Python API. 
+
+{\let\thefootnote\relax\footnotetext{* \textit{Northwest Knowledge Network, 
+University of Idaho}}}
+
+
+
+\newpage
+     
+
+\section{Introduction} % (fold)
+\label{sec:intro}
+
+The EPSCoR Tri-State Western Consortium for Water Analysis, Visualization, and Exploration (WC-WAVE)
+is made up of a diverse group of researchers from colleges and universities 
+throughout the three partner state, Idaho, Nevada, and New Mexico. 
+
+
+
+\subsubsection{Demonstration Projects and Timeline} % (fold)
+\label{ssub:demo_proj_and_timeline}
+
+
+% subsubsection Demonstration Projects (end)
+
+
+
+% section section name (end)
+\end{document}

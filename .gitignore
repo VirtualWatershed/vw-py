@@ -42,3 +42,8 @@ tdata
 *.coverage
 
 *.tar.gz
+*.aux
+*.log
+*.rst
+*.out
+*.toc
