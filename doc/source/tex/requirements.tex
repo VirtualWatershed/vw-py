@@ -63,14 +63,21 @@ pdfproducer={LaTeX with hyperref and ClassicThesis} % PDF producer
 \tableofcontents % Print the table of contents
 \section*{abstract}
 
-After gathering requirements and working to understand the needs of the 
-WC-WAVE waterhsed scientists and modelers, we report the results and present a
-proposal for a focusing long-range vision of our final product. We plan to 
-reach our goal for this final product by a series of demonstration projects that
-in themselves will be publishable works.
+We are in a position to write a very interesting and useful web app for watershed scientists.
+The WC-WAVE project itself is ambitious enough in its scope to be of interest to 
+Michael O'Rourke and Sanford Eigenbrode to study. Like a childhood game of telephone, not only
+is there confusion between the cyberinfrastructure and watershed science teams, but also
+within individuals of the cyberinfrastructure group. This document will serve as a reference
+document of how we plan to go forward as the year progresses. It will identify the commonalities
+in the user stories we have gathered and suggest some goals and direction based on that.
 
-In the long run, we plan to build a system that can deliver data through either
-a web client or via a Python API. 
+In short, I propose we make a useful product that watershed scientists actually want to use
+as rapidly as possible. We will build quality in by employing test-driven development and 
+integrating user feedback as we gather it. Maybe the most important "product" we'll produce
+is knowledge generated from the exercise of creating such a piece of software as we must. In
+this spirit, we also must make sure all the software we produce is well-documented, and publicly 
+available and installable/runnable. We will optimize the whole by focusing on 
+the user experience and letting the functionality we build flow from that.
 
 {\let\thefootnote\relax\footnotetext{* \textit{Northwest Knowledge Network, 
 University of Idaho}}}
@@ -80,17 +87,115 @@ University of Idaho}}}
 \newpage
      
 
-\section{Introduction} % (fold)
+\section{Introduction: Historical View} % (fold)
 \label{sec:intro}
 
-The EPSCoR Tri-State Western Consortium for Water Analysis, Visualization, and Exploration (WC-WAVE)
-is made up of a diverse group of researchers from colleges and universities 
-throughout the three partner state, Idaho, Nevada, and New Mexico. If nothing else can be said, it's 
-sure that large interdisciplinary projects are difficult. However they are proving grounds for 
-new ideas and, indeed, new ways of doing science. So today, our job is not just to write software
-but to deliver a cyberinfrastructure tool that will enhance the visibility, viability, and 
-permanence of the work of watershed scientists and hydrologiests. This tool is the virtual 
-watershed and its importance cannot be overstated.
+This document will hopefully enable us to have a reference for our common focus. The UNM folks have
+done an excellent job building a virtual watershed that provides a lot of great core functionality.
+With a few of the upgrades we've identified, it will be a powerful tool for the backbone of a system
+that allows watershed researchers and students to search for peer-reviewed and published datasets,
+visualize the results of their experiments via its WMS services, and provide data to models to the
+specifications of researchers seeking to work with input or output data locally, or to build new 
+models that they can later upload to the virtual watershed! For starting out, we'll focus on 
+data that's already published and publicly available. 
+
+Before getting in to any more details let's look at what we've accomplished so far.
+
+\subsection{Virtual Watershed} % (fold)
+\label{sub:vw}
+
+The virtual watershed is, at its core, a database. Except that it's built on three different
+databases because there are two levels of metadata to serve and search, and still the data itself
+to serve and ingest. The front end is built on the Python framework \href{http://www.pylonsproject.org/}{Pyramid}.
+The Virtual Watershed team built a simple yet powerful REST API to search, upload and insert, and download
+hydrological data. For example to get all the model runs named \texttt{climate\_scenario\_plus\_one} within
+a nine day period from October 10 to October 19, 2010, 
+navigate to 
+\href{https://129.24.196.28/apps/my\_app/search/datasets.json?version=3\&start\_model\_run\_name=outputsP4.0\&timestamp\_start=2010-10-11T00:00:00\&timestamp\_end=2010-10-19T00:00:00}{https://129.24.196.28/apps/my\_app/\\search/datasets.json?version=3\&start\_model\_run\_name=outputsP4.0\&timestamp\_start=2010-10-11T00:00:00\&timestamp\_end=2010-10-19T00:00:00} 
+in your browser. No authentication is needed to search.
+
+Uploading and inserting data can be done using a POST or a PUT request, respectively. Specifically,
+this means first uploading some data to the VW storage. To make that data discoverable, 
+it's required to then \textit{insert} the associated watershed metadata. This
+requires authentication. Here is how uploading and inserting is done, assuming that \texttt{metadata} is a 
+metadata string and \texttt{file.nc} is the file to be uploaded. We intentionally leave some details out,
+just to give a flavor of the API structure for this document.
+\begin{listing}
+    \caption{Direct use of the Virtual Watershed API}
+\begin{minted}[frame=lines]{python}
+import requests
+
+# must provide model_run_uuid; leaving out details, see API docs:
+# https://www.northwestknowledge.net/AdaptorDocs/watershed.html
+model_run_uuid = "7a79b86d-2857-47b3-8329-aec8ee5e4749"
+
+upload_file = "file_to_upload.nc"
+
+data_payload = {'name': os.path.basename(upload_file),
+               'modelid': model_run_uuid}
+
+# upload file               
+data_upload_url = "https://129.24.196.28/apps/my_app/data"
+requests.post(data_upload_url, data=data_payload,
+              files={'file': open(upload_file, 'rb')},
+              auth=(uname, passwd), verify=False)
+
+# insert metadata contained in metadata_string
+insert_metadata_url = "https://129.24.196.28/apps/my_app/datasets"
+result = requests.put(insert_metadata_url,
+                      data=metadata_string,
+                      auth=(uname, passwd),
+                      verify=False)
+\end{minted}
+\label{lst:vw}
+\end{listing}
+
+% subsection  (end)
+\subsection{Adaptors} % (fold)
+\label{sub:adaptors}
+
+The adaptors in their current state provide a simplified Python API to wrap the web API provided
+by the Virtual Watershed. They help watershed users complete common tasks that are actually rather
+data intensive when you consider just how much metadata must accompany every file.
+
+In their future iteration, we were imagining there would be an adaptor for every model or between
+requested models. Though the next two adaptors on the horizon are the "human" adaptor, the web app, 
+and adaptors to serve watershed data, which will be standardized to serve .nc files. Thus, there is
+no reason at this point to create adaptors between models, only between models and the watershed.
+This simplifies our task since there are some common input formats between models. This is 
+the "data-centric" model coupling model.
+
+To illustrate the Adaptors, below is an example of how they simplify the use of the watershed.
+Instead of manually entering information like the data upload URL or manually building a 
+search URL, the adaptors make use of configuration files parsed using   
+\href{https://docs.python.org/2/library/configparser.html}{ConfigParser} 
+from Python's standard library.
+
+\begin{listing}
+    \caption{Identical requests using the virtual watershed adaptor API}
+    \begin{minted}[frame=lines]{python}
+from adaptors.watershed import default_vw_client
+
+# initialize a virtual watershed client; authentication is checked here as well
+vw_client = default_vw_client()  # reads file 'default.conf' in current directory
+
+# perform identical search; search_results is a QueryResult
+# https://www.northwestknowledge.net/AdaptorDocs/watershed.html#watershed.QueryResult
+search_results = vw_client.search(start_model_run_name="outputsP4.0", 
+                                  timestamp_start="2010-10-11T00:00:00",
+                                  timestamp_end="2010-10-19T00:00:00")
+
+# upload the file from previous example
+
+\end{minted}
+\label{lst:adaptor}
+\end{listing}
+% subsection subsection name (end)
+
+\subsection{January Meeting} % (fold)
+\label{sub:January Meeting}
+
+% subsection January Meeting (end)
 
 Here are a few paraphrased things I heard at the January meeting:
 
@@ -184,16 +289,19 @@ laboratory browse page where the model run began.
 
 Using the adaptors, this might be done something like this 
 (see \href{http://stackoverflow.com/questions/15182696/multiple-parameters-in-in-flask-approute}{this helpful Stack Overflow answer}):
-
-\begin{minted}{python}
+\begin{listing}
+    \caption{Sketch of the use of Flask for models-as-a-service}
+\begin{minted}[frame=lines]{python}
     from flask import Flask
+    from adaptors.watershed import default_vw_client
 
     app = Flask(__name__)
+    vw_client = default_vw_client()
 
     @app.route("/models/isnobal", methods=['GET'])
     def run_isnobal():
         input_uuid = request.args.get('input_uuid')
-        download_urls = vwc.search(model_run_uuid=input_uuid)
+        download_urls = vw_client.search(model_run_uuid=input_uuid)
         for url in download_urls:
             download_inputs(url)
 
@@ -201,6 +309,8 @@ Using the adaptors, this might be done something like this
     def show_models_doc():
         return MODELS_DOC  # a static documentation string of html and/or js
 \end{minted}
+\label{lst:demo_app}
+\end{listing}
 
 % subsubsection University of Nevada: Models as a Service (end)
 
@@ -309,4 +419,7 @@ an interactive map with the ability to change the vegetation type (a code from 0
 increasing extent of cover). 
 
 % section science (end)
+
+\bibliographystyle{apa}
+\bibliography{bibliography}
 \end{document}

@@ -62,6 +62,12 @@ When using the ``VWClient.search`` function, you can specify any of the
 key/value pairs specified in the `virtual watershed documentation 
 <http://129.24.196.43//docs/stable/search.html#search-objects>`_.
 
+The search function returns a ``QueryResult`` instance.
+
+.. autoclass:: watershed.QueryResult
+    :members:
+
+
 Metadata builders
 `````````````````
 

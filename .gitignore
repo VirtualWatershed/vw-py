@@ -47,3 +47,6 @@ tdata
 *.rst
 *.out
 *.toc
+*.bbl
+*.blg
+adaptors/minted
