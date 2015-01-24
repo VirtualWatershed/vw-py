@@ -50,3 +50,7 @@ tdata
 *.bbl
 *.blg
 adaptors/minted
+adaptors/test/data/in.000.modified
+adaptors/test/data/snow.1345.rewrite
+adaptors/test/data/tmp_write_reagg
+adaptors/test/data/in.0000.modified
