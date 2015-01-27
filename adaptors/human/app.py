@@ -46,5 +46,18 @@ def search():
         res = vw_client.search(**(request.args.to_dict()))
         return str(res.records) + "<h1>Search again:</h1>" + SEARCH_FORM
 
+
+def make_model_run_panel(model_run_name, scientist_name, last_updated,
+                         datetime_range, total_records):
+    """
+    Create model run panels, rectangles on the search/home page that display
+    summary information about the data that the VW has for a particular model
+    run.
+
+    Returns: (str) HTML string of the model run panel
+    """
+
+
 if __name__ == "__main__":
-    app.run()
+    # app.run()
+    app.run(debug=True)
