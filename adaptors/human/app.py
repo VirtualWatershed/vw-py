@@ -8,7 +8,7 @@ from adaptors.watershed import default_vw_client
 
 app = Flask(__name__)
 
-vw_client = default_vw_client("../../default.conf")
+vw_client = default_vw_client()
 
 #### INDEX ####
 @app.route('/')
@@ -47,8 +47,7 @@ def search():
         return str(res.records) + "<h1>Search again:</h1>" + SEARCH_FORM
 
 
-def make_model_run_panel(model_run_name, scientist_name, last_updated,
-                         datetime_range, total_records):
+def make_model_run_panels(search_results):
     """
     Create model run panels, rectangles on the search/home page that display
     summary information about the data that the VW has for a particular model
@@ -56,6 +55,11 @@ def make_model_run_panel(model_run_name, scientist_name, last_updated,
 
     Returns: (str) HTML string of the model run panel
     """
+    # parse the search_records (vwc.search().records)
+
+    # pass the list of parsed records to the template to generate results page
+
+    return ""
 
 
 if __name__ == "__main__":

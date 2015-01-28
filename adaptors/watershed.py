@@ -358,11 +358,14 @@ class QueryResult:
         return self.json['results']
 
 
-def default_vw_client(config_file="default.conf"):
+def default_vw_client(config_file=None):
     """ Use the credentials in config_file to initialize a new VWClient instance
 
         Returns: VWClient connected to the ip address given in config_file
     """
+    if config_file is None:
+        config_file = os.path.dirname(__file__) + "/../default.conf"
+
     config = get_config(config_file)
     common = config['Common']
 
