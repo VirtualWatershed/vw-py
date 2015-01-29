@@ -4,31 +4,95 @@
   for-loop over them, and creating a new block for each JSON that's there.
 -->
 
-{% extends "templates/base.html" %}
+{% extends "base.html" %}
 {% block content %}
   <h1 align="center"> Search Results! </h1>
-  {% for run in model_runs %}
-    <br><br>
-    <div class="model_run_box">
-      <svg class="box" width=810 height=610>
-        <g id={{ run.model_run_uuid }}>
-          <rect class="box" x="5" y="5" width="800" height="600"
-            style="stroke: #000099;
-                   fill: #3333ff;
-                   fill-opacity: 0.5; 
+  {% for panel in panels %}
+  <br><br>
+    <div>
+      <svg class="box" width=610 height=370>
+        <g>
+          <rect class="box" x="5" y="5" width="600" height="340"
+            stroke-width="4"
+            rx="25"
+            ry="15"
+            style="stroke: #0C090A;
+                   fill: #B4CFEC;
+                   fill-opacity: 0.3; 
               "
             />
-            <text font-size="35" x="400" y="80" text-anchor="middle">
-              {{ run.description }}
+            <text font-size="30" x="275" y="50" text-anchor="middle">
+              {{ panel.model_run_name }}
             </text>
-            <text font-size="25" x="40" y="130" text-anchor="left">
-              Contributed by: {{ run.researcher }}
+            <text font-size="20" x="275" y="90" text-anchor="middle">
+              {{ panel.model_run_uuid }}
             </text>
-            <text font-size="25" x="40" y="180" text-anchor="left">
-              Location: {{ run.location }}
+            <text font-size="22" x="40" y="160" text-anchor="left">
+              Watershed: {{ panel.watershed }}
             </text>
+            <text font-size="22" x="40" y="220" text-anchor="left">
+              State: {{ panel.state }}
+            </text>
+            <text font-size="22" x="40" y="280" text-anchor="left">
+              Model context: {{ panel.model }}
+            </text>
+            <!-- Include the google map -->
+            <foreignObject class="node" x="350" y="110">
+              <body xmlns="http://www.w3.org/1999/xhtml">
+                <div class='map_canvas' id='{{ panel.model_run_uuid }}'></div>
+              </body>
+            </foreignObject>
         </g>
       </svg>
     </div>
   {% endfor %}
+  <script src="https://maps.googleapis.com/maps/api/js"></script>
+<script>
+  // For every entry in the list of panels, create a map for it. Create
+  // unique maps by tacking on the uuid
+  {% for panel in panels %}
+  function initialize_{{ panel.model_run_uuid }}() {
+        var mapCanvas = document.getElementById('{{ panel.model_run_uuid }}');
+        var centerlat = {{ panel.centerlat }};
+        var centerlon = {{ panel.centerlon }};
+        var watershedCenter = new google.maps.LatLng(centerlat, centerlon);
+
+        var mapOptions = {
+          center: watershedCenter,
+          zoom: 7,
+          mapTypeId: google.maps.MapTypeId.TERRAIN
+        }
+
+        var map = new google.maps.Map(mapCanvas, mapOptions)
+
+        var rectangle = new google.maps.Rectangle({
+            strokeColor: "#FF0000",
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#FF0000',
+            fillOpacity: 0.35,
+            map: map,
+            bounds: new google.maps.LatLngBounds(
+              //new google.maps.LatLng(43.7294055, -116.1429),
+              //new google.maps.LatLng(43.7326972, -116.1375)
+              new google.maps.LatLng({{ panel.latmin }}, {{ panel.lonmin }}),
+              new google.maps.LatLng({{ panel.latmax }}, {{ panel.lonmax }})
+              )
+             });
+
+          var marker = new google.maps.Marker({
+              position: watershedCenter,
+              map: map,
+              title: "{{ panel.watershed }}",
+              icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+            })
+
+        }
+
+        google.maps.event.addDomListener(window, 'load', 
+            initialize_{{ panel.model_run_uuid }});
+
+      {% endfor %}
+
+    </script>
 {% endblock %}

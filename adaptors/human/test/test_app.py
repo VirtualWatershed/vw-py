@@ -22,7 +22,8 @@ class TestApp(unittest.TestCase):
             open('adaptors/human/test/data/expected_modelrun_boxes.html',
                  'r').read()
 
-        search_results = ""
+        search_results = {"yo": "mama"}
+
         expected_panels = make_model_run_panels(search_results)
 
         assert generated_panels == expected_panels
