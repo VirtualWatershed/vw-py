@@ -5,14 +5,16 @@ Testing module for Virtual Watershed Data adaptor.
 from adaptors.watershed import makeWatershedMetadata, makeFGDCMetadata, \
     VWClient, default_vw_client, get_config, upsert, metadata_from_file
 
+import datetime
 import json
+import pandas as pd
 import os
 import requests
 import time
 import unittest
 
 from difflib import Differ
-from datetime import datetime
+# from datetime import datetime
 from requests.exceptions import HTTPError
 
 from nose.tools import raises
@@ -68,8 +70,8 @@ class TestJSONMetadata(unittest.TestCase):
         model_vars = "R_n,H,L_v_E,G,M,delta_Q"
         fgdcMetadata = "<XML>yup.</XML>"
         dataFile = "adaptors/test/data/i_dont_exist.data"
-        start_datetime = datetime(2010, 10, 01, 0)
-        end_datetime = datetime(2010, 10, 01, 1)
+        start_datetime = datetime.datetime(2010, 10, 01, 0)
+        end_datetime = datetime.datetime(2010, 10, 01, 1)
         generated = makeWatershedMetadata(dataFile,
                                           self.config,
                                           self.parentModelRunUUID,
@@ -357,9 +359,13 @@ class TestVWClient(unittest.TestCase):
 
         description = "Testing metadata!"
 
-        generated = metadata_from_file(self.test_file,
-                                       self.parent_model_run_uuid,
-                                       self.model_run_uuid,
+        # TODO this gets tests passing; standardize uuids in setUp on nxt rfctr
+        parent_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+        uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
+
+        generated = metadata_from_file("adaptors/test/data/in.0000",
+                                       parent_uuid,
+                                       uuid,
                                        description,
                                        config_file="adaptors/test/test.conf")
 
@@ -373,10 +379,13 @@ class TestVWClient(unittest.TestCase):
         """
         Test that metdata is properly generated from an IPW or .tif file
         """
+        # some values we're using for testing
+        parent_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+        uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
         # .tif
         generated = metadata_from_file("test/data/em.0134.melt.tif",
-            self.parent_model_run_uuid, self.model_run_uuid,
-            "Testing metadata!", config_file="adaptors/test/test.conf")
+            parent_uuid, uuid, "Testing metadata!",
+            config_file="adaptors/test/test.conf")
 
         expected = open("adaptors/test/data/expected_tif.json", 'r').read()
         assert generated == expected, \
@@ -385,7 +394,7 @@ class TestVWClient(unittest.TestCase):
         # now assume we have resampled to 3-day intervals
         dt = pd.Timedelta('3 days')
         generated = metadata_from_file("test/data/em.100.melt.tif",
-            self.parent_model_run_uuid, self.model_run_uuid,
+            parent_uuid, uuid,
             "Testing metadata!", config_file="adaptors/test/test.conf",
             dt=dt)
 

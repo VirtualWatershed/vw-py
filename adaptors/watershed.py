@@ -6,7 +6,8 @@ associated metadata.
 """
 
 import configparser
-from datetime import datetime
+import datetime
+# from datetime import datetime
 import logging
 import json
 import os
@@ -124,18 +125,21 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
     template = Template(template_object.read())
 
     # properly escape xml metadata escape chars
-    fgdcMetadata = fgdcMetadata.replace('\n','\\n').replace('\t','\\t')
+    fgdcMetadata = fgdcMetadata.replace('\n', '\\n').replace('\t', '\\t')
 
     # If one of the datetimes is missing
     if start_datetime is None or end_datetime is None:
         start_datetime = "1970-10-01 00:00:00"
         end_datetime = "1970-10-01 01:00:00"
-    elif type(start_datetime) is datetime and type(end_datetime) is datetime:
+    elif (type(start_datetime) is datetime.datetime
+          and type(end_datetime) is datetime.datetime):
+
         fmt = lambda dt: dt.strftime('%Y-%m-%d %H:%M:%S')
         start_datetime, end_datetime = map(fmt, (start_datetime, end_datetime))
     else:
-        raise Exception("Either pass no start/end datetime or pass a \
-                         datetime object")
+
+        raise Exception("Either pass no start/end datetime " +\
+                        "or pass a datetime object. Not %s" % str(type(start_datetime)))
 
     # write the metadata for a file
     output = template.substitute(# determined by file ext, set within function
@@ -432,7 +436,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     start_dt = dt * dt_multiplier
 
     start_datetime = \
-        datetime(water_year_start, 10, 01) + start_dt
+        datetime.datetime(water_year_start, 10, 01) + start_dt
 
     end_datetime = start_datetime + dt
 
