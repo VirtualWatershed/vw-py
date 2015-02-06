@@ -7,3 +7,5 @@ changes.
 
 For the full documentation and installation instructions, visit the 
 [Adaptor Documentation Site](https://northwestknowledge.net/AdaptorDocs/).
+
+For developer information including guidelines for contributing, see the [wiki](https://github.com/tri-state-epscor/adaptors/wiki).
