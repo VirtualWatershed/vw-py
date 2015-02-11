@@ -1,4 +1,4 @@
-Copyright (c) 2015, Tri-State EPSCoR Track II
+Copyright (c) 2015, [Tri-State (New Mexico, Nevada, Idaho) EPSCoR Track II WC-WAVE](http://westernconsortium.org/)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -9,9 +9,9 @@ met:
    notice, this list of conditions and the following disclaimer.
 
 2. Redistributions in binary form must reproduce the above
-    copyright notice, this list of conditions and the following
-    disclaimer in the documentation and/or other materials provided
-    with the distribution.
+   copyright notice, this list of conditions and the following
+   disclaimer in the documentation and/or other materials provided
+   with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
