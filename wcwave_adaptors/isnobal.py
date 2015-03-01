@@ -20,7 +20,7 @@ import pandas as pd
 import subprocess
 import struct
 
-from adaptors.watershed import get_config, makeFGDCMetadata, makeWatershedMetadata
+from wcwave_adaptors.watershed import get_config, makeFGDCMetadata, makeWatershedMetadata
 
 from collections import namedtuple, defaultdict
 
