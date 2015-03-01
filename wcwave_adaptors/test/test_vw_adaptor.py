@@ -2,7 +2,7 @@
 Testing module for Virtual Watershed Data adaptor.
 """
 
-from adaptors.watershed import makeWatershedMetadata, makeFGDCMetadata, \
+from wcwave_adaptors.watershed import makeWatershedMetadata, makeFGDCMetadata, \
     VWClient, default_vw_client, get_config, upsert, metadata_from_file
 
 import datetime
@@ -19,7 +19,7 @@ from requests.exceptions import HTTPError
 
 from nose.tools import raises
 
-from adaptors.isnobal import VARNAME_DICT
+from wcwave_adaptors.isnobal import VARNAME_DICT
 
 
 def show_string_diff(s1, s2):
@@ -32,11 +32,11 @@ def show_string_diff(s1, s2):
     for l in diffList:
 
         if l[0] == '+':
-            print "+" + bcolors.GREEN + l[1:] + bcolors.ENDC
+            print '+' + bcolors.GREEN + l[1:] + bcolors.ENDC
         elif l[0] == '-':
-            print "-" + bcolors.RED + l[1:] + bcolors.ENDC
+            print '-' + bcolors.RED + l[1:] + bcolors.ENDC
         else:
-            assert False, "Error, diffList entry must start with + or -"
+            assert False, 'Error, diffList entry must start with + or -'
 
 
 class bcolors:
@@ -56,20 +56,20 @@ class TestJSONMetadata(unittest.TestCase):
         initialize the class with some appropriate entry
         metadata from file
         """
-        self.config = get_config("adaptors/test/test.conf")
+        self.config = get_config('wcwave_adaptors/test/test.conf')
 
-        self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
-        self.parentModelRunUUID = "373ae181-a0b2-4998-ba32-e27da190f6dd"
+        self.modelRunUUID = '09079630-5ef8-11e4-9803-0800200c9a66'
+        self.parentModelRunUUID = '373ae181-a0b2-4998-ba32-e27da190f6dd'
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (JSON)"""
         # Run test for 'inputs' model_set
         # create metadata file
-        model_set = "inputs"
-        description = "Testing metadata!"
-        model_vars = "R_n,H,L_v_E,G,M,delta_Q"
-        fgdcMetadata = "<XML>yup.</XML>"
-        dataFile = "adaptors/test/data/i_dont_exist.data"
+        model_set = 'inputs'
+        description = 'Testing metadata!'
+        model_vars = 'R_n,H,L_v_E,G,M,delta_Q'
+        fgdcMetadata = '<XML>yup.</XML>'
+        dataFile = 'wcwave_adaptors/test/data/i_dont_exist.data'
         start_datetime = datetime.datetime(2010, 10, 01, 0)
         end_datetime = datetime.datetime(2010, 10, 01, 1)
         generated = makeWatershedMetadata(dataFile,
@@ -84,14 +84,14 @@ class TestJSONMetadata(unittest.TestCase):
                                           end_datetime
                                           )
         # load expected json metadata file
-        expected = open("adaptors/test/data/expected1_in.json", 'r').read()
+        expected = open('wcwave_adaptors/test/data/expected1_in.json', 'r').read()
 
         # check equality
         assert generated == expected, \
             show_string_diff(generated, expected)
 
-        dataFile = "adaptors/test/data/fake_output.tif"
-        model_set = "outputs"
+        dataFile = 'wcwave_adaptors/test/data/fake_output.tif'
+        model_set = 'outputs'
         generated = makeWatershedMetadata(dataFile,
                                           self.config,
                                           self.parentModelRunUUID,
@@ -105,7 +105,7 @@ class TestJSONMetadata(unittest.TestCase):
                                           )
         # load expected json metadata file
         expected = \
-            open("adaptors/test/data/expected_w_services.json", 'r').read()
+            open('wcwave_adaptors/test/data/expected_w_services.json', 'r').read()
 
         # check equality
         assert generated == expected, \
@@ -120,10 +120,10 @@ class TestFGDCMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        self.config = get_config("adaptors/test/test.conf")
+        self.config = get_config('wcwave_adaptors/test/test.conf')
 
-        self.modelRunUUID = "09079630-5ef8-11e4-9803-0800200c9a66"
-        self.dataFile = "adaptors/test/data/in.0000"
+        self.modelRunUUID = '09079630-5ef8-11e4-9803-0800200c9a66'
+        self.dataFile = 'wcwave_adaptors/test/data/in.0000'
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
@@ -131,26 +131,27 @@ class TestFGDCMetadata(unittest.TestCase):
         generated = makeFGDCMetadata(self.dataFile, self.config,
                                      self.modelRunUUID)
 
-        expected = open("adaptors/test/data/expected1_in.xml", 'r').read()
+        expected = open('wcwave_adaptors/test/data/expected1_in.xml', 'r').read()
         assert generated == expected, \
             show_string_diff(generated, expected)
 
 
 class TestVWClient(unittest.TestCase):
+
     """ Test the functionality of the Virtual Watershed client """
 
     def setUp(self):
 
-        self.vw_client = default_vw_client("adaptors/test/test.conf")
+        self.vw_client = default_vw_client('wcwave_adaptors/test/test.conf')
 
-        self.uuid = self.vw_client.initialize_model_run("unittest")
+        self.uuid = self.vw_client.initialize_model_run('unittest')
         self.parent_uuid = self.uuid
 
-        self.config = get_config("adaptors/test/test.conf")
+        self.config = get_config('wcwave_adaptors/test/test.conf')
 
-        upsert("adaptors/test/data/in.0000", "unittest insert for download",
+        upsert('wcwave_adaptors/test/data/in.0000', 'unittest insert for download',
                parent_model_run_uuid=self.parent_uuid,
-               model_run_uuid=self.uuid, config_file="adaptors/test/test.conf")
+               model_run_uuid=self.uuid, config_file='wcwave_adaptors/test/test.conf')
 
         time.sleep(1)
 
@@ -159,26 +160,26 @@ class TestVWClient(unittest.TestCase):
         Test that a new model_run_uuid corresponding to new model run is properly initialized
         """
         new_uuid = \
-            self.vw_client.initialize_model_run("testing initialization")
+            self.vw_client.initialize_model_run('testing initialization')
 
         result = self.vw_client.search(model_run_uuid=new_uuid)
 
         assert result.total == 0, \
-            "Result does not exist?? result.total = %d" % result.total
+            'Result does not exist?? result.total = %d' % result.total
 
     @raises(HTTPError)
     def test_authFail(self):
         """ Test that failed authorization is correctly caught """
-        actualVWip = "129.24.196.43"
-        VWClient(actualVWip, "fake_user", "fake_passwd")
+        actualVWip = '129.24.196.43'
+        VWClient(actualVWip, 'fake_user', 'fake_passwd')
 
     def test_insert(self):
         """ VW Client properly inserts data """
 
         hostname = self.config['Common']['watershedIP']
-        modelIdUrl = "https://" + hostname + "/apps/my_app/newmodelrun"
+        modelIdUrl = 'https://' + hostname + '/apps/my_app/newmodelrun'
 
-        data = {"description": "initial insert"}
+        data = {'description': 'initial insert'}
 
         result = \
             requests.post(modelIdUrl, data=json.dumps(data),
@@ -187,18 +188,18 @@ class TestVWClient(unittest.TestCase):
 
         uuid = result.text
 
-        self.vw_client.upload(uuid, "adaptors/test/data/in.0000")
+        self.vw_client.upload(uuid, 'wcwave_adaptors/test/data/in.0000')
 
-        dataFile = "adaptors/test/data/in.0000"
+        dataFile = 'wcwave_adaptors/test/data/in.0000'
 
         fgdcXML = \
             makeFGDCMetadata(dataFile, self.config, modelRunUUID=uuid)
 
         watershedJSON = \
             makeWatershedMetadata(dataFile, self.config, uuid,
-                                  uuid, "inputs",
-                                  "Description of the data",
-                                  model_vars="R_n,H,L_v_E,G,M,delta_Q",
+                                  uuid, 'inputs',
+                                  'Description of the data',
+                                  model_vars='R_n,H,L_v_E,G,M,delta_Q',
                                   fgdcMetadata=fgdcXML)
 
         self.vw_client.insert_metadata(watershedJSON)
@@ -206,7 +207,7 @@ class TestVWClient(unittest.TestCase):
         vwTestUUIDEntries = self.vw_client.search(model_run_uuid=uuid)
 
         assert vwTestUUIDEntries,\
-            "No VW Entries corresponding to the test UUID"
+            'No VW Entries corresponding to the test UUID'
 
     @raises(HTTPError)
     def test_insertFail(self):
@@ -221,7 +222,7 @@ class TestVWClient(unittest.TestCase):
 
         url = results.records[0]['downloads'][0]['bin']
 
-        outfile = "adaptors/test/data/back_in.0000"
+        outfile = "wcwave_adaptors/test/data/back_in.0000"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
@@ -243,7 +244,7 @@ class TestVWClient(unittest.TestCase):
         r0 = result.records[0]
         url = r0['downloads'][0]['bin']
 
-        outfile = "adaptors/test/data/test_dl.file"
+        outfile = "wcwave_adaptors/test/data/test_dl.file"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
@@ -267,7 +268,7 @@ class TestVWClient(unittest.TestCase):
         """
         Check that a directory and individual files are correctly uploaded/inserted to VW
         """
-        test_conf = "adaptors/test/test.conf"
+        test_conf = "wcwave_adaptors/test/test.conf"
         vwc = default_vw_client(test_conf)
         description = "Unit testing upsert"
 
@@ -306,7 +307,7 @@ class TestVWClient(unittest.TestCase):
 
             assert i == num_expected
 
-        upsert_dir = 'adaptors/test/data/upsert_test/'
+        upsert_dir = 'wcwave_adaptors/test/data/upsert_test/'
 
         ## test upsert of entire directory
         # as a brand-new parent/model run
@@ -316,7 +317,7 @@ class TestVWClient(unittest.TestCase):
         _worked(parent_uuid, uuid)
 
         # with no slash after directory name
-        parent_uuid, uuid = upsert('adaptors/test/data/upsert_test',
+        parent_uuid, uuid = upsert('wcwave_adaptors/test/data/upsert_test',
                                    description, config_file=test_conf)
         _worked(parent_uuid, uuid)
 
@@ -355,24 +356,27 @@ class TestVWClient(unittest.TestCase):
         Test watershed functions operating on an IPW instance or as a static method
         """
         # load expected json metadata file
-        expected = open("adaptors/test/data/expected_ipw_metadata.json", 'r').read()
+        expected = open('wcwave_adaptors/test/data/expected_ipw_metadata.json',
+                        'r').read()
 
-        description = "Testing metadata!"
+        description = 'Testing metadata!'
 
         # TODO this gets tests passing; standardize uuids in setUp on nxt rfctr
-        parent_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
-        uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
+        parent_uuid = '373ae181-a0b2-4998-ba32-e27da190f6dd'
+        uuid = '09079630-5ef8-11e4-9803-0800200c9a66'
 
-        generated = metadata_from_file("adaptors/test/data/in.0000",
+        generated = metadata_from_file('wcwave_adaptors/test/data/in.0000',
                                        parent_uuid,
                                        uuid,
                                        description,
-                                       config_file="adaptors/test/test.conf")
+                                       config_file='wcwave_adaptors/test/test.conf')
 
-        # with open("adaptors/test/data/expected_ipw_metadata.json", 'w') as f:
-            # f.write(generated)
+        with open('wcwave_adaptors/test/data/expected_ipw_metadata.json', 'w') as f:
+            f.write(generated)
 
         # check equality
+        assert generated
+        assert expected
         assert generated == expected, show_string_diff(generated, expected)
 
     def test_metadata_from_file(self):
@@ -380,25 +384,25 @@ class TestVWClient(unittest.TestCase):
         Test that metdata is properly generated from an IPW or .tif file
         """
         # some values we're using for testing
-        parent_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
-        uuid = "09079630-5ef8-11e4-9803-0800200c9a66"
+        parent_uuid = '373ae181-a0b2-4998-ba32-e27da190f6dd'
+        uuid = '09079630-5ef8-11e4-9803-0800200c9a66'
         # .tif
-        generated = metadata_from_file("test/data/em.0134.melt.tif",
-            parent_uuid, uuid, "Testing metadata!",
-            config_file="adaptors/test/test.conf")
+        generated = metadata_from_file('test/data/em.0134.melt.tif',
+            parent_uuid, uuid, 'Testing metadata!',
+            config_file='wcwave_adaptors/test/test.conf')
 
-        expected = open("adaptors/test/data/expected_tif.json", 'r').read()
+        expected = open('wcwave_adaptors/test/data/expected_tif.json', 'r').read()
         assert generated == expected, \
             show_string_diff(generated, expected)
 
         # now assume we have resampled to 3-day intervals
         dt = pd.Timedelta('3 days')
-        generated = metadata_from_file("test/data/em.100.melt.tif",
+        generated = metadata_from_file('test/data/em.100.melt.tif',
             parent_uuid, uuid,
-            "Testing metadata!", config_file="adaptors/test/test.conf",
+            'Testing metadata!', config_file='wcwave_adaptors/test/test.conf',
             dt=dt)
 
-        expected = open("adaptors/test/data/expected_tif_nonhourdt.json",
+        expected = open('wcwave_adaptors/test/data/expected_tif_nonhourdt.json',
                         'r').read()
         assert generated == expected, \
             show_string_diff(generated, expected)
