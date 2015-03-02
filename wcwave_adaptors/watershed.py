@@ -186,6 +186,9 @@ class VWClient:
     is essentially a structured database with certain rules for its
     metadata and for uploading or inserting data.
     """
+    # number of times to re-try an http request
+    _retry_num = 3
+
     def __init__(self, ip_address, uname, passwd):
         """ Initialize a new connection to the virtual watershed """
 
@@ -212,20 +215,35 @@ class VWClient:
         self.new_run_url = "https://" + ip_address + \
             "/apps/my_app/newmodelrun"
 
-        # number of times to re-try an http request
-        self._retry_num = 3
-
-    def initialize_model_run(self, description):
+    def initialize_model_run(self, model_run_name=None, description=None,
+                             researcher_name=None, keywords=None):
         """
         Iniitalize a new model run.
+
+        Parameters:
+            model_run_name (str): is the name for the new resource.
+            description (str): a description of the new resource.
+            researcher_name (str): contact person for the data
+            keywords (str): comma-separated list of keywords associate with
+                resource
 
         Returns: (str) a newly-intialized model_run_uuid
         """
         assert description, \
             "You must provide a description for your new model run"
+        assert model_run_name, \
+            "You must provide a model_run_name for your new model run"
+        assert researcher_name, \
+            "You must provide a researcher_name for your new model run"
+        assert keywords, \
+            "You must provide keywords for your new model run"
 
-        data = {'description': description}
+        data = {'model_run_name': model_run_name,
+                'description': description,
+                'model_keywords': keywords,
+                'researcher_name': researcher_name}
 
+        # TODO make this class-level
         auth = (self.uname, self.passwd)
 
         result = requests.post(self.new_run_url, data=json.dumps(data),
@@ -233,7 +251,9 @@ class VWClient:
 
         result.raise_for_status()
 
-        return result.text
+        model_run_uuid = result.text
+
+        return model_run_uuid
 
     def search(self, **kwargs):
         """

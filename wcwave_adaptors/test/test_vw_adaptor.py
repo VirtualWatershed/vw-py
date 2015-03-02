@@ -12,6 +12,7 @@ import os
 import requests
 import time
 import unittest
+import uuid
 
 from difflib import Differ
 # from datetime import datetime
@@ -46,6 +47,8 @@ class bcolors:
     YELLOW = '\033[93m'
     RED = '\033[91m'
     ENDC = '\033[0m'
+
+VW_CLIENT = default_vw_client('wcwave_adaptors/test/test.conf')
 
 
 class TestJSONMetadata(unittest.TestCase):
@@ -137,14 +140,16 @@ class TestFGDCMetadata(unittest.TestCase):
 
 
 class TestVWClient(unittest.TestCase):
-
     """ Test the functionality of the Virtual Watershed client """
-
     def setUp(self):
 
-        self.vw_client = default_vw_client('wcwave_adaptors/test/test.conf')
+        self.kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                       'researcher_name': 'William Hudspeth',
+                       'description': 'unittest' ,
+                       'model_run_name': 'unittest' + str(uuid.uuid4())}
 
-        self.uuid = self.vw_client.initialize_model_run('unittest')
+        self.uuid = VW_CLIENT.initialize_model_run(**self.kwargs)
+
         self.parent_uuid = self.uuid
 
         self.config = get_config('wcwave_adaptors/test/test.conf')
@@ -159,18 +164,51 @@ class TestVWClient(unittest.TestCase):
         """
         Test that a new model_run_uuid corresponding to new model run is properly initialized
         """
-        new_uuid = \
-            self.vw_client.initialize_model_run('testing initialization')
+        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                  'researcher_name': 'William Hudspeth',
+                  'description': 'model run db testing',
+                  'model_run_name': 'initialize unittest ' + str(uuid.uuid4())}
 
-        result = self.vw_client.search(model_run_uuid=new_uuid)
+        new_uuid = \
+            VW_CLIENT.initialize_model_run(**kwargs)
+
+        result = VW_CLIENT.search(model_run_uuid=new_uuid)
 
         assert result.total == 0, \
             'Result does not exist?? result.total = %d' % result.total
 
     @raises(HTTPError)
+    def test_duplicate_error(self):
+        """
+        If the user tries to init a new model run with a previously used name, catch HTTPError
+        """
+        keywords = 'Snow,iSNOBAL,wind'
+        researcher_name = 'William Hudspeth'
+        description = 'model run db testing'
+
+        model_run_name = 'dup_test ' + str(uuid.uuid4())
+
+        VW_CLIENT.initialize_model_run(keywords=keywords,
+                                       researcher_name=researcher_name,
+                                       description=description,
+                                       model_run_name=model_run_name)
+
+        print "first inserted successfully"
+
+        # TODO get watershed guys to make researcher, model run name be PK
+        # at that point, this test will fail, but re-inserting Bill's
+        # fake submission will throw
+        # researcher_name = 'Matthew Turner'
+
+        VW_CLIENT.initialize_model_run(keywords=keywords,
+                                       researcher_name=researcher_name,
+                                       description=description,
+                                       model_run_name=model_run_name)
+
+    @raises(HTTPError)
     def test_authFail(self):
         """ Test that failed authorization is correctly caught """
-        actualVWip = '129.24.196.43'
+        actualVWip = '129.24.196.23'
         VWClient(actualVWip, 'fake_user', 'fake_passwd')
 
     def test_insert(self):
@@ -183,12 +221,12 @@ class TestVWClient(unittest.TestCase):
 
         result = \
             requests.post(modelIdUrl, data=json.dumps(data),
-                          auth=(self.vw_client.uname, self.vw_client.passwd),
+                          auth=(VW_CLIENT.uname, VW_CLIENT.passwd),
                           verify=False)
 
         uuid = result.text
 
-        self.vw_client.upload(uuid, 'wcwave_adaptors/test/data/in.0000')
+        VW_CLIENT.upload(uuid, 'wcwave_adaptors/test/data/in.0000')
 
         dataFile = 'wcwave_adaptors/test/data/in.0000'
 
@@ -202,9 +240,9 @@ class TestVWClient(unittest.TestCase):
                                   model_vars='R_n,H,L_v_E,G,M,delta_Q',
                                   fgdcMetadata=fgdcXML)
 
-        self.vw_client.insert_metadata(watershedJSON)
+        VW_CLIENT.insert_metadata(watershedJSON)
 
-        vwTestUUIDEntries = self.vw_client.search(model_run_uuid=uuid)
+        vwTestUUIDEntries = VW_CLIENT.search(model_run_uuid=uuid)
 
         assert vwTestUUIDEntries,\
             'No VW Entries corresponding to the test UUID'
@@ -212,13 +250,13 @@ class TestVWClient(unittest.TestCase):
     @raises(HTTPError)
     def test_insertFail(self):
         """ VW Client throws error on failed insert"""
-        self.vw_client.insert_metadata('{"metadata": {"xml": "mo garbage"}}')
+        VW_CLIENT.insert_metadata('{"metadata": {"xml": "mo garbage"}}')
 
     def test_upload(self):
         """ VW Client properly uploads data """
         # fetch the file from the url we know from the VW file storage pattern
         results = \
-            self.vw_client.search(model_run_uuid=self.uuid, limit=1)
+            VW_CLIENT.search(model_run_uuid=self.uuid, limit=1)
 
         url = results.records[0]['downloads'][0]['bin']
 
@@ -227,7 +265,7 @@ class TestVWClient(unittest.TestCase):
         if os.path.isfile(outfile):
             os.remove(outfile)
 
-        self.vw_client.download(url, outfile)
+        VW_CLIENT.download(url, outfile)
 
         # check that the file now exists in the file system as expected
         assert os.path.isfile(outfile)
@@ -239,7 +277,7 @@ class TestVWClient(unittest.TestCase):
         VW Client properly downloads data
         """
         result = \
-            self.vw_client.search(model_run_uuid=self.uuid, limit=1)
+            VW_CLIENT.search(model_run_uuid=self.uuid, limit=1)
 
         r0 = result.records[0]
         url = r0['downloads'][0]['bin']
@@ -249,7 +287,7 @@ class TestVWClient(unittest.TestCase):
         if os.path.isfile(outfile):
             os.remove(outfile)
 
-        self.vw_client.download(url, outfile)
+        VW_CLIENT.download(url, outfile)
 
         assert os.path.isfile(outfile)
 
@@ -260,8 +298,7 @@ class TestVWClient(unittest.TestCase):
         """ VW Client throws error on failed download """
         url = "http://httpbin.org/status/404"
 
-        self.vw_client.download(url, "this won't ever exist")
-
+        VW_CLIENT.download(url, "this won't ever exist")
 
 
     def test_upsert(self):
