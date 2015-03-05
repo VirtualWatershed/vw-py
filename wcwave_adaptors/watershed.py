@@ -193,23 +193,23 @@ class VWClient:
         """ Initialize a new connection to the virtual watershed """
 
         # Check our credentials
-        authUrl = "https://" + ip_address + "/apps/my_app/auth"
-        r = requests.get(authUrl, auth=(uname, passwd), verify=False)
+        auth_url = "https://" + ip_address + "/apps/my_app/auth"
+        r = requests.get(auth_url, auth=(uname, passwd), verify=False)
         r.raise_for_status()
 
         self.uname = uname
         self.passwd = passwd
 
         # Initialize URLS used by class methods
-        self.insertDatasetUrl = "https://" + ip_address + \
+        self.insert_dataset_url = "https://" + ip_address + \
             "/apps/my_app/datasets"
 
-        self.dataUploadUrl = "https://" + ip_address + "/apps/my_app/data"
+        self.data_upload_url = "https://" + ip_address + "/apps/my_app/data"
 
-        self.uuidCheckUrl = "https://" + ip_address + \
+        self.uuid_check_url = "https://" + ip_address + \
             "/apps/my_app/checkmodeluuid"
 
-        self.searchUrl = "https://" + ip_address + \
+        self.search_url = "https://" + ip_address + \
             "/apps/my_app/search/datasets.json?version=3"
 
         self.new_run_url = "https://" + ip_address + \
@@ -264,16 +264,16 @@ class VWClient:
 
         Returns: a list of JSON records as dictionaries
         """
-        fullUrl = self.searchUrl
+        full_url = self.search_url
 
         for key, val in kwargs.iteritems():
 
             if type(val) is not str:
                 val = str(val)
 
-            fullUrl += "&%s=%s" % (key, val)
+            full_url += "&%s=%s" % (key, val)
 
-        r = requests.get(fullUrl, verify=False)
+        r = requests.get(full_url, verify=False)
 
 
         return QueryResult(r.json())
@@ -299,13 +299,13 @@ class VWClient:
             Returns: None
         """
 
-        # logging.debug("insertDatasetUrl:\n" + self.insertDatasetUrl)
+        # logging.debug("insert_dataset_url:\n" + self.insert_dataset_url)
         # logging.debug("post data dumped:\n" + json.dumps(watershedMetadata))
 
         num_tries = 0
         while num_tries < self._retry_num:
             try:
-                result = requests.put(self.insertDatasetUrl,
+                result = requests.put(self.insert_dataset_url,
                                       data=watershedMetadata,
                                       auth=(self.uname, self.passwd),
                                       verify=False)
@@ -333,7 +333,7 @@ class VWClient:
         while num_tries < self._retry_num:
             try:
                 result = \
-                    requests.post(self.dataUploadUrl, data=dataPayload,
+                    requests.post(self.data_upload_url, data=dataPayload,
                                   files={'file': open(dataFilePath, 'rb')},
                                   auth=(self.uname, self.passwd), verify=False)
 
