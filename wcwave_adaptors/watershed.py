@@ -19,7 +19,7 @@ import pandas as pd
 from string import Template
 
 
-def makeFGDCMetadata(dataFile, config, modelRunUUID):
+def make_fgdc_metadata(dataFile, config, modelRunUUID):
     """
     For a single `dataFile`, write the XML FGDC metadata
 
@@ -31,11 +31,11 @@ def makeFGDCMetadata(dataFile, config, modelRunUUID):
     except OSError:
         filesizeMB = "NA"
 
-    fgdcConfig = config['FGDC Metadata']
-    commonConfig = config['Common']
+    fgdc_config = config['FGDC Metadata']
+    common_config = config['Common']
 
     # use templates and the fgdc configuration to write the metadata for a file
-    xml_template = fgdcConfig['template_path']
+    xml_template = fgdc_config['template_path']
 
     template_object = open(xml_template, 'r')
     template = Template(template_object.read())
@@ -43,32 +43,32 @@ def makeFGDCMetadata(dataFile, config, modelRunUUID):
     output = template.substitute(filename=dataFile,
                                  filesizeMB=filesizeMB,
                                  model_run_uuid=modelRunUUID,
-                                 procdate=fgdcConfig['procdate'],
-                                 begdate=fgdcConfig['begdate'],
-                                 enddate=fgdcConfig['enddate'],
-                                 westBnd=commonConfig['westBnd'],
-                                 eastBnd=commonConfig['eastBnd'],
-                                 northBnd=commonConfig['northBnd'],
-                                 southBnd=commonConfig['southBnd'],
-                                 themekey=fgdcConfig['themekey'],
-                                 model=commonConfig['model'],
-                                 researcherName=fgdcConfig['researcherName'],
-                                 mailing_address=fgdcConfig['mailing_address'],
-                                 city=fgdcConfig['city'],
-                                 state=fgdcConfig['state'],
-                                 zipCode=fgdcConfig['zipCode'],
-                                 researcherPhone=fgdcConfig['researcherPhone'],
-                                 researcherEmail=fgdcConfig['researcherEmail'],
-                                 rowcount=fgdcConfig['rowcount'],
-                                 columncount=fgdcConfig['columncount'],
-                                 latres=fgdcConfig['latres'],
-                                 longres=fgdcConfig['longres'],
-                                 mapUnits=fgdcConfig['mapUnits'])
+                                 procdate=fgdc_config['procdate'],
+                                 begdate=fgdc_config['begdate'],
+                                 enddate=fgdc_config['enddate'],
+                                 westBnd=common_config['westBnd'],
+                                 eastBnd=common_config['eastBnd'],
+                                 northBnd=common_config['northBnd'],
+                                 southBnd=common_config['southBnd'],
+                                 themekey=fgdc_config['themekey'],
+                                 model=common_config['model'],
+                                 researcherName=common_config['researcherName'],
+                                 mailing_address=fgdc_config['mailing_address'],
+                                 city=fgdc_config['city'],
+                                 state=fgdc_config['state'],
+                                 zipCode=fgdc_config['zipCode'],
+                                 researcherPhone=fgdc_config['researcherPhone'],
+                                 researcherEmail=fgdc_config['researcherEmail'],
+                                 rowcount=fgdc_config['rowcount'],
+                                 columncount=fgdc_config['columncount'],
+                                 latres=fgdc_config['latres'],
+                                 longres=fgdc_config['longres'],
+                                 mapUnits=fgdc_config['mapUnits'])
 
     return output
 
 
-def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
+def make_watershed_metadata(dataFile, config, parentModelRunUUID,
                           modelRunUUID, model_set, description="",
                           model_vars="", fgdcMetadata="", start_datetime=None,
                           end_datetime=None):
@@ -111,7 +111,7 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
     basename = os.path.basename(dataFile)
 
     watershedConfig = config['Watershed Metadata']
-    commonConfig = config['Common']
+    common_config = config['Common']
 
     firstTwoUUID = modelRunUUID[:2]
     inputFilePath = os.path.join("/geodata/watershed-data",
@@ -160,14 +160,14 @@ def makeWatershedMetadata(dataFile, config, parentModelRunUUID,
                                  inputFilePath=inputFilePath,
                                  # given in config file
                                  parent_model_run_uuid=parentModelRunUUID,
-                                 modelname=commonConfig['model'],
+                                 modelname=common_config['model'],
                                  state=watershedConfig['state'],
-                                 model_set_taxonomy=commonConfig['model_set_taxonomy'],
+                                 model_set_taxonomy=common_config['model_set_taxonomy'],
                                  orig_epsg=watershedConfig['orig_epsg'],
-                                 westBnd=commonConfig['westBnd'],
-                                 eastBnd=commonConfig['eastBnd'],
-                                 northBnd=commonConfig['northBnd'],
-                                 southBnd=commonConfig['southBnd'],
+                                 westBnd=common_config['westBnd'],
+                                 eastBnd=common_config['eastBnd'],
+                                 northBnd=common_config['northBnd'],
+                                 southBnd=common_config['southBnd'],
                                  start_datetime=start_datetime,
                                  end_datetime=end_datetime,
                                  epsg=watershedConfig['epsg'],
@@ -217,18 +217,20 @@ class VWClient:
 
     def initialize_model_run(self, model_run_name=None, description=None,
                              researcher_name=None, keywords=None):
-        """
-        Iniitalize a new model run.
+        """Iniitalize a new model run.
 
-        Parameters:
+        Args:
             model_run_name (str): is the name for the new resource.
             description (str): a description of the new resource.
             researcher_name (str): contact person for the data
             keywords (str): comma-separated list of keywords associate with
                 resource
 
-        Returns: (str) a newly-intialized model_run_uuid
+        Returns:
+            (str) a newly-intialized model_run_uuid
+
         """
+        print model_run_name
         assert description, \
             "You must provide a description for your new model run"
         assert model_run_name, \
@@ -394,9 +396,12 @@ def default_vw_client(config_file="default.conf"):
 
 
 def get_config(config_file=None):
-    """ Provide user with a ConfigParser that has read the `config_file`
+    """Provide user with a ConfigParser that has read the `config_file`
 
-        Returns: ConfigParser()
+        Returns:
+            (ConfigParser) Config parser with three sections: 'Common',
+            'FGDC Metadata', and 'Watershed Metadata'
+
     """
     if config_file is None:
         config_file = \
@@ -424,7 +429,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         config = get_config(
             os.path.join(os.path.dirname(__file__), '../default.conf'))
 
-    fgdc_metadata = makeFGDCMetadata(input_file, config,
+    fgdc_metadata = make_fgdc_metadata(input_file, config,
                                      model_run_uuid)
 
     input_split = os.path.basename(input_file).split('.')
@@ -461,7 +466,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     end_datetime = start_datetime + dt
 
     return \
-        makeWatershedMetadata(input_file,
+        make_watershed_metadata(input_file,
                               config,
                               parent_model_run_uuid,
                               model_run_uuid,
@@ -473,10 +478,10 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                               end_datetime)
 
 
-def upsert(input_path, description, parent_model_run_uuid=None,
-           model_run_uuid=None, config_file=None, dt=None):
-    """
-    Upload the file or files located at input_path, which could be a directory.
+def upsert(input_path, model_run_name=None, description=None, keywords=None,
+           parent_model_run_uuid=None, model_run_uuid=None, config_file=None,
+           dt=None):
+    """Upload the file or files located at input_path, which could be a directory.
 
     Inputs: input_path and description are required. If parent_model_run_uuid
             is not provided, this assumes that it is a new model run, the
@@ -511,16 +516,33 @@ def upsert(input_path, description, parent_model_run_uuid=None,
     else:
         raise os.error(input_path + " is not a valid file or directory!")
 
-    vw_client = default_vw_client(config_file)
+
+    # initialize the vw_client manually (not defuault) since we need
+    # config info
+    commonConfig = get_config(config_file)['Common']
+
+    vw_client = VWClient(commonConfig['watershedIP'], commonConfig['user'],
+                         commonConfig['passwd'])
 
     # get either parent_model_run_uuid and/or model_run_uuid if need be
     # final case to handle is if model_run_uuid is given but not its parent
     if not parent_model_run_uuid:
-        parent_model_run_uuid = vw_client.initialize_model_run(description)
+        parent_model_run_uuid = \
+            vw_client.initialize_model_run(model_run_name=model_run_name,
+                                           description=description,
+                                           keywords=keywords,
+                                           researcher_name=commonConfig['researcherName']
+                                           )
+
         model_run_uuid = parent_model_run_uuid
 
     elif not model_run_uuid and parent_model_run_uuid:
-        model_run_uuid = vw_client.initialize_model_run(description)
+        model_run_uuid = \
+            vw_client.initialize_model_run(model_run_name=model_run_name,
+                                           description=description,
+                                           keywords=keywords,
+                                           researcher_name=commonConfig['researcherName']
+                                           )
 
     # closure to do the upsert on each file
     def _upsert(file_):
@@ -532,7 +554,7 @@ def upsert(input_path, description, parent_model_run_uuid=None,
         vw_client.insert_metadata(json)
 
     print "upserting file(s) from %s with model_run_uuid %s" % \
-            (input_path, model_run_uuid)
+        (input_path, model_run_uuid)
 
     for file_ in files:
         _upsert(file_)
