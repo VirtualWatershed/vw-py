@@ -76,9 +76,9 @@ Virtual Watershed metadata and one for generating XML-formatted FGDC "science"
 metadata. The templates used to implement these functions are stored in the
 ``resources/`` directory.
 
-.. autofunction:: watershed.makeWatershedMetadata
+.. autofunction:: watershed.make_watershed_metadata
 
-.. autofunction:: watershed.makeFGDCMetadata
+.. autofunction:: watershed.make_fgdc_metadata
 
 Configuration File Getter
 `````````````````````````
@@ -122,8 +122,8 @@ Upload File
 Build metadata
 --------------
 
->>> fgdcXML = makeFGDCMetadata(dataFile, config, new_uuid=new_uuid)
->>> watershedJSON = makeWatershedMetadata(dataFile, config, new_uuid, new_uuid, "inputs", "Description of the data", model_vars="R_n,H,L_v_E,G,M,delta_Q", fgdcMetadata=fgdcXML) 
+>>> fgdcXML = make_fgdc_metadata(dataFile, config, new_uuid=new_uuid)
+>>> watershedJSON = make_watershed_metadata(dataFile, config, new_uuid, new_uuid, "inputs", "Description of the data", model_vars="R_n,H,L_v_E,G,M,delta_Q", fgdcMetadata=fgdcXML) 
 
 Insert Metadata
 ---------------

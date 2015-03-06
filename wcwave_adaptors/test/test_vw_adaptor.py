@@ -298,7 +298,6 @@ class TestVWClient(unittest.TestCase):
         """
         test_conf = "wcwave_adaptors/test/test.conf"
         vwc = default_vw_client(test_conf)
-        description = "Unit testing upsert"
 
         # convenience for testing upsert performed as expected
         def _worked(p_uuid, UUID, dir_=True, inherited=False):
@@ -344,6 +343,7 @@ class TestVWClient(unittest.TestCase):
                   'description': 'unittest',
                   'model_run_name': 'unittest' + str(uuid4())}
 
+        print kwargs['model_run_name']
         parent_uuid, UUID = upsert(upsert_dir,
                                    config_file=test_conf, **kwargs)
         _worked(parent_uuid, UUID)
