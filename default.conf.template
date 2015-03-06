@@ -3,7 +3,6 @@
 watershedIP = 1.800.you.rock
 user = your_uname
 passwd = your_supersecret_password
-parent_model_run_uuid = 373ae181-a0b2-4998-ba32-e27da190f6dd
 westBnd = -116.142905556
 eastBnd = -116.137583333
 northBnd = 43.7326972222
@@ -11,6 +10,7 @@ southBnd = 43.7294055556
 model = isnobal
 model_set_taxonomy = grid
 water_year = 2010
+researcherName = Matthew Turner
 
 [FGDC Metadata]
 template_path = /EDIT-THIS-PATH-TO/adaptors/resources/fgdc_template.xml
@@ -18,7 +18,6 @@ procdate = 11112014
 begdate = 10012010
 enddate = 09302011
 themekey = watershed
-researcherName = Matthew Turner
 mailing_address = 875 Perimeter Drive MS2358
 city = Moscow
 state = Idaho

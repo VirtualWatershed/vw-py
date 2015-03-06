@@ -136,3 +136,9 @@ function, which allows the user to upload and insert either a single file or a
 whole directory to the virtual watershed
 
 .. autofunction:: watershed.upsert
+
+
+Make Watershed Metadata
+```````````````````````
+
+.. autofunction:: watershed.metadata_from_file

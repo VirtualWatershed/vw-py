@@ -2,7 +2,7 @@
 Testing module for Virtual Watershed Data adaptor.
 """
 
-from wcwave_adaptors.watershed import makeWatershedMetadata, makeFGDCMetadata, \
+from wcwave_adaptors.watershed import make_watershed_metadata, make_fgdc_metadata, \
     VWClient, default_vw_client, get_config, upsert, metadata_from_file
 
 import datetime
@@ -12,10 +12,9 @@ import os
 import requests
 import time
 import unittest
-import uuid
+from uuid import uuid4
 
 from difflib import Differ
-# from datetime import datetime
 from requests.exceptions import HTTPError
 
 from nose.tools import raises
@@ -75,7 +74,7 @@ class TestJSONMetadata(unittest.TestCase):
         dataFile = 'wcwave_adaptors/test/data/i_dont_exist.data'
         start_datetime = datetime.datetime(2010, 10, 01, 0)
         end_datetime = datetime.datetime(2010, 10, 01, 1)
-        generated = makeWatershedMetadata(dataFile,
+        generated = make_watershed_metadata(dataFile,
                                           self.config,
                                           self.parentModelRunUUID,
                                           self.modelRunUUID,
@@ -95,7 +94,7 @@ class TestJSONMetadata(unittest.TestCase):
 
         dataFile = 'wcwave_adaptors/test/data/fake_output.tif'
         model_set = 'outputs'
-        generated = makeWatershedMetadata(dataFile,
+        generated = make_watershed_metadata(dataFile,
                                           self.config,
                                           self.parentModelRunUUID,
                                           self.modelRunUUID,
@@ -131,8 +130,8 @@ class TestFGDCMetadata(unittest.TestCase):
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
 
-        generated = makeFGDCMetadata(self.dataFile, self.config,
-                                     self.modelRunUUID)
+        generated = make_fgdc_metadata(self.dataFile, self.config,
+                                       self.modelRunUUID)
 
         expected = open('wcwave_adaptors/test/data/expected1_in.xml', 'r').read()
         assert generated == expected, \
@@ -143,20 +142,20 @@ class TestVWClient(unittest.TestCase):
     """ Test the functionality of the Virtual Watershed client """
     def setUp(self):
 
-        self.kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                       'researcher_name': 'William Hudspeth',
-                       'description': 'unittest' ,
-                       'model_run_name': 'unittest' + str(uuid.uuid4())}
-
-        self.uuid = VW_CLIENT.initialize_model_run(**self.kwargs)
-
-        self.parent_uuid = self.uuid
-
         self.config = get_config('wcwave_adaptors/test/test.conf')
+
+        self.kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                       'researcher_name': self.config['Common']['researcherName'],
+                       'description': 'unittest',
+                       'model_run_name': 'unittest' + str(uuid4())}
+
+        self.UUID = VW_CLIENT.initialize_model_run(**self.kwargs)
+
+        self.parent_uuid = self.UUID
 
         upsert('wcwave_adaptors/test/data/in.0000', 'unittest insert for download',
                parent_model_run_uuid=self.parent_uuid,
-               model_run_uuid=self.uuid, config_file='wcwave_adaptors/test/test.conf')
+               model_run_uuid=self.UUID, config_file='wcwave_adaptors/test/test.conf')
 
         time.sleep(1)
 
@@ -165,9 +164,9 @@ class TestVWClient(unittest.TestCase):
         Test that a new model_run_uuid corresponding to new model run is properly initialized
         """
         kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                  'researcher_name': 'William Hudspeth',
+                  'researcher_name': 'Matthew Turner',
                   'description': 'model run db testing',
-                  'model_run_name': 'initialize unittest ' + str(uuid.uuid4())}
+                  'model_run_name': 'initialize unittest ' + str(uuid4())}
 
         new_uuid = \
             VW_CLIENT.initialize_model_run(**kwargs)
@@ -183,25 +182,23 @@ class TestVWClient(unittest.TestCase):
         If the user tries to init a new model run with a previously used name, catch HTTPError
         """
         keywords = 'Snow,iSNOBAL,wind'
-        researcher_name = 'William Hudspeth'
         description = 'model run db testing'
 
-        model_run_name = 'dup_test ' + str(uuid.uuid4())
+        model_run_name = 'dup_test ' + str(uuid4())
 
         VW_CLIENT.initialize_model_run(keywords=keywords,
-                                       researcher_name=researcher_name,
                                        description=description,
-                                       model_run_name=model_run_name)
+                                       model_run_name=model_run_name,
+                                       researcher_name=self.config['Common']['researcherName'])
 
         print "first inserted successfully"
 
         # TODO get watershed guys to make researcher, model run name be PK
         # at that point, this test will fail, but re-inserting Bill's
         # fake submission will throw
-        # researcher_name = 'Matthew Turner'
 
         VW_CLIENT.initialize_model_run(keywords=keywords,
-                                       researcher_name=researcher_name,
+                                       researcher_name=self.config['Common']['researcherName'],
                                        description=description,
                                        model_run_name=model_run_name)
 
@@ -213,36 +210,30 @@ class TestVWClient(unittest.TestCase):
 
     def test_insert(self):
         """ VW Client properly inserts data """
+        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                  'researcher_name': self.config['Common']['researcherName'],
+                  'description': 'unittest',
+                  'model_run_name': 'unittest' + str(uuid4())}
+        UUID = \
+            VW_CLIENT.initialize_model_run(**kwargs)
 
-        hostname = self.config['Common']['watershedIP']
-        modelIdUrl = 'https://' + hostname + '/apps/my_app/newmodelrun'
-
-        data = {'description': 'initial insert'}
-
-        result = \
-            requests.post(modelIdUrl, data=json.dumps(data),
-                          auth=(VW_CLIENT.uname, VW_CLIENT.passwd),
-                          verify=False)
-
-        uuid = result.text
-
-        VW_CLIENT.upload(uuid, 'wcwave_adaptors/test/data/in.0000')
+        VW_CLIENT.upload(UUID, 'wcwave_adaptors/test/data/in.0000')
 
         dataFile = 'wcwave_adaptors/test/data/in.0000'
 
         fgdcXML = \
-            makeFGDCMetadata(dataFile, self.config, modelRunUUID=uuid)
+            make_fgdc_metadata(dataFile, self.config, modelRunUUID=UUID)
 
         watershedJSON = \
-            makeWatershedMetadata(dataFile, self.config, uuid,
-                                  uuid, 'inputs',
-                                  'Description of the data',
-                                  model_vars='R_n,H,L_v_E,G,M,delta_Q',
-                                  fgdcMetadata=fgdcXML)
+            make_watershed_metadata(dataFile, self.config, UUID,
+                                    UUID, 'inputs',
+                                    'Description of the data',
+                                    model_vars='R_n,H,L_v_E,G,M,delta_Q',
+                                    fgdcMetadata=fgdcXML)
 
         VW_CLIENT.insert_metadata(watershedJSON)
 
-        vwTestUUIDEntries = VW_CLIENT.search(model_run_uuid=uuid)
+        vwTestUUIDEntries = VW_CLIENT.search(model_run_uuid=UUID)
 
         assert vwTestUUIDEntries,\
             'No VW Entries corresponding to the test UUID'
@@ -256,7 +247,7 @@ class TestVWClient(unittest.TestCase):
         """ VW Client properly uploads data """
         # fetch the file from the url we know from the VW file storage pattern
         results = \
-            VW_CLIENT.search(model_run_uuid=self.uuid, limit=1)
+            VW_CLIENT.search(model_run_uuid=self.UUID, limit=1)
 
         url = results.records[0]['downloads'][0]['bin']
 
@@ -277,7 +268,7 @@ class TestVWClient(unittest.TestCase):
         VW Client properly downloads data
         """
         result = \
-            VW_CLIENT.search(model_run_uuid=self.uuid, limit=1)
+            VW_CLIENT.search(model_run_uuid=self.UUID, limit=1)
 
         r0 = result.records[0]
         url = r0['downloads'][0]['bin']
@@ -310,7 +301,7 @@ class TestVWClient(unittest.TestCase):
         description = "Unit testing upsert"
 
         # convenience for testing upsert performed as expected
-        def _worked(p_uuid, uuid, dir_=True, inherited=False):
+        def _worked(p_uuid, UUID, dir_=True, inherited=False):
             time.sleep(1) # pause to let watershed catch up
 
             if inherited:
@@ -323,8 +314,8 @@ class TestVWClient(unittest.TestCase):
             else:
                 num_expected = 1 * factor
 
-            res = vwc.search(model_run_uuid=uuid)
-            print "testing model_run_uuid %s" % uuid
+            res = vwc.search(model_run_uuid=UUID)
+            print "testing model_run_uuid %s" % UUID
             assert res.total == num_expected, \
                 "Data was not upserted as expected.\n" +\
                 "Total inserted: %s, Expected: %s\n" %\
@@ -349,44 +340,68 @@ class TestVWClient(unittest.TestCase):
         ## test upsert of entire directory
         # as a brand-new parent/model run
         print "On test 1"
-        parent_uuid, uuid = upsert(upsert_dir, description,
-                                   config_file=test_conf)
-        _worked(parent_uuid, uuid)
+        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                  'description': 'unittest',
+                  'model_run_name': 'unittest' + str(uuid4())}
+
+        parent_uuid, UUID = upsert(upsert_dir,
+                                   config_file=test_conf, **kwargs)
+        _worked(parent_uuid, UUID)
+
+        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                  'description': 'unittest',
+                  'model_run_name': 'unittest' + str(uuid4())}
 
         # with no slash after directory name
-        parent_uuid, uuid = upsert('wcwave_adaptors/test/data/upsert_test',
-                                   description, config_file=test_conf)
-        _worked(parent_uuid, uuid)
+        parent_uuid, UUID = \
+            upsert('wcwave_adaptors/test/data/upsert_test',
+                   config_file=test_conf, **kwargs)
+        _worked(parent_uuid, UUID)
 
+        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                  'description': 'unittest',
+                  'model_run_name': 'unittest' + str(uuid4())}
         # as an existing model run
         inherit_parent = parent_uuid
-        parent_uuid, uuid = upsert(upsert_dir, description, inherit_parent,
-                                   uuid, config_file=test_conf)
+        parent_uuid, uuid = upsert(upsert_dir, parent_model_run_uuid=inherit_parent,
+                                   model_run_uuid=UUID, config_file=test_conf, **kwargs)
 
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
 
-        _worked(parent_uuid, uuid, inherited=True)
+        _worked(parent_uuid, UUID, inherited=True)
 
         ## test upsert of a single file
         upsert_file = upsert_dir + "/snow.1345"
         # as a brand-new parent/model run
-        parent_uuid, uuid = upsert(upsert_file, description,
-                                   config_file=test_conf)
-        _worked(parent_uuid, uuid, dir_=False)
+        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                  'description': 'unittest',
+                  'model_run_name': 'unittest' + str(uuid4())}
+
+        parent_uuid, UUID = upsert(upsert_file,
+                                   config_file=test_conf, **kwargs)
+        _worked(parent_uuid, UUID, dir_=False)
 
         # with no slash after directory name
-        parent_uuid, uuid = upsert(upsert_file, description,
-                                   config_file=test_conf)
-        _worked(parent_uuid, uuid, dir_=False)
+        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                  'description': 'unittest',
+                  'model_run_name': 'unittest' + str(uuid4())}
+
+        parent_uuid, UUID = upsert(upsert_file,
+                                   config_file=test_conf, **kwargs)
+
+        _worked(parent_uuid, UUID, dir_=False)
 
         # as a new model run with a parent
         inherit_parent = parent_uuid
-        parent_uuid, uuid = upsert(upsert_file, description, inherit_parent,
-                                   uuid, config_file=test_conf)
+        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
+                  'description': 'unittest',
+                  'model_run_name': 'unittest' + str(uuid4())}
+        parent_uuid, UUID = upsert(upsert_file, parent_model_run_uuid=inherit_parent,
+                                   model_run_uuid=UUID, config_file=test_conf, **kwargs)
 
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
 
-        _worked(parent_uuid, uuid, dir_=False, inherited=True)
+        _worked(parent_uuid, UUID, dir_=False, inherited=True)
 
     def test_watershed_connection(self):
         """

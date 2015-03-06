@@ -20,7 +20,7 @@ import pandas as pd
 import subprocess
 import struct
 
-from wcwave_adaptors.watershed import get_config, makeFGDCMetadata, makeWatershedMetadata
+from wcwave_adaptors.watershed import get_config, make_fgdc_metadata, make_watershed_metadata
 
 from collections import namedtuple, defaultdict
 
@@ -214,7 +214,7 @@ def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
 
     Returns: None
     """
-    fgdc_metadata = makeFGDCMetadata(output_file,
+    fgdc_metadata = make_fgdc_metadata(output_file,
                                      ipw.config, model_run_uuid)
 
     input_prefix = output_file.split('.')[0]
@@ -222,7 +222,7 @@ def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
     if model_set is None:
         model_set = ("outputs", "inputs")[input_prefix == "in"]
 
-    return makeWatershedMetadata(output_file,
+    return make_watershed_metadata(output_file,
                                  ipw.config,
                                  parent_model_run_uuid,
                                  model_run_uuid,
