@@ -28,6 +28,8 @@ Typically there will be no need to directly use the constructor to create a new
 
 .. autofunction:: watershed.default_vw_client
 
+.. autofunction:: watershed.get_config
+
 VW Client Examples
 ------------------
 

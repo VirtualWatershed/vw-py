@@ -232,6 +232,9 @@ class VWClient:
         Returns:
             (str) a newly-intialized model_run_uuid
 
+        Returns:
+            (str) a newly-intialized model_run_uuid
+
         """
         print model_run_name
         assert description, \
@@ -490,6 +493,7 @@ def upsert(input_path, model_run_name=None, description=None, keywords=None,
 
     Inputs:
         input_path (str): Directorty or file to upload
+
     Returns:
         (str, str): A two-tuple of parent_model_run_uuid and model_run_uuid
 
