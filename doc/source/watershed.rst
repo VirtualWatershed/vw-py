@@ -1,4 +1,5 @@
 .. Documentation for the vw_adaptor module
+.. _watershed-main:
 
 Virtual Watershed Adaptor
 =========================
@@ -136,6 +137,11 @@ I wrote out all of the previous steps to show what is possible with the
 watershed. The function that puts this all together, though, is the ``upsert``
 function, which allows the user to upload and insert either a single file or a
 whole directory to the virtual watershed
+
+.. _upsert-ref:
+
+Upsert
+-------
 
 .. autofunction:: watershed.upsert
 

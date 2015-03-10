@@ -34,6 +34,7 @@ pandas/matplotlib.
 .. toctree::
    :maxdepth: 2
 
+   tutorial
    watershed
    isnobal
    isnobal_experiment
@@ -53,18 +54,18 @@ This part is very simple and basically consists of three parts:
 4. Check that all is well by running the unittests
 
 If you have any questions, please don't hesitate to `email me with questions 
-<mailto:maturner@uidaho.edu>`_ or `post an issue on github <https://github.com/tri-state-epscor/adaptors/issues>`_.
+<mailto:maturner@uidaho.edu>`_ or `post an issue on github <https://github.com/tri-state-epscor/wcwave_adaptors/issues>`_.
 
 Clone repository
 ----------------
 
 The repository is 
-`hosted on github <https://github.com/tri-state-epscor/adaptors>`_. Clone it
+`hosted on github <https://github.com/tri-state-epscor/wcwave_adaptors>`_. Clone it
 like so:
 
 .. code-block:: bash
 
-    git clone https://github.com/tri-state-epscor/adaptors
+    git clone https://github.com/tri-state-epscor/wcwave_adaptors
 
 Install dependencies
 --------------------
@@ -86,6 +87,9 @@ From the root folder of the repository, run
 
 4. Now you should be able to run the unittests once you finish the next step.
 
+
+.. _config-index:
+
 Copy configuration files and edit them appropriately
 ----------------------------------------------------
 
@@ -104,12 +108,12 @@ To do this, first copy the configuration file templates:
 Next open ``default.conf`` in your text editor and fill in ``watershedIP``,
 ``user``, and ``passwd`` fields appropriately. For the two ``template_path``
 variables in the two different sections, change ``EDIT-THIS-PATH-TO`` to the
-actual path to your ``adaptors`` directory.
+actual path to your ``wcwave_adaptors`` directory.
 
 Run Unittests
 -------------
 
-Finally, run the unittests from the root ``adaptors`` directory like so
+Finally, run the unittests from the root ``wcwave_adaptors`` directory like so
 
 .. code-block:: bash
 
