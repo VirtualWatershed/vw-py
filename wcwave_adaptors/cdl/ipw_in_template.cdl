@@ -1,0 +1,147 @@
+netcdf {{ write_filename }} {
+
+    :bline = {{ bline }};
+    :bsamp = {{ bsamp }};
+    :dline = {{ dline }};
+    :dsamp = {{ dsamp }};
+
+    // assumed constant over the grid (for completeness only; these are apparently
+    // internally set (see http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html)
+    // all are in meters
+    :max_z_s_0 = 0.25; // thickness of active layer
+    :z_u = 5.0; // height above ground of the wind speed measurement
+    :z_T = 5.0; // height above ground of the air temp and vapor pres measurements
+    :z_g = 0.5; // depth below ground surface of soil of the soil temp measurement
+
+    dimensions: 
+
+        time = UNLIMITED ;
+        northing = {{ nlines }} ;
+        easting = {{ nsamps }} ;
+
+    variables:
+
+        float time(time) ;
+            time:long_name = "time";
+            time:standard_name = "{{ dt }} since {{ year }}-{{ month }}-{{ day }}";
+
+        float easting(easting) ;
+            easting:long_name = "x distance on the projection plane from the origin";
+            easting:standard_name = "projection_x_coordinate";
+            easting:units = "m";
+
+        float northing(northing) ;
+            northing:long_name = "y distance on the projection plane from the origin";
+            northing:standard_name = "projection_y_coordinate";
+            northing:units = "m";
+
+        float lat(northing, easting) ;
+            lat:long_name = "latitude";
+            lat:units = "degrees_north";
+
+        float lon(northing, easting) ;
+            lon:long_name = "longitude";
+            lon:units = "degrees_east";
+
+        float alt(northing, easting) ;
+            alt:long_name = "vertical distance above the surface";
+            alt:standard_name = "height";
+            alt:units = "m";
+            alt:positive = "up";
+            alt:axis = "Z";
+
+    group: Initial {
+        
+        variables:
+            
+            float z(northing, easting) ;
+                z:ipw_desc = "elevation";
+                z:units = "m";
+
+            float z_0(northing, easting) ;
+                z_0:ipw_desc = "roughness length";
+                z_0:units = "m";
+
+            float z_s(northing, easting) ;
+                z_s:ipw_desc = "total snowcover depth";
+                z_s:units = "m";
+
+            float rho(northing, easting) ;
+                rho:ipw_desc = "roughness length";
+                rho:units = "kg/m^3";
+
+            float T_s_0(northing, easting) ;
+                T_s_0:ipw_desc = "active snow layer temperature";
+                T_s_0:units = "C";
+
+            float T_s_l(northing, easting) ;
+                T_s_l:ipw_desc = "temperature of the snowpack's lower layer";
+                T_s_l:units = "C";
+
+            float T_s(northing, easting) ;
+                T_s:ipw_desc = "average snowcover temperature";
+                T_s:units = "C";
+
+            float h2o_sat(northing, easting) ;
+                h2o_sat:ipw_desc = "% of liquid H2O saturation (ratio of water in snowcover to snowcover water-holding potential";
+                h2o_sat:units = "C";
+    }
+
+    group: Precipitation {
+
+        variables:
+
+            float m_pp(time, northing, easting) ;
+                m_pp:ipw_desc = "total precipitation mass";
+                m_pp:standard_name = "precipitation_amount";
+                m_pp:description = "mass flux through a 2D surface on its way to ground";
+                m_pp:units = "kg m-2";// snow flux
+
+            float percent_snow(time, northing, easting) ;
+                percent_snow:ipw_desc = "fraction of precip mass that was snow (0 to 1.0)";
+                // unitless
+
+            float rho_snow(time, northing, easting) ;
+                rho_snow:ipw_desc = "density of snowfall";
+                rho_snow:units = "kg m-3"; 
+
+            float T_pp(time, northing, easting) ;
+                T_pp:ipw_desc = "average precip temperature";
+                T_pp:units = "C"; 
+    }
+
+    group: Input { // This terrible name is taken from IPW itself, the 6-band "Input image"
+        
+    variables:
+        
+        float I_lw(time, northing, easting) ;
+            I_lw:ipw_desc = "incoming thermal (long-wave) radiation";
+            I_lw:standard_name = "downwelling_longwave_flux_in_air";
+            I_lw:units = "W/m^2";
+            
+        float T_a(time, northing, easting) ;
+            T_a:ipw_desc = "air temperature";
+            T_a:standard_name = "air_temperature";
+            T_a:units = "C";
+
+        float e_a(time, northing, easting) ;
+            e_a:ipw_desc = "vapor pressure";
+            e_a:standard_name = "water_vapor_pressure";
+            e_a:units = "Pa";
+
+        float u(time, northing, easting) ;
+            u:ipw_desc = "wind speed";
+            u:standard_name = "wind_speed";
+            u:units = "m s-1";
+
+        float T_g(time, northing, easting) ;
+            T_g:ipw_desc = "soil temperature at 0.5m depth";
+            T_g:standard_name = "soil_temperature";
+            T_g:units = "C";
+
+        float S_n(time, northing, easting) ;
+            S_n:ipw_desc = "net solar radiation";
+            S_n:standard_name = "downwelling_shortwave_flux_in_air";
+            S_n:units = "W m-2";
+    }
+}
