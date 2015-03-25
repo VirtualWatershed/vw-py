@@ -4,8 +4,40 @@
 
 import os
 import unittest
+from nose.tools import raises
 
 from wcwave_adaptors.netcdf import utm2latlon, ncgen_from_template
+# include tests for isnobal2netcdf in this module
+from wcwave_adaptors.isnobal import isnobal2netcdf
+
+
+class TestIsnobalNetCDF(unittest.TestCase):
+    """Unittests for NetCDF Adaptor Functionality
+    """
+    def setUp(self):
+        test_dir = os.path.join(os.path.dirname(__file__), 'data')
+
+        input_data_sources = ['inputs', 'ppt_desc', 'init.ipw',
+                              'tl2p5_dem.ipw', 'tl2p5mask.ipw']
+
+        self.input_data_sources = map(lambda x: os.path.join(test_dir, x),
+                                      input_data_sources)
+
+        self.output_data_source = os.path.join(test_dir, 'outputs')
+
+    @raises(AssertionError)
+    def test_isnobal_inputs_or_outputs(self):
+        "isnobal2netcdf raises error if the isnobal type is not 'input' or 'output'"
+        assert True
+
+    def test_isnobal2netcdf_inputs(self):
+        "Check that a sample NetCDF is properly built from a series of inputs"
+
+        assert False
+
+    def test_isnobal2netcdf_outputs(self):
+        "Check that a sample NetCDF is properly built from a series of outputs"
+        assert False
 
 
 class TestNetCDF(unittest.TestCase):

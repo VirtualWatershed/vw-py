@@ -10,42 +10,30 @@ import os
 import uuid
 import utm
 
-from wcwave_adaptors.isnobal import IPW, VARNAME_DICT
-
-
-def ipw2nc(ipw_dir, nc_dir='./'):
-    """Aggregate all iSNOBAL files from ipw_dir into a single CF-NetCDF stored
-       in nc_dir.
-
-        Arguments:
-            ipw_dir (str): directory where IPW files are stored with standard
-                structure
-            nc_dir (str): destination directory for NetCDF file
-
-        Returns:
-            (NetCDF4.Dataset) NetCDF dataset for further manipulation if
-                desired
-    """
-    pass
-
 
 def ncgen_from_template(template_filename, ncout_filename,
                         cdl_output_filename=None, return_nc=True,
-                        overwrite=False,
+                        clobber=False,
                         **kwargs):
-    """Generate a NetCDF file from a template"""
-    print os.path.join(os.path.dirname(__file__), 'cdl')
-
+    """Generate a NetCDF file from a template. If no cdl output filename is
+        given, a temporary file in /tmp will be used. This is slightly
+        dangerous, but the resulting template files are not too large, and we
+        do try to clean up afterwards.
+    """
+    # assign a random temp file name for
     if not cdl_output_filename:
         cdl_output_filename = '/tmp/' + uuid.uuid4() + '.cdl'
 
-    if os.path.isfile(cdl_output_filename) and not overwrite:
-        raise NCOError("CDL file %s already exists and overwrite is false" %
+    if os.path.isfile(cdl_output_filename) and not clobber:
+        raise NCOError("CDL file %s already exists and clobber is false" %
                        cdl_output_filename)
 
     _build_cdl(template_filename, cdl_output_filename, **kwargs)
 
     nc = ncgen(cdl_output_filename, ncout_filename)
+
+    if not cdl_output_filename:
+        os.remove(cdl_output_filename)
 
     return nc
 

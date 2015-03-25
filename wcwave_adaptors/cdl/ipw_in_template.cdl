@@ -68,7 +68,7 @@ netcdf {{ write_filename }} {
 
             float rho(northing, easting) ;
                 rho:ipw_desc = "roughness length";
-                rho:units = "kg/m^3";
+                rho:units = "kg m-3";
 
             float T_s_0(northing, easting) ;
                 T_s_0:ipw_desc = "active snow layer temperature";
@@ -94,7 +94,7 @@ netcdf {{ write_filename }} {
             float m_pp(time, northing, easting) ;
                 m_pp:ipw_desc = "total precipitation mass";
                 m_pp:standard_name = "precipitation_amount";
-                m_pp:description = "mass flux through a 2D surface on its way to ground";
+                m_pp:description = "mass precipitation flux through a 2D surface on its way to ground";
                 m_pp:units = "kg m-2";// snow flux
 
             float percent_snow(time, northing, easting) ;
@@ -117,7 +117,7 @@ netcdf {{ write_filename }} {
         float I_lw(time, northing, easting) ;
             I_lw:ipw_desc = "incoming thermal (long-wave) radiation";
             I_lw:standard_name = "downwelling_longwave_flux_in_air";
-            I_lw:units = "W/m^2";
+            I_lw:units = "W m-2";
             
         float T_a(time, northing, easting) ;
             T_a:ipw_desc = "air temperature";

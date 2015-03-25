@@ -10,8 +10,6 @@ Tools for working with IPW binary data and running the iSNOBAL model.
 # Acknowledgements to Robert Lew for inspiration in the design of the IPW
 # class (see https://github.com/rogerlew/RL_GIS_Sandbox/tree/master/isnobal).
 #
-
-from copy import deepcopy
 import datetime
 import logging
 import numpy as np
@@ -20,9 +18,12 @@ import pandas as pd
 import subprocess
 import struct
 
-from wcwave_adaptors.watershed import get_config, make_fgdc_metadata, make_watershed_metadata
-
 from collections import namedtuple, defaultdict
+from copy import deepcopy
+from netCDF4 import Dataset
+
+from wcwave_adaptors.watershed import get_config, make_fgdc_metadata, make_watershed_metadata
+from wcwave_adaptors.netcdf import ncgen_from_template
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
 BAND_TYPE_LOC = 1
@@ -199,6 +200,101 @@ class IPW(object):
                 _floatdf_to_binstring(self.nonglobal_bands, self._data_frame))
 
             return None
+
+
+def isnobal2netcdf(netcdf_path, ipw_source, isnobal_type='inputs',
+                   dt='hours', year=2010, month=10, day='01'):
+    """Use the utilities from netcdf.py to convert either set of input or output
+        IPW to NetCDF format, saving to netcdf_path
+
+        Arguments:
+            netcdf_path (str): Path to save the NetCDF to
+            ipw_source (str or [str]): path to either file or directory
+
+        Returns:
+            (netCDF4.Dataset) Representation of the data
+    """
+    # sanity check isnobal_type and set CDL path based on isnobal_type
+    assert isnobal_type in ['inputs', 'outputs'],\
+        "isnobal_type must be 'inputs' or 'outputs', not %s" % isnobal_type
+
+    template_path = os.path.join(os.path.dirname(__file__), 'cdl',
+                                 'ipw_template_')
+
+    template_path += '_in.cdl' if isnobal_type == 'inputs' else '_out.cdl'
+
+    # for the iSNOBAL input or output parameters, provide some header info
+    if type(ipw_source) is str:
+        ipw_source = [ipw_source]
+
+    ipw0 = ipw_source[0]
+    gt = ipw.geotransform
+    gb = ipw.bands[1]  # TODO no good--need some names on these bands.
+
+    template_parameters = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
+                               dsamp=gt[1], nsamps=gb.nSamps,
+                               nlines=gb.nLines, dt=dt, year=year,
+                               month=month, day=day)
+
+    nc = ncgen_from_template(template_path, netcdf_path,
+                             **template_parameters)
+
+    # insert the IPW data to the NetCDF; mapping file type to nc group/var
+    # done by _ncinsert_ipw
+    for f in ipw_source:
+
+        _ncinsert_ipw(nc, IPW(f))
+
+    nc = netcdf_path
+
+    ipw_source.append(nc)
+
+    return ipw_source
+
+
+def _ncinsert_ipw(dataset, ipw, tstep, nlines, nsamps):
+    """Put IPW data into dataset based on file naming conventions
+
+        Args:
+            dataset (NetCDF4.Dataset): Dataset to be populated
+            ipw (wcwave_adaptors.isnobal.IPW): source data in IPW format
+            tstep (int): Positive integer indicating the current time step
+            nlines (int): number of 'lines' in IPW file, aka n_northings
+            nsamps (int): number of 'samps' in IPW file, aka n_eastings
+
+        Returns:
+            None. `dataset` is populated in-place.
+    """
+    file_type = ipw.file_type
+
+    df = ipw.data_frame()
+
+    if file_type == 'dem':
+        # dem only has 'alt' information, stored in root group
+        dataset.variables['alt'][:, :] = df.altitude
+
+    elif file_type == 'in':
+        gvars = dataset.groups['inputs'].variables
+        for var in gvars:
+            # can't just assign b/c if sun is 'down' var is absent from df
+            if var in df.columns:
+                gvars[var][tstep, :, :] = np.reshape(df[var],
+                                                     (nlines, nsamps))
+            else:
+                gvars[var][tstep, :, :] = np.zeros((nlines, nsamps))
+
+    elif file_type == 'precip':
+        # get a list of
+        pass
+
+    elif file_type == 'mask':
+        pass
+
+    elif file_type == 'init':
+        pass
+
+    else:
+        raise Exception('File type %s not recognized!' % file_type)
 
 
 def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
