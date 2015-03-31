@@ -15,10 +15,10 @@ import unittest
 from nose.tools import raises
 
 from StringIO import StringIO
-from wcwave_adaptors.isnobal import VARNAME_DICT, _make_bands,\
-    GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,\
-    _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,\
-    reaggregate_ipws, _is_consecutive
+from wcwave_adaptors.isnobal import (VARNAME_DICT, _make_bands,
+    GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,
+    _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,
+    reaggregate_ipws, _is_consecutive)
 
 
 class TestIPW(unittest.TestCase):
@@ -59,13 +59,23 @@ class TestIPW(unittest.TestCase):
 
     def test_read_precip(self):
         "Precip files read into precip_tuple_list"
-        # TODO
-        # ipw = IPW.precip_tuple('wcwave_adaptors/test/data/ppt_desc')
-        # df = ipw.data_frame()
+        pptfile = 'wcwave_adaptors/test/data/ppt_desc'
+        pptlines = open(pptfile, 'r').readlines()
 
-        # assert len(df.columns)
-        # assert df.columns == ['dem']
-        assert False
+        ipw_tups = IPW.precip_tuple(pptfile)
+
+        assert len(pptlines) == len(ipw_tups)
+
+        for ipw_tup in ipw_tups:
+
+            assert len(ipw_tup) == 2
+
+            df = ipw_tup[1].data_frame()
+
+            assert len(df.columns)
+            assert all(df.columns == ['m_pp', 'pct_snow', 'rho_snow', 'T_pp'])
+
+            assert all(df[['m_pp', 'rho_snow', 'T_pp']].sum().abs() > 0)
 
     def test_read_init(self):
         "Read init IPW file"

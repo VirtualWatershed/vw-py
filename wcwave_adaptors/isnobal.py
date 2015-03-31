@@ -18,13 +18,13 @@ import pandas as pd
 import subprocess
 import struct
 
-from nose.tools import set_trace
-
 from collections import namedtuple, defaultdict
 from copy import deepcopy
 from netCDF4 import Dataset
 
-from wcwave_adaptors.watershed import get_config, make_fgdc_metadata, make_watershed_metadata
+from wcwave_adaptors.watershed import (get_config, make_fgdc_metadata,
+                                       make_watershed_metadata)
+
 from wcwave_adaptors.netcdf import ncgen_from_template
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
@@ -232,6 +232,17 @@ class IPW(object):
                 _floatdf_to_binstring(self.nonglobal_bands, self._data_frame))
 
             return None
+
+    @classmethod
+    def precip_tuple(self, precip_file, sepchar='\t'):
+        """Create list of two-lists where each element's elements are the time
+           index of the time step when the precipitation happened and an IPW
+           of the precipitation data.
+        """
+        pptlist = map(lambda l: l.strip().split(sepchar),
+                      open(precip_file, 'r').readlines())
+
+        return map(lambda l: (l[0], IPW(l[1], file_type='precip')), pptlist)
 
 
 def isnobal2netcdf(netcdf_path, ipw_source, isnobal_type=None,
