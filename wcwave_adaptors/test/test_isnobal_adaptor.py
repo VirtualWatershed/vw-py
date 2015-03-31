@@ -57,6 +57,54 @@ class TestIPW(unittest.TestCase):
 
         self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
+    def test_read_precip(self):
+        "Precip files read into precip_tuple_list"
+        # TODO
+        # ipw = IPW.precip_tuple('wcwave_adaptors/test/data/ppt_desc')
+        # df = ipw.data_frame()
+
+        # assert len(df.columns)
+        # assert df.columns == ['dem']
+        assert False
+
+    def test_read_init(self):
+        "Read init IPW file"
+        ipw = IPW('wcwave_adaptors/test/data/init.ipw')
+        df = ipw.data_frame()
+
+        assert all(df[['z', 'z_o']].sum().abs() > 0)
+
+        assert len(df.columns)
+        assert (df.columns == ['z', 'z_o', 'z_s', 'rho', 'T_s_0',
+                               'T_s', 'h2o_sat']).all()
+
+    def test_read_mask(self):
+        "Read mask IPW file"
+        ipw = IPW('wcwave_adaptors/test/data/tl2p5mask.ipw', file_type='mask')
+        df = ipw.data_frame()
+
+        assert df.sum()['mask'] > 0
+
+        assert len(df.columns)
+        assert df.columns == ['mask']
+
+    def test_read_dem(self):
+        "Read DEM IPW file"
+        ipw = IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw', file_type='dem')
+        df = ipw.data_frame()
+
+        assert df.sum()['dem'] > 0
+
+        assert len(df.columns)
+        assert df.columns == ['dem']
+
+    @raises(Exception)
+    def test_bad_filetype(self):
+        "When reading mask or dem IPWFileError is thrown instead of KeyError when file_type is not given"
+
+        IPW('wcwave_adaptors/test/data/tl2p5mask.ipw')
+        IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw')
+
     def test_header_dict(self):
         """
         Check that header lines are properly built into a dictionary

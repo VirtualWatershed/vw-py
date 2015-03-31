@@ -18,6 +18,8 @@ import pandas as pd
 import subprocess
 import struct
 
+from nose.tools import set_trace
+
 from collections import namedtuple, defaultdict
 from copy import deepcopy
 from netCDF4 import Dataset
@@ -104,35 +106,60 @@ class IPW(object):
 
             ipw_lines = IPWLines(input_file)
             input_split = os.path.basename(input_file).split('.')
-            file_type = input_split[0]
+
+            file_type = file_type or input_split[0]
 
             # _make_bands
-            header_dict = \
-                _make_bands(ipw_lines.header_lines, VARNAME_DICT[file_type])
+            try:
+                header_dict = \
+                    _make_bands(ipw_lines.header_lines,
+                                VARNAME_DICT[file_type])
 
+            except (KeyError):
+                raise IPWFileError("Provide explicit file type for file %s" %
+                                   input_file)
+
+            # extract just bands from the header dictionary
             bands = [band for band in header_dict.values()]
+
+            # get the nonglobal_bands in a list, ordered by band index
             nonglobal_bands =\
                 sorted([band for varname, band in header_dict.iteritems()
                         if varname != 'global'],
                        key=lambda b: b.band_idx)
 
+            # the default configuration is used if no config file is given
             if config_file is None:
                 config_file = \
                     os.path.join(os.path.dirname(__file__), '../default.conf')
 
+            # helper function get_config uses ConfigParser to parse config file
             config = get_config(config_file)
-            water_year_start = int(config['Common']['water_year'])
 
-            # note that we have not generalized for non-hour timestep data
-            if dt is None:
-                dt = pd.Timedelta('1 hour')
+            if file_type in ['in', 'em', 'snow']:
 
-            start_dt = dt * int(input_split[-1])
+                # get the water year
+                water_year_start = int(config['Common']['water_year'])
 
-            start_datetime = \
-                datetime.datetime(water_year_start, 10, 01) + start_dt
+                # note that we have not generalized for non-hour timestep data
+                if dt is None:
+                    dt = pd.Timedelta('1 hour')
 
-            end_datetime = start_datetime + dt
+                # the iSNOBAL file naming scheme puts the integer time step
+                # after the dot, really as the extension
+                # TODO as Roger pointed out, really this is for
+                # a single point in time, so this timing thing is not right
+                start_dt = dt * int(input_split[-1])
+
+                start_datetime = \
+                    datetime.datetime(water_year_start, 10, 01) + start_dt
+
+                end_datetime = start_datetime + dt
+
+            else:
+
+                start_datetime = None
+                end_datetime = None
 
             # initialized when called for below
             self._data_frame = None
@@ -145,7 +172,7 @@ class IPW(object):
             self.nonglobal_bands = nonglobal_bands
 
             # use geo information in band0; all bands have equiv geo info
-            band0 = bands[0]
+            band0 = nonglobal_bands[0]
             self.geotransform = [band0.bsamp - band0.dsamp / 2.0,
                                  band0.dsamp,
                                  0.0,
@@ -736,3 +763,7 @@ class IPWLines(object):
         self.header_lines = lines[:split_idx]
 
         self.binary_data = "".join(lines[split_idx:])
+
+
+class IPWFileError(Exception):
+    pass
