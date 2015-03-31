@@ -42,7 +42,11 @@ VARNAME_DICT = \
         'em': ["R_n", "H", "L_v_E", "G", "M", "delta_Q", "E_s", "melt",
                "ro_predict", "cc_s"],
         'snow': ["z_s", "rho", "m_s", "h2o", "T_s_0", "T_s_l", "T_s",
-                 "z_s_l", "h2o_sat"]
+                 "z_s_l", "h2o_sat"],
+        'init': ["z", "z_o", "z_s", "rho", "T_s_0", "T_s", "h2o_sat"],
+        'precip': ["m_pp", "pct_snow", "rho_snow", "T_pp"],
+        'mask': ["mask"],
+        'dem': ["dem"]
     }
 
 #: Convert number of bytes to struct package code for unsigned integer type
@@ -91,7 +95,8 @@ class IPW(object):
     >>> ipw.writeBinary("in.plusOne.000")
 
     """
-    def __init__(self, input_file=None, config_file=None, dt=None):
+    def __init__(self, input_file=None, config_file=None, dt=None,
+                 file_type=None):
 
         assert dt is None or issubclass(type(dt), datetime.timedelta)
 
@@ -202,7 +207,7 @@ class IPW(object):
             return None
 
 
-def isnobal2netcdf(netcdf_path, ipw_source, isnobal_type='inputs',
+def isnobal2netcdf(netcdf_path, ipw_source, isnobal_type=None,
                    dt='hours', year=2010, month=10, day='01'):
     """Use the utilities from netcdf.py to convert either set of input or output
         IPW to NetCDF format, saving to netcdf_path
@@ -228,8 +233,8 @@ def isnobal2netcdf(netcdf_path, ipw_source, isnobal_type='inputs',
         ipw_source = [ipw_source]
 
     ipw0 = ipw_source[0]
-    gt = ipw.geotransform
-    gb = ipw.bands[1]  # TODO no good--need some names on these bands.
+    gt = ipw0.geotransform
+    gb = ipw0.bands[1]  # TODO no good--need some names on these bands.
 
     template_parameters = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
                                dsamp=gt[1], nsamps=gb.nSamps,
@@ -274,7 +279,7 @@ def _ncinsert_ipw(dataset, ipw, tstep, nlines, nsamps):
         dataset.variables['alt'][:, :] = df.altitude
 
     elif file_type == 'in':
-        gvars = dataset.groups['inputs'].variables
+        gvars = dataset.groups['Input'].variables
         for var in gvars:
             # can't just assign b/c if sun is 'down' var is absent from df
             if var in df.columns:
@@ -284,7 +289,7 @@ def _ncinsert_ipw(dataset, ipw, tstep, nlines, nsamps):
                 gvars[var][tstep, :, :] = np.zeros((nlines, nsamps))
 
     elif file_type == 'precip':
-        # get a list of
+        # get the list of precip files from 'ppt_desc'
         pass
 
     elif file_type == 'mask':
@@ -399,6 +404,11 @@ def _build_ipw_dataframe(nonglobal_bands, binary_data):
     colnames = [b.varname for b in nonglobal_bands]
 
     dtype = _bands_to_dtype(nonglobal_bands)
+
+    # print len(binary_data)
+    # print dtype
+
+    # print nonglobal_bands
 
     intData = np.fromstring(binary_data, dtype=dtype)
 

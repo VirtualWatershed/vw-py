@@ -12,7 +12,7 @@ from wcwave_adaptors.isnobal import isnobal2netcdf
 
 
 class TestIsnobalNetCDF(unittest.TestCase):
-    """Unittests for NetCDF Adaptor Functionality
+    """Unittests for NetCDF to iSNOBAL Adaptor Functionality
     """
     def setUp(self):
         test_dir = os.path.join(os.path.dirname(__file__), 'data')
@@ -28,7 +28,8 @@ class TestIsnobalNetCDF(unittest.TestCase):
     @raises(AssertionError)
     def test_isnobal_inputs_or_outputs(self):
         "isnobal2netcdf raises error if the isnobal type is not 'input' or 'output'"
-        assert True
+        nc = isnobal2netcdf('thiswillfail.nc', 'in.0000')
+        nc = isnobal2netcdf('thistoo.nc', 'in.0000', isnobal_type='fail')
 
     def test_isnobal2netcdf_inputs(self):
         "Check that a sample NetCDF is properly built from a series of inputs"
