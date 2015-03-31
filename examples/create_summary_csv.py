@@ -16,7 +16,7 @@ import os
 import sys
 import pandas as pd
 
-from adaptors.isnobal import IPW
+from wcwave_adaptors.isnobal import IPW
 from collections import defaultdict
 
 is_test = sys.argv[1]

@@ -8,8 +8,8 @@ import sys
 
 from glob import glob
 
-from adaptors.isnobal import IPW
-from adaptors.watershed import get_config
+from wcwave_adaptors.isnobal import IPW
+from wcwave_adaptors.watershed import get_config
 
 # ipw_directories = \
     # [d for d in
