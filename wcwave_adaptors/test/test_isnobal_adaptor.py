@@ -110,9 +110,10 @@ class TestIPW(unittest.TestCase):
 
     @raises(Exception)
     def test_bad_filetype(self):
-        "When reading mask or dem IPWFileError is thrown instead of KeyError when file_type is not given"
+        "When reading mask, dem, or ppt_desc, IPWFileError is thrown instead of KeyError when file_type is not given"
 
         IPW('wcwave_adaptors/test/data/tl2p5mask.ipw')
+        IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw')
         IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw')
 
     def test_header_dict(self):

@@ -8,7 +8,7 @@ from nose.tools import raises
 
 from wcwave_adaptors.netcdf import utm2latlon, ncgen_from_template
 # include tests for isnobal2netcdf in this module
-from wcwave_adaptors.isnobal import isnobal2netcdf
+from wcwave_adaptors.isnobal import isnobal2netcdf, _nc_insert_ipw, IPW
 
 
 class TestIsnobalNetCDF(unittest.TestCase):
@@ -25,6 +25,9 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
         self.output_data_source = os.path.join(test_dir, 'outputs')
 
+        self.nlines = 148
+        self.nsamps = 170
+
     @raises(AssertionError)
     def test_isnobal_inputs_or_outputs(self):
         "isnobal2netcdf raises error if the isnobal type is not 'input' or 'output'"
@@ -33,11 +36,49 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
     def test_isnobal2netcdf_inputs(self):
         "Check that a sample NetCDF is properly built from a series of inputs"
-
         assert False
 
     def test_isnobal2netcdf_outputs(self):
         "Check that a sample NetCDF is properly built from a series of outputs"
+        assert False
+
+    def test_nc_insert_ipw(self):
+        "Private helper function _nc_insert_ipw inserts all IPW file_types"
+        datadir = "wcwave_adaptors/test/data/"
+
+        nc = ncgen_from_template('wcwave_adaptors/cdl/ipw_in_template.cdl',
+                                 datadir + 'nc_insert_ipw.tmp')
+
+        # input
+        ipw = IPW(datadir + 'in.0000')
+        _nc_insert_ipw(nc, ipw, 0, self.nlines, self.nsamps)
+        # check that nc and nc_insert_ipw.tmp have been updated properly
+
+        # init
+        ipw = IPW(datadir + 'init.ipw')
+        _nc_insert_ipw(nc, ipw, None, self.nlines, self.nsamps)
+        # check that nc and nc_insert_ipw.tmp have been updated properly
+
+        # mask
+        ipw = IPW(datadir + 'tl2p5mask.ipw')
+        _nc_insert_ipw(nc, ipw, None, self.nlines, self.nsamps)
+        # check that nc and nc_insert_ipw.tmp have been updated properly
+
+        # precip; include time index manually for this test
+        ipw = IPW(datadir + 'ppt_images_dist/ppt4b_65.ipw')
+        _nc_insert_ipw(nc, ipw, 65, self.nlines, self.nsamps)
+        # check that nc and nc_insert_ipw.tmp have been updated properly
+
+        # dem
+        ipw = IPW(datadir + 'tl2p5_dem.ipw')
+        _nc_insert_ipw(nc, ipw, None, self.nlines, self.nsamps)
+        # check that nc and nc_insert_ipw.tmp have been updated properly
+
+        # energy-mass (em)
+        # TODO
+        # snow
+        # TODO
+
         assert False
 
 

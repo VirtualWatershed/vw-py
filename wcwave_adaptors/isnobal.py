@@ -295,7 +295,7 @@ def isnobal2netcdf(netcdf_path, ipw_source, isnobal_type=None,
     return ipw_source
 
 
-def _ncinsert_ipw(dataset, ipw, tstep, nlines, nsamps):
+def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
     """Put IPW data into dataset based on file naming conventions
 
         Args:
@@ -314,7 +314,7 @@ def _ncinsert_ipw(dataset, ipw, tstep, nlines, nsamps):
 
     if file_type == 'dem':
         # dem only has 'alt' information, stored in root group
-        dataset.variables['alt'][:, :] = df.altitude
+        dataset.variables['alt'][:, :] = df['altitude']
 
     elif file_type == 'in':
         gvars = dataset.groups['Input'].variables
@@ -327,14 +327,22 @@ def _ncinsert_ipw(dataset, ipw, tstep, nlines, nsamps):
                 gvars[var][tstep, :, :] = np.zeros((nlines, nsamps))
 
     elif file_type == 'precip':
-        # get the list of precip files from 'ppt_desc'
-        pass
+        gvars = dataset.groups['Precipitation']
+
+        for var in gvars:
+            gvars[var][tstep, :, :] = np.reshape(df[var], (nlines, nsamps))
 
     elif file_type == 'mask':
-        pass
+        # mask is binary and one-banded; store in root group
+        dataset.variables['mask'][:, :] = df['mask']
 
     elif file_type == 'init':
-        pass
+        gvars = dataset.groups['Initial']
+
+        for var in gvars:
+            gvars[var][tstep, :, :] = np.reshape(df[var], (nlines, nsamps))
+
+    # TODO file_type == "em" and "snow" for outputs
 
     else:
         raise Exception('File type %s not recognized!' % file_type)

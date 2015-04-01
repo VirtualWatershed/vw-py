@@ -13,6 +13,9 @@ netcdf {{ write_filename }} {
     :z_T = 5.0; // height above ground of the air temp and vapor pres measurements
     :z_g = 0.5; // depth below ground surface of soil of the soil temp measurement
 
+    :documentation_link = "http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html";
+    :description = "auto-generated NetCDF-4 Dataset that encapsulates full inputs for iSNOBAL model run";
+
     dimensions: 
 
         time = UNLIMITED ;
@@ -49,6 +52,10 @@ netcdf {{ write_filename }} {
             alt:units = "m";
             alt:positive = "up";
             alt:axis = "Z";
+
+        byte mask(northing, easting) ;
+            mask:long_name = "mask for more efficient computation";
+            
 
     group: Initial {
         
