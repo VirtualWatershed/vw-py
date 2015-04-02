@@ -73,7 +73,8 @@ class TestIPW(unittest.TestCase):
             df = ipw_tup[1].data_frame()
 
             assert len(df.columns)
-            assert all(df.columns == ['m_pp', 'pct_snow', 'rho_snow', 'T_pp'])
+            assert all(df.columns ==
+                       ['m_pp', 'percent_snow', 'rho_snow', 'T_pp'])
 
             assert all(df[['m_pp', 'rho_snow', 'T_pp']].sum().abs() > 0)
 
@@ -82,10 +83,10 @@ class TestIPW(unittest.TestCase):
         ipw = IPW('wcwave_adaptors/test/data/init.ipw')
         df = ipw.data_frame()
 
-        assert all(df[['z', 'z_o']].sum().abs() > 0)
+        assert all(df[['z', 'z_0']].sum().abs() > 0)
 
         assert len(df.columns)
-        assert (df.columns == ['z', 'z_o', 'z_s', 'rho', 'T_s_0',
+        assert (df.columns == ['z', 'z_0', 'z_s', 'rho', 'T_s_0',
                                'T_s', 'h2o_sat']).all()
 
     def test_read_mask(self):
@@ -103,10 +104,10 @@ class TestIPW(unittest.TestCase):
         ipw = IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw', file_type='dem')
         df = ipw.data_frame()
 
-        assert df.sum()['dem'] > 0
+        assert df.sum()['altitude'] > 0
 
         assert len(df.columns)
-        assert df.columns == ['dem']
+        assert df.columns == ['altitude']
 
     @raises(Exception)
     def test_bad_filetype(self):

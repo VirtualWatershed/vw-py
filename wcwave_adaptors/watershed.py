@@ -193,7 +193,7 @@ class VWClient:
         """ Initialize a new connection to the virtual watershed """
 
         # Check our credentials
-        auth_url = "https://" + ip_address + "/apps/my_app/auth"
+        auth_url = "http://" + ip_address + "/apps/vwp/auth"
         r = requests.get(auth_url, auth=(uname, passwd), verify=False)
         r.raise_for_status()
 
@@ -202,18 +202,18 @@ class VWClient:
 
         # Initialize URLS used by class methods
         self.insert_dataset_url = "https://" + ip_address + \
-            "/apps/my_app/datasets"
+            "/apps/vwp/datasets"
 
-        self.data_upload_url = "https://" + ip_address + "/apps/my_app/data"
+        self.data_upload_url = "https://" + ip_address + "/apps/vwp/data"
 
         self.uuid_check_url = "https://" + ip_address + \
-            "/apps/my_app/checkmodeluuid"
+            "/apps/vwp/checkmodeluuid"
 
         self.search_url = "https://" + ip_address + \
-            "/apps/my_app/search/datasets.json?version=3"
+            "/apps/vwp/search/datasets.json?version=3"
 
         self.new_run_url = "https://" + ip_address + \
-            "/apps/my_app/newmodelrun"
+            "/apps/vwp/newmodelrun"
 
     def initialize_model_run(self, model_run_name=None, description=None,
                              researcher_name=None, keywords=None):

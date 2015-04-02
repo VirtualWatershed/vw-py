@@ -1,6 +1,6 @@
 ### Configuration file for the virtual watershed data adaptors ###
 [Common]
-watershedIP = 1.800.you.rock
+watershedIP = vwp-dev.unm.edu
 user = your_uname
 passwd = your_supersecret_password
 westBnd = -116.142905556

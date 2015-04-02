@@ -22,7 +22,7 @@ def ncgen_from_template(template_filename, ncout_filename,
     """
     # assign a random temp file name for
     if not cdl_output_filename:
-        cdl_output_filename = '/tmp/' + uuid.uuid4() + '.cdl'
+        cdl_output_filename = '/tmp/' + str(uuid.uuid4()) + '.cdl'
 
     if os.path.isfile(cdl_output_filename) and not clobber:
         raise NCOError("CDL file %s already exists and clobber is false" %
@@ -51,9 +51,8 @@ def _build_cdl(template_path, cdl_output_filename, **kwargs):
             likely have Classes or some other data structure to represent the
             required fields for, say, iSNOBAL input or output, or PRMS in/out
     """
-    print "trying..."
     template = CDL_TEMPLATE_ENV.get_template(template_path)
-    print
+
     rendered = template.render(**kwargs)
 
     if cdl_output_filename:

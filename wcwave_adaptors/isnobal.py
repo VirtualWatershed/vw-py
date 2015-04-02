@@ -21,6 +21,7 @@ import struct
 from collections import namedtuple, defaultdict
 from copy import deepcopy
 from netCDF4 import Dataset
+from progressbar import ProgressBar
 
 from wcwave_adaptors.watershed import (get_config, make_fgdc_metadata,
                                        make_watershed_metadata)
@@ -45,10 +46,10 @@ VARNAME_DICT = \
                "ro_predict", "cc_s"],
         'snow': ["z_s", "rho", "m_s", "h2o", "T_s_0", "T_s_l", "T_s",
                  "z_s_l", "h2o_sat"],
-        'init': ["z", "z_o", "z_s", "rho", "T_s_0", "T_s", "h2o_sat"],
-        'precip': ["m_pp", "pct_snow", "rho_snow", "T_pp"],
+        'init': ["z", "z_0", "z_s", "rho", "T_s_0", "T_s", "h2o_sat"],
+        'precip': ["m_pp", "percent_snow", "rho_snow", "T_pp"],
         'mask': ["mask"],
-        'dem': ["dem"]
+        'dem': ["altitude"]
     }
 
 #: Convert number of bytes to struct package code for unsigned integer type
@@ -245,10 +246,21 @@ class IPW(object):
         return map(lambda l: (l[0], IPW(l[1], file_type='precip')), pptlist)
 
 
-def isnobal2netcdf(netcdf_path, ipw_source, isnobal_type=None,
-                   dt='hours', year=2010, month=10, day='01'):
-    """Use the utilities from netcdf.py to convert either set of input or output
-        IPW to NetCDF format, saving to netcdf_path
+def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
+                         month=10, day='01'):
+    """Use the utilities from netcdf.py to convert standard set of either input
+       or output files to a NetCDF4 file. A standard set of files means
+
+        for inputs:
+            - inputs/ dir with 5/6-band input files named like in.0000, in.0001
+            - ppt_desc file with time index of precip file and path to ppt file
+            - ppt_images_dist directory with the 4-band files from ppt_desc
+            - tl2p5mask.ipw and tl2p5_dem.ipw for mask and DEM images
+            - init.ipw 7-band initialization file
+
+        for outputs:
+            - an output/ directory with 9-band energy-mass (em) outputs and
+              snow outputs in time steps named like em.0000 and snow.0000
 
         Arguments:
             netcdf_path (str): Path to save the NetCDF to
@@ -257,43 +269,69 @@ def isnobal2netcdf(netcdf_path, ipw_source, isnobal_type=None,
         Returns:
             (netCDF4.Dataset) Representation of the data
     """
-    # sanity check isnobal_type and set CDL path based on isnobal_type
-    assert isnobal_type in ['inputs', 'outputs'],\
-        "isnobal_type must be 'inputs' or 'outputs', not %s" % isnobal_type
+    if 'inputs' in os.listdir(base_dir):
+        ipw_type = 'inputs'
 
-    template_path = os.path.join(os.path.dirname(__file__), 'cdl',
-                                 'ipw_template_')
+    elif 'outputs' in os.listdir(base_dir):
+        ipw_type = 'outputs'
 
-    template_path += '_in.cdl' if isnobal_type == 'inputs' else '_out.cdl'
+    else:
+        raise IPWFileError("%s does not meet standards" % base_dir)
 
-    # for the iSNOBAL input or output parameters, provide some header info
-    if type(ipw_source) is str:
-        ipw_source = [ipw_source]
+    if ipw_type == 'inputs':
+        input_files = [os.path.join(base_dir, 'inputs', el) for el in
+                       os.listdir(os.path.join(base_dir, 'inputs'))]
 
-    ipw0 = ipw_source[0]
-    gt = ipw0.geotransform
-    gb = ipw0.bands[1]  # TODO no good--need some names on these bands.
+        ipw0 = IPW(input_files[0])
+        gt = ipw0.geotransform
+        gb = [x for x in ipw0.bands if type(x) is GlobalBand][0]
 
-    template_parameters = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
-                               dsamp=gt[1], nsamps=gb.nSamps,
-                               nlines=gb.nLines, dt=dt, year=year,
-                               month=month, day=day)
+        template_args = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
+                             dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
+                             dt=dt, year=year, month=month, day=day)
 
-    nc = ncgen_from_template(template_path, netcdf_path,
-                             **template_parameters)
+        # initialize the nc file
+        nc = ncgen_from_template('ipw_in_template.cdl', nc_out, clobber=True,
+                                 **template_args)
 
-    # insert the IPW data to the NetCDF; mapping file type to nc group/var
-    # done by _ncinsert_ipw
-    for f in ipw_source:
+        # first take care of non-precip files
+        print "Inserting 'Input' data"
+        with ProgressBar(maxval=len(input_files)) as progress:
+            for i, f in enumerate(input_files):
+                ipw = IPW(f)
+                tstep = int(os.path.basename(ipw.input_file).split('.')[-1])
+                _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
 
-        _ncinsert_ipw(nc, IPW(f))
+                progress.update(i)
 
-    nc = netcdf_path
+        dem = IPW(os.path.join(base_dir, 'tl2p5_dem.ipw'), file_type='dem')
+        mask = IPW(os.path.join(base_dir, 'tl2p5mask.ipw'), file_type='mask')
+        init = IPW(os.path.join(base_dir, 'init.ipw'))
 
-    ipw_source.append(nc)
+        for el in [mask, dem, init]:
+            _nc_insert_ipw(nc, el, None, gb.nLines, gb.nSamps)
 
-    return ipw_source
+        # read ppt_desc file and insert to nc with appropriate time step
+        ppt_pairs = [ppt_line.strip().split('\t')
+                     for ppt_line in
+                     open(os.path.join(base_dir, 'ppt_desc'), 'r').readlines()]
+        print nc.groups['Input'].variables
+        print "Inserting Precip Data"
+        with ProgressBar(maxval=len(ppt_pairs)) as progress:
+            for i, ppt_pair in enumerate(ppt_pairs):
+                tstep = int(ppt_pair[0])
+                el = IPW(ppt_pair[1], file_type='precip')
 
+                _nc_insert_ipw(nc, el, tstep, gb.nLines, gb.nSamps)
+
+                progress.update(i)
+        print nc.groups['Input'].variables
+
+    else:
+        raise Exception("Badness. Outputs not yet implemented")
+
+    nc.sync()
+    return nc
 
 def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
     """Put IPW data into dataset based on file naming conventions
@@ -314,7 +352,8 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
 
     if file_type == 'dem':
         # dem only has 'alt' information, stored in root group
-        dataset.variables['alt'][:, :] = df['altitude']
+        dataset.variables['alt'][:, :] = np.reshape(df['altitude'],
+                                                    (nlines, nsamps))
 
     elif file_type == 'in':
         gvars = dataset.groups['Input'].variables
@@ -327,20 +366,23 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
                 gvars[var][tstep, :, :] = np.zeros((nlines, nsamps))
 
     elif file_type == 'precip':
-        gvars = dataset.groups['Precipitation']
+        gvars = dataset.groups['Precipitation'].variables
 
         for var in gvars:
             gvars[var][tstep, :, :] = np.reshape(df[var], (nlines, nsamps))
 
     elif file_type == 'mask':
         # mask is binary and one-banded; store in root group
-        dataset.variables['mask'][:, :] = df['mask']
+        dataset.variables['mask'][:, :] = np.reshape(df['mask'],
+                                                     (nlines, nsamps))
 
     elif file_type == 'init':
-        gvars = dataset.groups['Initial']
+        gvars = dataset.groups['Initial'].variables
+
+        # from nose.tools import set_trace; set_trace()
 
         for var in gvars:
-            gvars[var][tstep, :, :] = np.reshape(df[var], (nlines, nsamps))
+            gvars[var][:, :] = np.reshape(df[var], (nlines, nsamps))
 
     # TODO file_type == "em" and "snow" for outputs
 
@@ -450,11 +492,6 @@ def _build_ipw_dataframe(nonglobal_bands, binary_data):
     colnames = [b.varname for b in nonglobal_bands]
 
     dtype = _bands_to_dtype(nonglobal_bands)
-
-    # print len(binary_data)
-    # print dtype
-
-    # print nonglobal_bands
 
     intData = np.fromstring(binary_data, dtype=dtype)
 
