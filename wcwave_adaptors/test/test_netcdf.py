@@ -5,12 +5,11 @@
 import os
 import unittest
 import numpy as np
-from subprocess import Popen
 from netCDF4 import Dataset
 
 from wcwave_adaptors.netcdf import utm2latlon, ncgen_from_template
 # include tests for generate_standard_nc in this module
-from wcwave_adaptors.isnobal import (_nc_insert_ipw, IPW,
+from wcwave_adaptors.isnobal import (_nc_insert_ipw, IPW, nc_to_standard_ipw,
                                      GlobalBand, generate_standard_nc)
 
 
@@ -155,6 +154,100 @@ class TestIsnobalNetCDF(unittest.TestCase):
         # snow
         # TODO
 
+    def test_netcdf_to_standard_ipw(self):
+        "Proper NetCDF file can be extracted to iSNOBAL standard directory structure"
+        # TODO this nc should be the same one created and validated in
+        # test_nc_insert_ipw
+        nc = Dataset('nc_to_standard_inputs.nc', mode='r')
+
+        new_ipw_dir = os.path.join(self.test_dir, 'ipw_from_nc')
+        os.mkdir(new_ipw_dir)
+
+        nc_to_standard_ipw(nc, new_ipw_dir)
+
+        new_ipw_dirlist = os.listdir(new_ipw_dir)
+
+        assert new_ipw_dirlist.length == 6
+
+        assert set(new_ipw_dirlist) == set(['inputs', 'init.ipw', 'ppt_desc',
+                                            'ppt_images_dist', 'tl2p5_dem.ipw',
+                                            'tl2p5mask.ipw'])
+
+        inputs = os.listdir(os.path.join(new_ipw_dir, 'inputs'))
+        ppt_images = os.listdir(os.path.join(new_ipw_dir, 'ppt_images_dist'))
+
+        assert len(inputs) == np.shape(nc.groups['Input'].variables['T_a'])[0]
+
+        assert len(ppt_images) > 0
+        # length of the directory with images should match # lines of ppt_desc
+        assert len(ppt_images) == len(open(
+                                      os.path.join(new_ipw_dir,
+                                                   'ppt_desc').readlines()))
+
+        dem_file = os.path.join(new_ipw_dir, 'tl2p5_dem.ipw')
+        mask_file = os.path.join(new_ipw_dir, 'tl2p5mask.ipw')
+        init_file = os.path.join(new_ipw_dir, 'init.ipw')
+
+        # clumsy but enough for now to check that these files are not empty
+        assert len(open(dem_file).readlines()) > 0
+
+        assert len(open(mask_file).readlines()) > 0
+
+        assert len(open(init_file).readlines()) > 0
+
+        orig_dir = os.path.join(self.test_dir, 'full_nc_example/inputs')
+
+        i = 1
+        for f in inputs:
+
+            b = os.path.basename(f)
+            orig_f = os.path.join(orig_dir, b)
+
+            ipw0 = IPW(orig_f)
+            ipw = IPW(f)
+
+            # http://pandas.pydata.org/pandas-docs/version/0.15.0/basics.html#comparing-if-objects-are-equivalent
+            assert ipw0.data_frame().equals(ipw.data_frame())
+            i += 1
+
+        assert i == len(inputs)
+
+        orig_dir = os.path.join(self.test_dir,
+                                'full_nc_example/ppt_images_dist')
+
+        i = 1
+        for f in ppt_images:
+
+            b = os.path.basename(f)
+            orig_f = os.path.join(orig_dir, b)
+
+            ipw0 = IPW(orig_f, file_type='precip')
+            ipw = IPW(f, file_type='precip')
+
+            assert ipw0.data_frame().equals(ipw.data_frame())
+            i += 1
+
+        assert i == len(ppt_images)
+
+        orig_dir = os.path.join(self.test_dir + 'full_nc_example')
+        dem0_f = os.path.join(orig_dir, os.path.basename(dem_file))
+        dem_ipw0 = IPW(dem0_f, file_type='dem')
+        dem_ipw = IPW(dem_file, file_type='dem')
+        assert dem_ipw0.data_frame().equals(dem_ipw.data_frame())
+
+        mask_f0 = os.path.join(orig_dir, os.path.basename(mask_file))
+        mask_ipw0 = IPW(mask_f0, file_type='mask')
+        mask_ipw = IPW(mask_file, file_type='mask')
+        assert mask_ipw0.data_frame().equals(mask_ipw.data_frame())
+
+        init0_f = os.path.join(orig_dir, os.path.basename(init_file))
+        init_ipw0 = IPW(init0_f, file_type='init')
+        init_ipw = IPW(init_file, file_type='init')
+        assert init_ipw0.data_frame().equals(init_ipw.data_frame())
+
+        os.rmdir(new_ipw_dir)
+
+
 def _validate_input_nc(test_obj, nc):
     # helper for getting varnames within a group
     group_varnames = lambda g: [var for var in nc.groups[g].variables]
@@ -215,9 +308,6 @@ def _validate_input_nc(test_obj, nc):
     assert nc.variables['mask'].shape == (test_obj.nlines, test_obj.nsamps)
 
     assert np.sum(nc.variables['mask']) == 2575
-    # int(Popen("pripw tl2p5mask.ipw | awk '{ sum+=$1} END {print sum}'",
-              # shell=True).communicate()[0])
-
 
 
 class TestNetCDF(unittest.TestCase):

@@ -389,6 +389,65 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
     else:
         raise Exception('File type %s not recognized!' % file_type)
 
+def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
+    """Convert an iSNOBAL NetCDF file to an iSNOBAL standard directory structure
+       in IPW format. This means that for
+
+        input nc: all inputs are all in {ipw_base_dir}/inputs and all precip
+            files are in {ipw_base_dir}/ppt_images_dist. There is a precip
+            description file {ipw_base_dir}/ppt_desc describing what time index
+            each precipitation file corresponsds to and the path to the precip
+            file in ppt_images_dist. There are three more files, the mask, init,
+            and DEM files at {ipw_base_dir}/ tl2p5mask.ipw, tl2p5_dem.ipw, and
+            init.ipw
+
+        output nc: files get output to {ipw_base_dir}/outputs to allow for
+            building a directory of both inputs and outputs. Files are like
+            em.0000 and snow.0000 for energy-mass and snow outputs, respectively.
+
+        Arguments:
+            nc_in (str) path to input NetCDF file to break out
+            ipw_base_dir
+
+        Returns:
+            None
+    """
+    if type(nc_in) is str:
+        nc_in = Dataset(nc_in, 'r')
+    else:
+        assert type(nc_in) is Dataset
+
+    nc_groups = nc_in.groups.keys()
+    if 'Inputs' in nc_groups:
+        type_ = 'inputs'
+    elif 'Outputs' in nc_groups:
+        type_ = 'outputs'
+    else:
+        raise IPWFileError("NetCDF %s is not a valid iSNOBAL representation"
+                           % nc_in)
+
+    if type_ == 'inputs':
+
+        assert set(nc_in.groups.keys()) == \
+            set([u'Initial', u'Precipitation', u'Input']), \
+            "%s not a valid input iSNOBAL NetCDF" % nc_in.filepath()
+
+        assert set(nc_in.variables.keys()) == \
+            set([u'time', u'easting', u'northing', u'lat', u'lon',
+                 u'alt', u'mask']), \
+            "%s not a valid input iSNOBAL NetCDF" % nc_in.filepath()
+
+        if clobber and os.path.exists(ipw_base_dir):
+            os.rmdir(ipw_base_dir)
+        elif os.path.exists(ipw_base_dir):
+            raise IPWFileError("clobber=False and %s exists" % ipw_base_dir)
+        os.mkdir(ipw_base_dir)
+
+    # insert magic here...
+
+    else:
+        raise Exception("Badness. Outputs not yet implemented")
+
 
 def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
                       description, model_set=None):
