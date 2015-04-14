@@ -12,15 +12,17 @@ Tools for working with IPW binary data and running the iSNOBAL model.
 #
 import datetime
 import logging
-import numpy as np
 import os
-import pandas as pd
 import subprocess
 import struct
 
 from collections import namedtuple, defaultdict
 from copy import deepcopy
 from netCDF4 import Dataset
+from numpy import zeros, ravel, reshape, fromstring, dtype, floor
+from numpy import sum as npsum
+from numpy import round as npround
+from pandas import date_range, DataFrame, Series, Timedelta
 from progressbar import ProgressBar
 
 from wcwave_adaptors.watershed import (get_config, make_fgdc_metadata,
@@ -28,9 +30,17 @@ from wcwave_adaptors.watershed import (get_config, make_fgdc_metadata,
 
 from wcwave_adaptors.netcdf import ncgen_from_template
 
+from ipdb import set_trace
+
+
 #: IPW standard. assumed unchanging since they've been the same for 20 years
 BAND_TYPE_LOC = 1
 BAND_INDEX_LOC = 2
+
+#: For converting NetCDF to iSNOBAL, use 2 bytes for all variables except mask
+NC_NBYTES = 2
+NC_NBITS = 16
+NC_MAXINT = pow(2, NC_NBITS) - 1
 
 #: Container for ISNOBAL Global Band information
 GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
@@ -144,7 +154,7 @@ class IPW(object):
 
                 # note that we have not generalized for non-hour timestep data
                 if dt is None:
-                    dt = pd.Timedelta('1 hour')
+                    dt = Timedelta('1 hour')
 
                 # the iSNOBAL file naming scheme puts the integer time step
                 # after the dot, really as the extension
@@ -198,6 +208,122 @@ class IPW(object):
             self.geotransform = None
             self.start_datetime = None
             self.end_datetime = None
+
+    @classmethod
+    def from_nc(cls, nc_in, tstep=None, group=None, variables=None,
+                distance_units='m', coord_sys_ID='UTM'):
+        """Generate an IPW object from a NetCDF file.
+
+           Usage:
+                ipw = IPW().from_nc('dataset.nc')  # or
+                ipw = IPW().from_nc(nc_in)
+                ipw = IPW().from_nc('dataset.nc')  # or
+                ipw = IPW().from_nc(nc_in)
+
+                If your data uses units of distance other than meters, set that
+                with kwarg `distance_units`.
+
+           Arguments:
+                nc_in (str or NetCDF4.Dataset) NetCDF to convert to IPW
+        """
+        if type(nc_in) is str:
+            nc_in = Dataset(nc_in, 'r')
+        # check and get variables from netcdf
+        if group == None and variables == None:
+            raise Exception("group and variables both 'None': no data to convert!")
+
+        # initialize the IPW and set its some global attributes
+        ipw = IPW()
+        if group == None:
+            nc_vars = nc_in.variables
+        else:
+            nc_vars = nc_in.groups[group].variables  # throw if key `group` dne
+
+            if group == 'Input':
+                ipw.file_type = 'in'
+            elif group == 'Precipitation':
+                ipw.file_type = 'precip'
+            elif group == 'Initial':
+                ipw.file_type = 'init'
+
+        # read header info from nc and generate/assign to new IPW
+        # build global dict
+        ipw.byteorder = '0123'  # TODO read from file
+        ipw.nlines = len(nc_in.dimensions['northing'])
+        ipw.nsamps = len(nc_in.dimensions['easting'])
+
+        # if the bands are not part of a group, they are handled individually
+        if group:
+            ipw.nbands = len(nc_vars)
+        else:
+            ipw.nbands = 1
+
+        globalBand = GlobalBand(ipw.byteorder, ipw.nlines,
+                                ipw.nsamps, ipw.nbands)
+
+        # build non-global band(s). Can use recalculate_header so no min/max
+        # need be set.
+        # setting all values common to all bands
+        # use 2 bytes/16 bits for floating point values
+        bytes_ = NC_NBYTES
+        bits_ = NC_NBITS
+
+        bline = nc_in.bline
+        dline = nc_in.dline
+        bsamp = nc_in.bsamp
+        dsamp = nc_in.dsamp
+
+        geo_units = distance_units
+        coord_sys_ID = coord_sys_ID
+
+        # iterate over each item in VARNAME_DICT for the filetype, creating
+        # a "Band" for each and corresponding entry in the poorly named
+        # header_dict
+        varnames = VARNAME_DICT[ipw.file_type]
+        header_dict = dict(zip(varnames,
+                               [Band() for i in range(len(varnames) + 1)]))
+
+        # create a dataframe with nrows = nlines*nsamps and variable colnames
+        df_shape = (ipw.nlines*ipw.nsamps, len(varnames))
+        df = DataFrame(zeros(df_shape), columns=varnames)
+        # ipdb.set_trace()
+        for idx, var in enumerate(varnames):
+
+            header_dict[var] = Band(varname=var, band_idx=idx, nBytes=bytes_,
+                nBits=bits_, int_max=NC_MAXINT, bline=bline, dline=dline,
+                bsamp=bsamp, dsamp=dsamp, units=geo_units,
+                coord_sys_ID=coord_sys_ID)
+
+            # insert data to each df column
+            if tstep is not None:
+                data = ravel(nc_vars[var][tstep])
+            else:
+                data = ravel(nc_vars[var])
+
+            df[var] = data
+
+        ipw._data_frame = df
+
+        ipw.nonglobal_bands = header_dict.values()
+
+        # include global band in header dictionary
+        header_dict.update({'global': globalBand})
+
+        ipw.geotransform = [bsamp - dsamp / 2.0,
+                            dsamp,
+                            0.0,
+                            bline - dline / 2.0,
+                            0.0,
+                            dline]
+
+        ipw.bands = header_dict.values()
+
+        ipw.header_dict = header_dict
+
+        # recalculate headers
+        ipw.recalculate_header()
+
+        return ipw
 
     def recalculate_header(self):
         """
@@ -352,7 +478,7 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
 
     if file_type == 'dem':
         # dem only has 'alt' information, stored in root group
-        dataset.variables['alt'][:, :] = np.reshape(df['altitude'],
+        dataset.variables['alt'][:, :] = reshape(df['altitude'],
                                                     (nlines, nsamps))
 
     elif file_type == 'in':
@@ -360,20 +486,20 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
         for var in gvars:
             # can't just assign b/c if sun is 'down' var is absent from df
             if var in df.columns:
-                gvars[var][tstep, :, :] = np.reshape(df[var],
+                gvars[var][tstep, :, :] = reshape(df[var],
                                                      (nlines, nsamps))
             else:
-                gvars[var][tstep, :, :] = np.zeros((nlines, nsamps))
+                gvars[var][tstep, :, :] = zeros((nlines, nsamps))
 
     elif file_type == 'precip':
         gvars = dataset.groups['Precipitation'].variables
 
         for var in gvars:
-            gvars[var][tstep, :, :] = np.reshape(df[var], (nlines, nsamps))
+            gvars[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
 
     elif file_type == 'mask':
         # mask is binary and one-banded; store in root group
-        dataset.variables['mask'][:, :] = np.reshape(df['mask'],
+        dataset.variables['mask'][:, :] = reshape(df['mask'],
                                                      (nlines, nsamps))
 
     elif file_type == 'init':
@@ -382,7 +508,7 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
         # from nose.tools import set_trace; set_trace()
 
         for var in gvars:
-            gvars[var][:, :] = np.reshape(df[var], (nlines, nsamps))
+            gvars[var][:, :] = reshape(df[var], (nlines, nsamps))
 
     # TODO file_type == "em" and "snow" for outputs
 
@@ -443,7 +569,9 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
             raise IPWFileError("clobber=False and %s exists" % ipw_base_dir)
         os.mkdir(ipw_base_dir)
 
-    # insert magic here...
+        # here we both initialize the DEM IPW for writing and get reusable info
+
+
 
     else:
         raise Exception("Badness. Outputs not yet implemented")
@@ -482,26 +610,26 @@ def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
                                  ipw.end_datetime)
 
 
-def reaggregate_ipws(ipws, fun=np.sum, freq='H', rule='D'):
+def reaggregate_ipws(ipws, fun=npsum, freq='H', rule='D'):
     """
     Resample IPWs using the function fun, but only sum is supported.
     `freq` corresponds to the actual frequency of the ipws; rule corresponds to
     one of the resampling 'rules' given here:
     http://pandas.pydata.org/pandas-docs/dev/timeseries.html#time-date-components
     """
-    assert fun is np.sum, "Cannot use " + fun.func_name + \
-        ", only np.sum has been implemented"
+    assert fun is npsum, "Cannot use " + fun.func_name + \
+        ", only sum has been implemented"
 
     assert _is_consecutive(ipws)
 
     ipw0 = ipws[0]
     start_datetime = ipw0.start_datetime
 
-    idx = pd.date_range(start=start_datetime, periods=len(ipws), freq=freq)
+    idx = date_range(start=start_datetime, periods=len(ipws), freq=freq)
 
-    series = pd.Series(map(lambda ipw: ipw.data_frame(), ipws), index=idx)
+    series = Series(map(lambda ipw: ipw.data_frame(), ipws), index=idx)
 
-    resampled = series.resample(rule, how=np.sum)
+    resampled = series.resample(rule, how=npsum)
     resampled_idx = resampled.index
 
     resampled_dt = resampled_idx[1] - resampled_idx[0]
@@ -552,9 +680,9 @@ def _build_ipw_dataframe(nonglobal_bands, binary_data):
 
     dtype = _bands_to_dtype(nonglobal_bands)
 
-    intData = np.fromstring(binary_data, dtype=dtype)
+    intData = fromstring(binary_data, dtype=dtype)
 
-    df = pd.DataFrame(intData, columns=colnames)
+    df = DataFrame(intData, columns=colnames)
 
     for b in nonglobal_bands:
         df[b.varname] = _calc_float_value(b, df[b.varname])
@@ -705,7 +833,7 @@ def _bands_to_dtype(bands):
     Given a list of Bands, convert them to a numpy.dtype for use in creating
     the IPW dataframe.
     """
-    return np.dtype([(b.varname, 'uint' + str(b.bytes_ * 8)) for b in bands])
+    return dtype([(b.varname, 'uint' + str(b.bytes_ * 8)) for b in bands])
 
 
 def _bands_to_header_lines(bands_dict):
@@ -773,9 +901,9 @@ def _floatdf_to_binstring(bands, df):
     Convert the dataframe floating point data to a binary string.
     """
     # first convert df to an integer dataframe
-    int_df = pd.DataFrame(dtype='uint64')
+    int_df = DataFrame(dtype='uint64')
 
-    for b in bands:
+    for b in sorted(bands, key=lambda b: b.band_idx):
         # check that bands are appropriately made, that b.Max/Min really are
         assert df[b.varname].le(b.float_max).all(), \
             "Bad band: max not really max.\nb.float_max = %2.10f\n \
@@ -787,14 +915,19 @@ def _floatdf_to_binstring(bands, df):
 
         # no need to include b.int_min, it's always zero
         map_fn = lambda x: \
-            np.round(
+            floor(
+            # npround(
                 ((x - b.float_min) * b.int_max)/(b.float_max - b.float_min))
 
         int_df[b.varname] = map_fn(df[b.varname])
 
+        set_trace()
+
     # use the struct package to pack ints to bytes; use '=' to prevent padding
     # that causes problems with the IPW scheme
     pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
+
+    set_trace()
 
     return b''.join([struct.pack(pack_str, *r[1]) for r in int_df.iterrows()])
 
@@ -806,7 +939,7 @@ def _recalculate_header(bands, dataframe):
 
     Returns: None
     """
-    assert list(dataframe.columns) == [b.varname for b in bands], \
+    assert set(list(dataframe.columns)) == set([b.varname for b in bands]), \
         "DataFrame column names do not match bands' variable names!"
 
     for band in bands:
