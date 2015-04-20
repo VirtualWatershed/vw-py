@@ -457,7 +457,7 @@ def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
         ppt_pairs = [ppt_line.strip().split('\t')
                      for ppt_line in
                      open(osjoin(base_dir, 'ppt_desc'), 'r').readlines()]
-        print nc.groups['Input'].variables
+
         print "Inserting Precip Data"
         with ProgressBar(maxval=len(ppt_pairs)) as progress:
             for i, ppt_pair in enumerate(ppt_pairs):
@@ -494,7 +494,7 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
 
     if file_type == 'dem':
         # dem only has 'alt' information, stored in root group
-        dataset.variables['alt'][:, :] = reshape(df['altitude'],
+        dataset.variables['alt'][:, :] = reshape(df['alt'],
                                                     (nlines, nsamps))
 
     elif file_type == 'in':
@@ -592,7 +592,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
 
         print "Writing 'Input' Data to IPW files"
         with ProgressBar(maxval=time_index[-1]) as progress:
-            for i, idx in enumerate(time_index[:11]):
+            for i, idx in enumerate(time_index):
                 if idx < 10:
                     idxstr = "000" + str(idx)
                 elif idx < 100:

@@ -31,25 +31,28 @@ class TestIsnobalNetCDF(unittest.TestCase):
         self.nlines = 148
         self.nsamps = 170
 
+        self.base_data_dir = 'wcwave_adaptors/test/data'
+        self.full_nc_base_dir = os.path.join(self.base_data_dir,
+                                             'full_nc_example')
+
+        self.full_nc_out = 'wcwave_adaptors/test/data/full_nc_example/nc.tmp'
+
     def test_generate_standard_nc_inputs(self):
         "Check that a sample NetCDF is properly built from a series of inputs"
 
-        base_dir = 'wcwave_adaptors/test/data/full_nc_example'
-        nc_out = 'wcwave_adaptors/test/data/full_nc_example/nc.tmp'
-
-        nc = generate_standard_nc(base_dir, nc_out)
+        nc = generate_standard_nc(self.full_nc_base_dir,
+                                  self.full_nc_out)
 
         # check new file was created
-        assert os.path.isfile(nc_out)
+        assert os.path.isfile(self.full_nc_out)
 
         _validate_input_nc(self, nc)
 
         nc.close()
 
-        nc = Dataset(nc_out, 'r')
+        nc = Dataset(self.full_nc_out, 'r')
 
         _validate_input_nc(self, nc)
-
 
     def test_generate_standard_nc_outputs(self):
         "Check that a sample NetCDF is properly built from a series of outputs"
@@ -78,6 +81,7 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
         # input
         _nc_insert_ipw(nc, ipw, 0, self.nlines, self.nsamps)
+
         # check that nc and nc_insert_ipw.tmp have been updated properly
         g = 'Input'
         assert group_varnames(g) == ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n']
@@ -111,13 +115,20 @@ class TestIsnobalNetCDF(unittest.TestCase):
                 assert all(abs(np.ravel(curvar)) > 0) and\
                     all(abs(np.ravel(curvar)) < 1e6)
         # mask
-        ipw = IPW(datadir + 'tl2p5mask.ipw', file_type='mask')
+        ipw = IPW(os.path.join(self.full_nc_base_dir, 'tl2p5mask.ipw'),
+                  file_type='mask')
+
         _nc_insert_ipw(nc, ipw, None, self.nlines, self.nsamps)
         # check that nc and nc_insert_ipw.tmp have been updated properly
 
         # precip; include time index manually for this test
-        ipw = IPW(datadir + 'ppt_images_dist/ppt4b_65.ipw', file_type='precip')
-        _nc_insert_ipw(nc, ipw, 65, self.nlines, self.nsamps)
+        ipw = IPW(os.path.join(self.full_nc_base_dir, 'ppt_images_dist/ppt4b_10.ipw'),
+
+                  file_type='precip')
+
+        # insert an input file at the tenth timestep, making len of timevar 11
+        _nc_insert_ipw(nc, ipw, 10, self.nlines, self.nsamps)
+
         # check that nc and nc_insert_ipw.tmp have been updated properly
         g = 'Precipitation'
         assert group_varnames(g) ==\
@@ -128,20 +139,22 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
             curvar = nc.groups[g].variables[varname]
 
-            assert curvar.shape == (66, gb.nLines, gb.nSamps),\
+            assert curvar.shape == (11, gb.nLines, gb.nSamps),\
                 "shape not expected, it's %s" % str(curvar.shape)
 
             if varname in ['m_pp', 'rho_snow', 'T_pp']:
-                assert all(abs(np.ravel(curvar[65])) > 0) and\
-                    all(abs(np.ravel(curvar[65])) < 1e6)
+                assert all(abs(np.ravel(curvar[-1])) > 0) and\
+                    all(abs(np.ravel(curvar[-1])) < 1e6)
 
-        # now input shape should have changed with the input of the 65
+        # now input shape should have changed with the input of the 16
         # timestep data
         for varname in group_varnames('Input'):
 
             curvar = nc.groups['Input'].variables[varname]
 
-            assert curvar.shape == (66, gb.nLines, gb.nSamps)
+            assert curvar.shape == (11, gb.nLines, gb.nSamps), \
+                "shape is %s should be %s" % \
+                (curvar.shape, (11, gb.nLines, gb.nSamps))
 
 
         # dem
@@ -158,35 +171,87 @@ class TestIsnobalNetCDF(unittest.TestCase):
         "Proper NetCDF file can be extracted to iSNOBAL standard directory structure"
         # TODO this nc should be the same one created and validated in
         # test_nc_insert_ipw
-        nc = Dataset('nc_to_standard_inputs.nc', mode='r')
+        nc = Dataset(self.full_nc_out, mode='r')
 
-        new_ipw_dir = os.path.join(self.test_dir, 'ipw_from_nc')
-        os.mkdir(new_ipw_dir)
+        new_ipw_basedir = os.path.join(self.full_nc_base_dir, 'ipw_from_nc')
 
-        nc_to_standard_ipw(nc, new_ipw_dir)
+        nc_to_standard_ipw(nc, new_ipw_basedir)
 
-        new_ipw_dirlist = os.listdir(new_ipw_dir)
+        new_ipw_dirlist = os.listdir(new_ipw_basedir)
 
-        assert new_ipw_dirlist.length == 6
+        assert len(new_ipw_dirlist) == 6
 
         assert set(new_ipw_dirlist) == set(['inputs', 'init.ipw', 'ppt_desc',
-                                            'ppt_images_dist', 'tl2p5_dem.ipw',
-                                            'tl2p5mask.ipw'])
+                                            'ppt_images_dist', 'dem.ipw',
+                                            'mask.ipw'])
 
-        inputs = os.listdir(os.path.join(new_ipw_dir, 'inputs'))
-        ppt_images = os.listdir(os.path.join(new_ipw_dir, 'ppt_images_dist'))
+        inputs = os.listdir(os.path.join(new_ipw_basedir, 'inputs'))
+        ppt_images = os.listdir(os.path.join(new_ipw_basedir,
+                                'ppt_images_dist'))
 
         assert len(inputs) == np.shape(nc.groups['Input'].variables['T_a'])[0]
 
         assert len(ppt_images) > 0
         # length of the directory with images should match # lines of ppt_desc
-        assert len(ppt_images) == len(open(
-                                      os.path.join(new_ipw_dir,
-                                                   'ppt_desc').readlines()))
+        assert len(ppt_images) == len(open(os.path.join(new_ipw_basedir,
+                                           'ppt_desc'), 'r').readlines())
 
-        dem_file = os.path.join(new_ipw_dir, 'tl2p5_dem.ipw')
-        mask_file = os.path.join(new_ipw_dir, 'tl2p5mask.ipw')
-        init_file = os.path.join(new_ipw_dir, 'init.ipw')
+        orig_dir = os.path.join(self.full_nc_base_dir, 'inputs')
+        new_dir = os.path.join(new_ipw_basedir, 'inputs')
+
+        i = 0
+        for bname in inputs:
+
+            # b = os.path.basename(f)
+            orig_f = os.path.join(orig_dir, bname)
+            f = os.path.join(new_dir, bname)
+
+            ipw0 = IPW(orig_f)
+            ipw = IPW(f)
+
+            df0 = ipw0.data_frame()
+            df = ipw.data_frame()
+
+            # in rewritten version we always include S_n for simplicity.
+            # in base IPW, S_n (solar rad) gets dropped when sun is "down"
+            if 'S_n' not in df0.columns:
+                df.drop('S_n', axis=1, inplace=True)
+
+            # http://pandas.pydata.org/pandas-docs/version/0.15.0/basics.html#comparing-if-objects-are-equivalent
+            assert all(df0 - df < 0.01), \
+                "ipw0:\n%s\n\nipw:\n%s" % \
+                (ipw0.data_frame().head(), ipw.data_frame().head())
+            i += 1
+
+        assert i == len(inputs), "len(inputs): %s, i: %s" % (len(inputs), i)
+
+        orig_dir = os.path.join(self.full_nc_base_dir, 'ppt_images_dist')
+        new_dir = os.path.join(new_ipw_basedir, 'ppt_images_dist')
+
+        i = 0
+        for bname in ppt_images:
+
+            # name change for ppt images because I can
+            orig_f = os.path.join(orig_dir, 'ppt4b_' + bname.split('_')[1])
+            f = os.path.join(new_dir, bname)
+
+            ipw0 = IPW(orig_f, file_type='precip')
+            ipw = IPW(f, file_type='precip')
+
+            df0 = ipw0.data_frame()
+            df = ipw.data_frame()
+
+            assert all(df0 - df < 0.01), "ipw0:\n%s\n\nipw:\n%s" % \
+                (df0.head(), df.head())
+
+            i += 1
+
+        assert i == len(ppt_images), \
+            "len(inputs): %s, i: %s" % (len(inputs), i)
+
+        dem_file = os.path.join(new_ipw_basedir, 'dem.ipw')
+        mask_file = os.path.join(new_ipw_basedir, 'mask.ipw')
+        init_file = os.path.join(new_ipw_basedir, 'init.ipw')
 
         # clumsy but enough for now to check that these files are not empty
         assert len(open(dem_file).readlines()) > 0
@@ -195,57 +260,20 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
         assert len(open(init_file).readlines()) > 0
 
-        orig_dir = os.path.join(self.test_dir, 'full_nc_example/inputs')
+        dem0_f = os.path.join(self.full_nc_base_dir, 'tl2p5_dem.ipw')
+        df0 = IPW(dem0_f, file_type='dem').data_frame()
+        df = IPW(dem_file, file_type='dem').data_frame()
+        assert all(df0 - df < 0.01)
 
-        i = 1
-        for f in inputs:
+        mask_f0 = os.path.join(self.full_nc_base_dir, 'tl2p5mask.ipw')
+        df0 = IPW(mask_f0, file_type='mask').data_frame()
+        df = IPW(mask_file, file_type='mask').data_frame()
+        assert all(df0 - df < 0.01)
 
-            b = os.path.basename(f)
-            orig_f = os.path.join(orig_dir, b)
-
-            ipw0 = IPW(orig_f)
-            ipw = IPW(f)
-
-            # http://pandas.pydata.org/pandas-docs/version/0.15.0/basics.html#comparing-if-objects-are-equivalent
-            assert ipw0.data_frame().equals(ipw.data_frame())
-            i += 1
-
-        assert i == len(inputs)
-
-        orig_dir = os.path.join(self.test_dir,
-                                'full_nc_example/ppt_images_dist')
-
-        i = 1
-        for f in ppt_images:
-
-            b = os.path.basename(f)
-            orig_f = os.path.join(orig_dir, b)
-
-            ipw0 = IPW(orig_f, file_type='precip')
-            ipw = IPW(f, file_type='precip')
-
-            assert ipw0.data_frame().equals(ipw.data_frame())
-            i += 1
-
-        assert i == len(ppt_images)
-
-        orig_dir = os.path.join(self.test_dir + 'full_nc_example')
-        dem0_f = os.path.join(orig_dir, os.path.basename(dem_file))
-        dem_ipw0 = IPW(dem0_f, file_type='dem')
-        dem_ipw = IPW(dem_file, file_type='dem')
-        assert dem_ipw0.data_frame().equals(dem_ipw.data_frame())
-
-        mask_f0 = os.path.join(orig_dir, os.path.basename(mask_file))
-        mask_ipw0 = IPW(mask_f0, file_type='mask')
-        mask_ipw = IPW(mask_file, file_type='mask')
-        assert mask_ipw0.data_frame().equals(mask_ipw.data_frame())
-
-        init0_f = os.path.join(orig_dir, os.path.basename(init_file))
-        init_ipw0 = IPW(init0_f, file_type='init')
-        init_ipw = IPW(init_file, file_type='init')
-        assert init_ipw0.data_frame().equals(init_ipw.data_frame())
-
-        os.rmdir(new_ipw_dir)
+        init0_f = os.path.join(self.full_nc_base_dir, 'init.ipw')
+        df0 = IPW(init0_f, file_type='init').data_frame()
+        df = IPW(init_file, file_type='init').data_frame()
+        assert all(df0 - df < 0.01)
 
 
 def _validate_input_nc(test_obj, nc):
@@ -259,8 +287,9 @@ def _validate_input_nc(test_obj, nc):
 
         curvar = nc.groups[g].variables[varname]
 
-        assert curvar.shape == (67, test_obj.nlines, test_obj.nsamps),\
-            "wrong shape: %s" % str(curvar.shape)
+        assert curvar.shape == (16, test_obj.nlines, test_obj.nsamps),\
+            "wrong shape: %s should be %s" %\
+            (str(curvar.shape), (16, test_obj.nlines, test_obj.nsamps))
 
         if varname in ['I_lw', 'T_a', 'e_a', 'u']:
             assert all(abs(np.ravel(curvar)) > 0) and\
@@ -293,7 +322,7 @@ def _validate_input_nc(test_obj, nc):
 
         curvar = nc.groups[g].variables[varname]
 
-        assert curvar.shape == (67, test_obj.nlines, test_obj.nsamps)
+        assert curvar.shape == (16, test_obj.nlines, test_obj.nsamps)
 
         if idx in ppt_idx:
             if varname in ['m_pp', 'rho_snow', 'T_pp']:
