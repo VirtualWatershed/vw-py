@@ -411,11 +411,11 @@ def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
         Returns:
             (netCDF4.Dataset) Representation of the data
     """
-    if 'inputs' in listdir(base_dir):
-        ipw_type = 'inputs'
-
-    elif 'outputs' in listdir(base_dir):
+    if 'outputs' == base_dir.split('/')[-1]:
         ipw_type = 'outputs'
+
+    elif 'inputs' in listdir(base_dir):
+        ipw_type = 'inputs'
 
     else:
         raise IPWFileError("%s does not meet standards" % base_dir)
@@ -470,10 +470,33 @@ def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
         print nc.groups['Input'].variables
 
     else:
-        raise Exception("Badness. Outputs not yet implemented")
+
+        output_files = [osjoin(base_dir, el) for el in listdir(base_dir)]
+        print base_dir
+        ipw0 = IPW(output_files[0])
+        gt = ipw0.geotransform
+        gb = [x for x in ipw0.bands if type(x) is GlobalBand][0]
+
+        template_args = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
+                             dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
+                             dt=dt, year=year, month=month, day=day)
+
+        # initialize nc file
+        nc = ncgen_from_template('ipw_out_template.cdl', nc_out, clobber=True,
+                                 **template_args)
+
+        print "Inserting Output Data"
+        with ProgressBar(maxval=len(output_files)) as progress:
+            for i, f in enumerate(output_files):
+                ipw = IPW(f)
+                tstep = int(basename(ipw.input_file).split('.')[-1])
+                _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
+
+                progress.update(i)
 
     nc.sync()
     return nc
+
 
 def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
     """Put IPW data into dataset based on file naming conventions
@@ -523,6 +546,18 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
 
         for var in gvars:
             gvars[var][:, :] = reshape(df[var], (nlines, nsamps))
+
+    elif file_type == 'em':
+        gvars = dataset.groups['em'].variables
+
+        for var in gvars:
+            gvars[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
+
+    elif file_type == 'snow':
+        gvars = dataset.groups['snow'].variables
+
+        for var in gvars:
+            gvars[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
 
     # TODO file_type == "em" and "snow" for outputs
 

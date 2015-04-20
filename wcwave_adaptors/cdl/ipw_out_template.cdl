@@ -1,0 +1,142 @@
+netcdf {{ write_filename }} {
+
+    :bline = {{ bline }};
+    :bsamp = {{ bsamp }};
+    :dline = {{ dline }};
+    :dsamp = {{ dsamp }};
+
+    // assumed constant over the grid (for completeness only; these are apparently
+    // internally set (see http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html)
+    // all are in meters
+    :max_z_s_0 = 0.25; // thickness of active layer
+    :z_u = 5.0; // height above ground of the wind speed measurement
+    :z_T = 5.0; // height above ground of the air temp and vapor pres measurements
+    :z_g = 0.5; // depth below ground surface of soil of the soil temp measurement
+
+    :documentation_link = "cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html";
+    :description = "auto-generated NetCDF-4 Dataset that encapsulates full outputs for iSNOBAL model run";
+
+    dimensions: 
+
+        time = UNLIMITED ;
+        northing = {{ nlines }} ;
+        easting = {{ nsamps }} ;
+
+    variables:
+
+        float time(time) ;
+            time:long_name = "time";
+            time:standard_name = "{{ dt }} since {{ year }}-{{ month }}-{{ day }}";
+
+        float easting(easting) ;
+            easting:long_name = "x distance on the projection plane from the origin";
+            easting:standard_name = "projection_x_coordinate";
+            easting:units = "m";
+
+        float northing(northing) ;
+            northing:long_name = "y distance on the projection plane from the origin";
+            northing:standard_name = "projection_y_coordinate";
+            northing:units = "m";
+
+        float lat(northing, easting) ;
+            lat:long_name = "latitude";
+            lat:units = "degrees_north";
+
+        float lon(northing, easting) ;
+            lon:long_name = "longitude";
+            lon:units = "degrees_east";
+
+    group: em {
+    
+        variables:
+
+            float R_n(time, northing, easting) ;
+                R_n:ipw_desc = "average net all-wave rad";
+                R_n:units = "W m-2";
+
+            float H(time, northing, easting) ;
+                H:ipw_desc = "average sensible heat transfer";
+                H:units = "W m-2";
+
+            float L_v_E(time, northing, easting) ;
+                L_v_E:ipw_desc = "average latent heat exchange";
+                L_v_E:units = "W m-2";
+
+            float G(time, northing, easting) ;
+                G:ipw_desc = "average snow/soil heat exchange";
+                G:units = "W m-2";
+
+            float M(time, northing, easting) ;
+                M:ipw_desc = "average advected heat from precip";
+                M:units = "W m-2";
+
+            float delta_Q(time, northing, easting) ;
+                delta_Q:ipw_desc = "average sum of e.b. terms for snowcover";
+                delta_Q:units = "W m-2";
+
+            float E_s(time, northing, easting) ;
+                E_s:ipw_desc = "total evaporation";
+                E_s:standard_name = "";
+                E_s:description = "";
+                E_s:units = "kg";
+
+            float melt(time, northing, easting) ;
+                melt:ipw_desc = "total melt";
+                melt:standard_name = "";
+                melt:description = "";
+                melt:units = "kg";
+
+            float ro_predict(time, northing, easting) ;
+                ro_predict:ipw_desc = "total predicted runoff";
+                ro_predict:standard_name = "";
+                ro_predict:description = "";
+                ro_predict:units = "kg";
+
+            float cc_s(time, northing, easting) ;
+                cc_s:ipw_desc = "snowcover cold content";
+                cc_s:standard_name = "";
+                cc_s:description = "energy required to bring snowpack's temperature to 273.16K";
+                cc_s:units = "J m-2";
+    }
+
+    group: snow {
+    
+        variables:
+
+            float z_s(time, northing, easting) ;
+                z_s:ipw_desc = "predicted depth of snowcover";
+                z_s:units = "m";
+
+            float rho(time, northing, easting) ;
+                rho:ipw_desc = "predicted average snow density";
+                rho:units = "kg m-3";
+
+            float m_s(time, northing, easting) ;
+                m_s:ipw_desc = "predicted specific mass of snowcover";
+                m_s:units = "kg m-2";
+
+            float h2o(time, northing, easting) ;
+                h2o:ipw_desc = "predicted liquid H2O in snowcover";
+                h2o:units = "kg m-2";
+
+            float T_s_0(time, northing, easting) ;
+                T_s_0:ipw_desc = "predicted temperature of surface layer";
+                T_s_0:units = "C";
+
+            float T_s_l(time, northing, easting) ;
+                T_s_l:ipw_desc = "predicted temperature of lower layer";
+                T_s_l:units = "C";
+
+            float T_s(time, northing, easting) ;
+                T_s:ipw_desc = "predicted average temp of snowcover";
+                T_s:units = "C";
+
+            float z_s_l(time, northing, easting) ;
+                z_s_l:ipw_desc = "predicted lower layer depth";
+                z_s_l:units = "m";
+
+            float h2o_sat(time, northing, easting) ;
+                h2o_sat:ipw_desc = "predicted % liquid H2O saturation";
+                h2o_sat:units = "";
+    }
+}
