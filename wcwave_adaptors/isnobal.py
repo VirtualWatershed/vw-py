@@ -12,7 +12,6 @@ Tools for working with IPW binary data and running the iSNOBAL model.
 #
 import datetime
 import logging
-import os
 import subprocess
 import struct
 
@@ -21,16 +20,18 @@ from copy import deepcopy
 from netCDF4 import Dataset
 from numpy import zeros, ravel, reshape, fromstring, dtype, floor
 from numpy import sum as npsum
-from numpy import round as npround
+from numpy.ma.core import MaskedArray
+from os import mkdir, listdir
+from os.path import exists, dirname, basename
+from os.path import join as osjoin
 from pandas import date_range, DataFrame, Series, Timedelta
 from progressbar import ProgressBar
+from shutil import rmtree
 
 from wcwave_adaptors.watershed import (get_config, make_fgdc_metadata,
                                        make_watershed_metadata)
 
 from wcwave_adaptors.netcdf import ncgen_from_template
-
-from ipdb import set_trace
 
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
@@ -59,7 +60,7 @@ VARNAME_DICT = \
         'init': ["z", "z_0", "z_s", "rho", "T_s_0", "T_s", "h2o_sat"],
         'precip': ["m_pp", "percent_snow", "rho_snow", "T_pp"],
         'mask': ["mask"],
-        'dem': ["altitude"]
+        'dem': ["alt"]
     }
 
 #: Convert number of bytes to struct package code for unsigned integer type
@@ -116,7 +117,7 @@ class IPW(object):
         if input_file is not None:
 
             ipw_lines = IPWLines(input_file)
-            input_split = os.path.basename(input_file).split('.')
+            input_split = basename(input_file).split('.')
 
             file_type = file_type or input_split[0]
 
@@ -142,7 +143,7 @@ class IPW(object):
             # the default configuration is used if no config file is given
             if config_file is None:
                 config_file = \
-                    os.path.join(os.path.dirname(__file__), '../default.conf')
+                    osjoin(dirname(__file__), '../default.conf')
 
             # helper function get_config uses ConfigParser to parse config file
             config = get_config(config_file)
@@ -210,32 +211,48 @@ class IPW(object):
             self.end_datetime = None
 
     @classmethod
-    def from_nc(cls, nc_in, tstep=None, group=None, variables=None,
+    def from_nc(cls, nc_in, tstep=None, group=None, variable=None,
                 distance_units='m', coord_sys_ID='UTM'):
         """Generate an IPW object from a NetCDF file.
 
            Usage:
-                ipw = IPW().from_nc('dataset.nc')  # or
-                ipw = IPW().from_nc(nc_in)
-                ipw = IPW().from_nc('dataset.nc')  # or
-                ipw = IPW().from_nc(nc_in)
+                ipw = IPW.from_nc('dataset.nc', tstep='1', group='Inputs')
+                ipw = IPW.from_nc(nc_in)
 
                 If your data uses units of distance other than meters, set that
-                with kwarg `distance_units`.
+                with kwarg `distance_units`. Simliar
 
            Arguments:
                 nc_in (str or NetCDF4.Dataset) NetCDF to convert to IPW
+                tstep (int) The time step in whatever units are being used
+                group (str) Group of NetCDF variable, e.g. 'Precipitation'
+                variable (str or list) One or many variable names to be
+                    incorporated into IPW file
+                distance_units (str) If you use a measure of distance other
+                    than meters, put the units here
+                coord_sys_ID (str) Coordinate system being used
+
+            Returns:
+                (IPW) IPW instance built from NetCDF inputs
         """
         if type(nc_in) is str:
             nc_in = Dataset(nc_in, 'r')
         # check and get variables from netcdf
-        if group == None and variables == None:
-            raise Exception("group and variables both 'None': no data to convert!")
+        if group is None and variable is None:
+            raise Exception("group and variable both 'None': no data to convert!")
 
         # initialize the IPW and set its some global attributes
         ipw = IPW()
-        if group == None:
-            nc_vars = nc_in.variables
+
+        if group is None:
+            if variable == 'alt':
+                ipw.file_type = 'dem'
+            elif variable == 'mask':
+                ipw.file_type = variable
+
+            # this allows same lookup to be used for init or dem/mask
+            nc_vars = {variable: nc_in.variables[variable]}
+
         else:
             nc_vars = nc_in.groups[group].variables  # throw if key `group` dne
 
@@ -286,7 +303,6 @@ class IPW(object):
         # create a dataframe with nrows = nlines*nsamps and variable colnames
         df_shape = (ipw.nlines*ipw.nsamps, len(varnames))
         df = DataFrame(zeros(df_shape), columns=varnames)
-        # ipdb.set_trace()
         for idx, var in enumerate(varnames):
 
             header_dict[var] = Band(varname=var, band_idx=idx, nBytes=bytes_,
@@ -395,18 +411,18 @@ def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
         Returns:
             (netCDF4.Dataset) Representation of the data
     """
-    if 'inputs' in os.listdir(base_dir):
+    if 'inputs' in listdir(base_dir):
         ipw_type = 'inputs'
 
-    elif 'outputs' in os.listdir(base_dir):
+    elif 'outputs' in listdir(base_dir):
         ipw_type = 'outputs'
 
     else:
         raise IPWFileError("%s does not meet standards" % base_dir)
 
     if ipw_type == 'inputs':
-        input_files = [os.path.join(base_dir, 'inputs', el) for el in
-                       os.listdir(os.path.join(base_dir, 'inputs'))]
+        input_files = [osjoin(base_dir, 'inputs', el) for el in
+                       listdir(osjoin(base_dir, 'inputs'))]
 
         ipw0 = IPW(input_files[0])
         gt = ipw0.geotransform
@@ -425,14 +441,14 @@ def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
         with ProgressBar(maxval=len(input_files)) as progress:
             for i, f in enumerate(input_files):
                 ipw = IPW(f)
-                tstep = int(os.path.basename(ipw.input_file).split('.')[-1])
+                tstep = int(basename(ipw.input_file).split('.')[-1])
                 _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
 
                 progress.update(i)
 
-        dem = IPW(os.path.join(base_dir, 'tl2p5_dem.ipw'), file_type='dem')
-        mask = IPW(os.path.join(base_dir, 'tl2p5mask.ipw'), file_type='mask')
-        init = IPW(os.path.join(base_dir, 'init.ipw'))
+        dem = IPW(osjoin(base_dir, 'tl2p5_dem.ipw'), file_type='dem')
+        mask = IPW(osjoin(base_dir, 'tl2p5mask.ipw'), file_type='mask')
+        init = IPW(osjoin(base_dir, 'init.ipw'))
 
         for el in [mask, dem, init]:
             _nc_insert_ipw(nc, el, None, gb.nLines, gb.nSamps)
@@ -440,7 +456,7 @@ def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
         # read ppt_desc file and insert to nc with appropriate time step
         ppt_pairs = [ppt_line.strip().split('\t')
                      for ppt_line in
-                     open(os.path.join(base_dir, 'ppt_desc'), 'r').readlines()]
+                     open(osjoin(base_dir, 'ppt_desc'), 'r').readlines()]
         print nc.groups['Input'].variables
         print "Inserting Precip Data"
         with ProgressBar(maxval=len(ppt_pairs)) as progress:
@@ -505,8 +521,6 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
     elif file_type == 'init':
         gvars = dataset.groups['Initial'].variables
 
-        # from nose.tools import set_trace; set_trace()
-
         for var in gvars:
             gvars[var][:, :] = reshape(df[var], (nlines, nsamps))
 
@@ -541,40 +555,103 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
     if type(nc_in) is str:
         nc_in = Dataset(nc_in, 'r')
     else:
-        assert type(nc_in) is Dataset
+        assert isinstance(nc_in, Dataset)
 
     nc_groups = nc_in.groups.keys()
-    if 'Inputs' in nc_groups:
+    if 'Input' in nc_groups:
         type_ = 'inputs'
-    elif 'Outputs' in nc_groups:
+    elif 'Output' in nc_groups:
         type_ = 'outputs'
     else:
         raise IPWFileError("NetCDF %s is not a valid iSNOBAL representation"
                            % nc_in)
 
+    assert set(nc_in.groups.keys()) == \
+        set([u'Initial', u'Precipitation', u'Input']), \
+        "%s not a valid input iSNOBAL NetCDF" % nc_in.filepath()
+
+    assert set(nc_in.variables.keys()) == \
+        set([u'time', u'easting', u'northing', u'lat', u'lon',
+             u'alt', u'mask']), \
+        "%s not a valid input iSNOBAL NetCDF" % nc_in.filepath()
+
+    if clobber and exists(ipw_base_dir):
+        rmtree(ipw_base_dir)
+    elif exists(ipw_base_dir):
+        raise IPWFileError("clobber=False and %s exists" % ipw_base_dir)
+    mkdir(ipw_base_dir)
+
+    time_index = range(len(nc_in.variables['time']))
+
     if type_ == 'inputs':
 
-        assert set(nc_in.groups.keys()) == \
-            set([u'Initial', u'Precipitation', u'Input']), \
-            "%s not a valid input iSNOBAL NetCDF" % nc_in.filepath()
+        # for each time step create an IPW file
+        group = 'Input'
+        inputs_dir = osjoin(ipw_base_dir, 'inputs')
+        mkdir(inputs_dir)
 
-        assert set(nc_in.variables.keys()) == \
-            set([u'time', u'easting', u'northing', u'lat', u'lon',
-                 u'alt', u'mask']), \
-            "%s not a valid input iSNOBAL NetCDF" % nc_in.filepath()
+        print "Writing 'Input' Data to IPW files"
+        with ProgressBar(maxval=time_index[-1]) as progress:
+            for i, idx in enumerate(time_index[:11]):
+                if idx < 10:
+                    idxstr = "000" + str(idx)
+                elif idx < 100:
+                    idxstr = "00" + str(idx)
+                elif idx < 1000:
+                    idxstr = "0" + str(idx)
+                else:
+                    idxstr = str(idx)
 
-        if clobber and os.path.exists(ipw_base_dir):
-            os.rmdir(ipw_base_dir)
-        elif os.path.exists(ipw_base_dir):
-            raise IPWFileError("clobber=False and %s exists" % ipw_base_dir)
-        os.mkdir(ipw_base_dir)
+                IPW.from_nc(nc_in, tstep=idx, group=group
+                            ).write(osjoin(inputs_dir, 'in.' + idxstr))
 
-        # here we both initialize the DEM IPW for writing and get reusable info
+                progress.update(i)
 
+        group = 'Initial'
+        IPW.from_nc(nc_in, group=group
+                    ).write(osjoin(ipw_base_dir, 'init.ipw'))
 
+        IPW.from_nc(nc_in, variable='alt'
+                    ).write(osjoin(ipw_base_dir, 'dem.ipw'))
+
+        IPW.from_nc(nc_in, variable='mask'
+                    ).write(osjoin(ipw_base_dir, 'mask.ipw'))
+
+        # precip is weird. for no precip tsteps, no IPW exists
+        # list of tsteps that had precip and associated
+        # files stored in ppt_desc
+        group = 'Precipitation'
+        ppt_images_dir = osjoin(ipw_base_dir, 'ppt_images_dist')
+        mkdir(ppt_images_dir)
+
+        # can use just one variable (precip mass) to see which
+        mpp = nc_in.groups[group].variables['m_pp']
+
+        # if no precip at a tstep, variable type is numpy.ma.core.MaskedArray
+        time_indexes = [i for i, el in enumerate(mpp)
+                        if not isinstance(el, MaskedArray)]
+
+        # this should be mostly right except for ppt_desc and ppt data dir
+        print "Writing 'Precipitation' Data to IPW files"
+        with open(osjoin(ipw_base_dir, 'ppt_desc'), 'w') as ppt_desc:
+
+            with ProgressBar(maxval=len(time_indexes)) as progress:
+
+                for i, idx in enumerate(time_indexes):
+                    ppt_desc.write("%s\t%s\n" % (idx,
+                                   osjoin(ppt_images_dir,
+                                          'ppt_' + str(idx) + '.ipw')))
+
+                    ipw = IPW.from_nc(nc_in, tstep=idx, group=group)
+
+                    ipw.write(osjoin(ppt_images_dir,
+                                     'ppt_' + str(idx) + '.ipw'))
+
+                    progress.update(i)
 
     else:
-        raise Exception("Badness. Outputs not yet implemented")
+        raise Exception("NetCDF to IPW converter not implemented for type %s" %
+                        type_)
 
 
 def metadata_from_ipw(ipw, output_file, parent_model_run_uuid, model_run_uuid,
@@ -921,13 +998,9 @@ def _floatdf_to_binstring(bands, df):
 
         int_df[b.varname] = map_fn(df[b.varname])
 
-        set_trace()
-
     # use the struct package to pack ints to bytes; use '=' to prevent padding
     # that causes problems with the IPW scheme
     pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
-
-    set_trace()
 
     return b''.join([struct.pack(pack_str, *r[1]) for r in int_df.iterrows()])
 
