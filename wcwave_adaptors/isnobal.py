@@ -20,6 +20,7 @@ from copy import deepcopy
 from netCDF4 import Dataset
 from numpy import zeros, ravel, reshape, fromstring, dtype, floor
 from numpy import sum as npsum
+from numpy import round as npround
 from numpy.ma.core import MaskedArray
 from os import mkdir, listdir
 from os.path import exists, dirname, basename
@@ -49,6 +50,63 @@ GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
 #: Check if a header is starting
 IsHeaderStart = lambda headerLine: headerLine.split()[0] == "!<header>"
 
+
+def IsISNOBALInput(nc):
+    "Check if a NetCDF conforms to iSNOBAL requirements for running that model"
+    nca = nc.ncattrs()
+    valid = ('tstep' in nca and 'nsteps' in nca and 'output_freq' in nca)
+
+    if not valid:
+        print "Attributes 'tstep', 'nsteps', 'output_freq', 'bline', \
+                'bsamp', 'dline', and 'dsamp' not all in NetCDF"
+        return valid
+
+    ncv = nc.variables
+    valid = ('alt' in ncv and 'mask' in ncv and 'time' in ncv and
+             'easting' in ncv and 'northing' in ncv and 'lat' in ncv and
+             'lon' in ncv)
+
+    if not valid:
+        print "Variables 'alt', 'mask', 'time', 'easting', 'northing', 'lat'\
+                and 'lon' not all present in NetCDF"
+        return valid
+
+    ncg = nc.groups
+    valid = ('Initial' in ncg and 'Precipitation' in ncg and 'Input' in ncg)
+
+    if not valid:
+        print "'Initial', 'Precipitation', and 'Input' groups not present in \
+                NetCDF"
+        return valid
+
+    gvars = ncg['Input'].variables
+    valid = ('I_lw' in gvars and 'T_a' in gvars and 'e_a' in gvars and
+             'u' in gvars and 'T_g' in gvars and 'S_n' in gvars)
+
+    if not valid:
+        print "All required variables not present in inputs group of NetCDF"
+        return valid
+
+    gvars = ncg['Initial'].variables
+    valid = ('z' in gvars and 'z_0' in gvars and 'z_s' in gvars and
+             'rho' in gvars and 'T_s_0' in gvars and 'T_s' in gvars and
+             'h2o_sat' in gvars)
+
+    if not valid:
+        print "All required variables not present in initialization \
+                group of NetCDF"
+        return valid
+
+    gvars = ncg['Precipitation'].variables
+    valid = ('m_pp' in gvars and 'percent_snow' in gvars and
+             'rho_snow' in gvars)
+
+    if not valid:
+        print "All precipitation variables are not present in NetCDF"
+        return valid
+
+    return valid
+
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
 VARNAME_DICT = \
     {
@@ -72,7 +130,7 @@ PACK_DICT = \
     }
 
 
-def isnobal(data_tstep=60, nsteps=8758, init_img="data/init.ipw",
+def isnobal(nc_in=None, data_tstep=60, nsteps=8758, init_img="data/init.ipw",
             precip_file="data/ppt_desc", mask_file="data/tl2p5mask.ipw",
             input_prefix="data/inputs/in", output_frequency=1,
             em_prefix="data/outputs/em", snow_prefix="data/outputs/snow"):
@@ -80,16 +138,24 @@ def isnobal(data_tstep=60, nsteps=8758, init_img="data/init.ipw",
     Wrapper for running the ISNOBAL
     (http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html) model.
     """
-    isnobalcmd = " ".join(["isnobal",
-                           "-t " + str(data_tstep),
-                           "-n " + str(nsteps),
-                           "-I " + init_img,
-                           "-p " + precip_file,
-                           "-m " + mask_file,
-                           "-i " + input_prefix,
-                           "-O " + str(output_frequency),
-                           "-e " + em_prefix,
-                           "-s " + snow_prefix])
+    if not nc_in:
+        isnobalcmd = " ".join(["isnobal",
+                               "-t " + str(data_tstep),
+                               "-n " + str(nsteps),
+                               "-I " + init_img,
+                               "-p " + precip_file,
+                               "-m " + mask_file,
+                               "-i " + input_prefix,
+                               "-O " + str(output_frequency),
+                               "-e " + em_prefix,
+                               "-s " + snow_prefix])
+
+    else:
+        tmpdir = '/tmp/isnobalrun' + str(datetime.datetime.now())
+        mkdir(tmpdir)
+
+        assert IsISNOBAL(nc_in), "NetCDF Dataset not a valid iSNOBAL Dataset"
+
 
     output = subprocess.check_output(isnobalcmd, shell=True)
 
@@ -210,30 +276,51 @@ class IPW(object):
             self.start_datetime = None
             self.end_datetime = None
 
+        return None
+
+    def recalculate_header(self):
+        """
+            Recalculate header values
+        """
+        _recalculate_header(self.nonglobal_bands, self.data_frame())
+        for band in self.nonglobal_bands:
+            self.header_dict[band.varname] = band
+
+    @classmethod
+    def precip_tuple(self, precip_file, sepchar='\t'):
+        """Create list of two-lists where each element's elements are the time
+           index of the time step when the precipitation happened and an IPW
+           of the precipitation data.
+        """
+        pptlist = map(lambda l: l.strip().split(sepchar),
+                      open(precip_file, 'r').readlines())
+
+        return map(lambda l: (l[0], IPW(l[1], file_type='precip')), pptlist)
+
     @classmethod
     def from_nc(cls, nc_in, tstep=None, group=None, variable=None,
                 distance_units='m', coord_sys_ID='UTM'):
-        """Generate an IPW object from a NetCDF file.
+        """
+        Generate an IPW object from a NetCDF file.
 
-           Usage:
-                ipw = IPW.from_nc('dataset.nc', tstep='1', group='Inputs')
-                ipw = IPW.from_nc(nc_in)
+        >>> ipw = IPW.from_nc('dataset.nc', tstep='1', group='Inputs')
+        >>> ipw = IPW.from_nc(nc_in)
 
-                If your data uses units of distance other than meters, set that
-                with kwarg `distance_units`. Simliar
+        If your data uses units of distance other than meters, set that
+        with kwarg `distance_units`. Simliar
 
-           Arguments:
-                nc_in (str or NetCDF4.Dataset) NetCDF to convert to IPW
-                tstep (int) The time step in whatever units are being used
-                group (str) Group of NetCDF variable, e.g. 'Precipitation'
-                variable (str or list) One or many variable names to be
-                    incorporated into IPW file
-                distance_units (str) If you use a measure of distance other
-                    than meters, put the units here
-                coord_sys_ID (str) Coordinate system being used
+       Arguments:
+            nc_in (str or NetCDF4.Dataset) NetCDF to convert to IPW
+            tstep (int) The time step in whatever units are being used
+            group (str) Group of NetCDF variable, e.g. 'Precipitation'
+            variable (str or list) One or many variable names to be
+                incorporated into IPW file
+            distance_units (str) If you use a measure of distance other
+                than meters, put the units here
+            coord_sys_ID (str) Coordinate system being used
 
-            Returns:
-                (IPW) IPW instance built from NetCDF inputs
+        Returns:
+            (IPW) IPW instance built from NetCDF inputs
         """
         if type(nc_in) is str:
             nc_in = Dataset(nc_in, 'r')
@@ -341,14 +428,6 @@ class IPW(object):
 
         return ipw
 
-    def recalculate_header(self):
-        """
-        Recalculate header values
-        """
-        _recalculate_header(self.nonglobal_bands, self.data_frame())
-        for band in self.nonglobal_bands:
-            self.header_dict[band.varname] = band
-
     def data_frame(self):
         """
         Get the Pandas DataFrame representation of the IPW file
@@ -374,22 +453,11 @@ class IPW(object):
             f.write(
                 _floatdf_to_binstring(self.nonglobal_bands, self._data_frame))
 
-            return None
-
-    @classmethod
-    def precip_tuple(self, precip_file, sepchar='\t'):
-        """Create list of two-lists where each element's elements are the time
-           index of the time step when the precipitation happened and an IPW
-           of the precipitation data.
-        """
-        pptlist = map(lambda l: l.strip().split(sepchar),
-                      open(precip_file, 'r').readlines())
-
-        return map(lambda l: (l[0], IPW(l[1], file_type='precip')), pptlist)
+        return None
 
 
-def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
-                         month=10, day='01'):
+def generate_standard_nc(base_dir, nc_out, data_tstep=60, output_frequency=1,
+                         dt='hours', year=2010, month=10, day='01'):
     """Use the utilities from netcdf.py to convert standard set of either input
        or output files to a NetCDF4 file. A standard set of files means
 
@@ -428,9 +496,13 @@ def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
         gt = ipw0.geotransform
         gb = [x for x in ipw0.bands if type(x) is GlobalBand][0]
 
+        nstep = len(input_files)
+
         template_args = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
                              dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
-                             dt=dt, year=year, month=month, day=day)
+                             data_tstep=data_tstep, nstep=nstep,
+                             output_frequency=output_frequency, dt=dt,
+                             year=year, month=month, day=day)
 
         # initialize the nc file
         nc = ncgen_from_template('ipw_in_template.cdl', nc_out, clobber=True,
@@ -477,9 +549,13 @@ def generate_standard_nc(base_dir, nc_out, dt='hours', year=2010,
         gt = ipw0.geotransform
         gb = [x for x in ipw0.bands if type(x) is GlobalBand][0]
 
+        nstep = len(output_files)
+
         template_args = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
                              dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
-                             dt=dt, year=year, month=month, day=day)
+                             data_tstep=data_tstep, nstep=nstep,
+                             output_frequency=output_frequency, dt=dt,
+                             year=year, month=month, day=day)
 
         # initialize nc file
         nc = ncgen_from_template('ipw_out_template.cdl', nc_out, clobber=True,
@@ -1027,9 +1103,8 @@ def _floatdf_to_binstring(bands, df):
 
         # no need to include b.int_min, it's always zero
         map_fn = lambda x: \
-            floor(
-            # npround(
-                ((x - b.float_min) * b.int_max)/(b.float_max - b.float_min))
+            floor(npround(
+                ((x - b.float_min) * b.int_max)/(b.float_max - b.float_min)))
 
         int_df[b.varname] = map_fn(df[b.varname])
 
@@ -1122,4 +1197,7 @@ class IPWLines(object):
 
 
 class IPWFileError(Exception):
+    pass
+
+class IsnobalError(Exception):
     pass

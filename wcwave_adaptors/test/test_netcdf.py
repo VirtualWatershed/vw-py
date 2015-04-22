@@ -17,7 +17,6 @@ class TestIsnobalNetCDF(unittest.TestCase):
     """Unittests for NetCDF to iSNOBAL Adaptor Functionality
     """
     def setUp(self):
-        # TODO are these being used?
         test_dir = os.path.join(os.path.dirname(__file__), 'data')
 
         input_data_sources = ['inputs', 'ppt_desc', 'init.ipw',
@@ -77,7 +76,7 @@ class TestIsnobalNetCDF(unittest.TestCase):
         # check that the nc read from file is valid
         _validate_input_nc(self, nc, type_='outputs')
 
-        # os.remove(outputs_nc_out)
+        os.remove(outputs_nc_out)
 
     def test_nc_insert_ipw(self):
         "Private helper function _nc_insert_ipw inserts all IPW file_types"
@@ -181,18 +180,9 @@ class TestIsnobalNetCDF(unittest.TestCase):
         # dem
         ipw = IPW(datadir + 'tl2p5_dem.ipw', file_type='dem')
         _nc_insert_ipw(nc, ipw, None, self.nlines, self.nsamps)
-        # check that nc and nc_insert_ipw.tmp have been updated properly
-
-        # energy-mass (em)
-        # TODO
-        # snow
-        # TODO
 
     def test_netcdf_to_standard_ipw(self):
         "Proper NetCDF file can be extracted to iSNOBAL standard directory structure"
-        # TODO this nc should be the same one created and validated in
-        # test_nc_insert_ipw
-        #
         nc = generate_standard_nc(self.full_nc_base_dir, self.full_nc_out)
 
         nc = Dataset(self.full_nc_out, mode='r')

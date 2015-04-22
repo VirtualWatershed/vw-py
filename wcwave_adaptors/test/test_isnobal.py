@@ -12,13 +12,14 @@ import subprocess
 import struct
 import unittest
 
+from netCDF4 import Dataset
 from nose.tools import raises
 
 from StringIO import StringIO
 from wcwave_adaptors.isnobal import (VARNAME_DICT, _make_bands,
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,
     _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,
-    reaggregate_ipws, _is_consecutive)
+    reaggregate_ipws, _is_consecutive, IsISNOBALInput)
 
 
 class TestIPW(unittest.TestCase):
@@ -104,10 +105,10 @@ class TestIPW(unittest.TestCase):
         ipw = IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw', file_type='dem')
         df = ipw.data_frame()
 
-        assert df.sum()['altitude'] > 0
+        assert df.sum()['alt'] > 0
 
         assert len(df.columns)
-        assert df.columns == ['altitude']
+        assert df.columns == ['alt']
 
     @raises(Exception)
     def test_bad_filetype(self):
@@ -705,7 +706,7 @@ class TestResampleIPW(unittest.TestCase):
 
             assert (reimported.data_frame() ==
                     reagg_ipw.data_frame()).all().all(), \
-                "reimported: %s\nreagg: %s" % \
+                "\nreimported:\n%s\nreagg:\n%s" % \
                 (str(reimported.data_frame().head()),
                  str(reagg_ipw.data_frame().head()))
 
@@ -714,3 +715,16 @@ class TestResampleIPW(unittest.TestCase):
             assert reimported.end_datetime ==\
                datetime.datetime(2010, 10, 1, 2*(i+1), 0), \
                "reimported datetime: %s" % str(reimported.end_datetime)
+
+class TestISNOBAL(unittest.TestCase):
+    """Tests for particularities of the Python iSNOBAL interface"""
+    def setUp(self):
+        nc_in_fname = 'wcwave_adaptors/test/data/ref_in.nc'
+        self.nc_in = Dataset(nc_in_fname)
+        nc_out_fname = 'wcwave_adaptors/test/data/ref_out.nc'
+        self.nc_out = Dataset(nc_out_fname)
+
+    def test_is_isnobal(self):
+        """Enforce a NetCDF satisfies iSNOBAL requirements for input"""
+        assert IsISNOBALInput(self.nc_in)
+        assert not IsISNOBALInput(self.nc_out)

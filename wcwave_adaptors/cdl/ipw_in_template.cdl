@@ -1,5 +1,9 @@
 netcdf {{ write_filename }} {
 
+    // these are required for running iSNOBAL
+    :tstep = {{ tstep }};
+    :nsteps = {{ nsteps }};
+    :output_freq = {{ output_freq }};
     :bline = {{ bline }};
     :bsamp = {{ bsamp }};
     :dline = {{ dline }};
@@ -15,6 +19,7 @@ netcdf {{ write_filename }} {
 
     :documentation_link = "cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html";
     :description = "auto-generated NetCDF-4 Dataset that encapsulates full inputs for iSNOBAL model run";
+
 
     dimensions: 
 
