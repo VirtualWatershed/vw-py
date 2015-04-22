@@ -7,7 +7,7 @@ save the modified results
 import sys
 import os
 
-from adaptors.isnobal import IPW
+from wcwave_adaptors.isnobal import IPW
 
 amount = float(sys.argv[1])
 inputFile = sys.argv[2]

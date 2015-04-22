@@ -6,7 +6,7 @@ import os
 
 from glob import glob
 
-from adaptors.isnobal import upsert
+from wcwave_adaptors.isnobal import upsert
 
 # First "outputs" directory should be the parent uuid; all others inherit it
 parent_directory = \

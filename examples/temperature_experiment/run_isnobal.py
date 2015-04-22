@@ -8,7 +8,7 @@ first generates a list of in/out dirs
 
 import sys
 import os
-from adaptors.isnobal import isnobal
+from wcwave_adaptors.isnobal import isnobal
 
 inputDir = sys.argv[1]
 outputDir = sys.argv[2]

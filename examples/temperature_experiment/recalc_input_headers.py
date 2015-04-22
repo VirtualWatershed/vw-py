@@ -13,7 +13,7 @@ now in `original_inputs`
 import sys
 import os
 
-from adaptors.isnobal import IPW
+from wcwave_adaptors.isnobal import IPW
 
 input_file = sys.argv[1]
 
