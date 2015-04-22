@@ -107,6 +107,7 @@ def IsISNOBALInput(nc):
 
     return valid
 
+
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
 VARNAME_DICT = \
     {
@@ -130,15 +131,18 @@ PACK_DICT = \
     }
 
 
-def isnobal(nc_in=None, data_tstep=60, nsteps=8758, init_img="data/init.ipw",
-            precip_file="data/ppt_desc", mask_file="data/tl2p5mask.ipw",
-            input_prefix="data/inputs/in", output_frequency=1,
-            em_prefix="data/outputs/em", snow_prefix="data/outputs/snow"):
+def isnobal(nc_in=None, nc_out=None, data_tstep=60, nsteps=8758,
+            init_img="data/init.ipw", precip_file="data/ppt_desc",
+            mask_file="data/tl2p5mask.ipw", input_prefix="data/inputs/in",
+            output_frequency=1, em_prefix="data/outputs/em",
+            snow_prefix="data/outputs/snow", dt='hours', year=2010,
+            month=10, day='01'):
     """
     Wrapper for running the ISNOBAL
     (http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html) model.
     """
     if not nc_in:
+
         isnobalcmd = " ".join(["isnobal",
                                "-t " + str(data_tstep),
                                "-n " + str(nsteps),
@@ -151,15 +155,46 @@ def isnobal(nc_in=None, data_tstep=60, nsteps=8758, init_img="data/init.ipw",
                                "-s " + snow_prefix])
 
     else:
+
         tmpdir = '/tmp/isnobalrun' + str(datetime.datetime.now())
         mkdir(tmpdir)
 
-        assert IsISNOBAL(nc_in), "NetCDF Dataset not a valid iSNOBAL Dataset"
+        assert IsISNOBALInput(nc_in),\
+            "NetCDF Dataset not a valid iSNOBAL Dataset"
 
+        # these are guaranteed to be present by the above assertion
+        data_tstep = nc_in.data_tstep
+        nsteps = nc_in.nsteps
+        output_frequency = nc_in.output_frequency
 
+        # create standard IPW data in tmpdir
+        nc_to_standard_ipw(nc_in, tmpdir)
+
+        # nc_to_standard_ipw is well tested, we know these will be present
+        init_img = osjoin(tmpdir, 'init.ipw')
+        precip_file = osjoin(tmpdir, 'ppt_desc')
+        mask_file = osjoin(tmpdir, 'mask.ipw')
+        input_prefix = osjoin(tmpdir, 'inputs/in')
+        em_prefix = osjoin(tmpdir, 'outputs/em')
+        snow_prefix = osjoin(tmpdir, 'outputs/snow')
+
+        # recursively run isnobal with nc_in=None
+        isnobal(data_tstep=data_tstep, nsteps=nsteps, init_img=init_img,
+                precip_file=precip_file, mask_file=mask_file,
+                input_prefix=input_prefix, output_frequency=output_frequency,
+                em_prefix=em_prefix, snow_prefix=snow_prefix)
+
+    # TODO sanitize this isnobalcmd or better yet, avoid shell=True
     output = subprocess.check_output(isnobalcmd, shell=True)
-
     logging.debug("ISNOBAL process output: " + output)
+
+    # create a NetCDF of the outputs and return it
+    nc_out = \
+        generate_standard_nc(dirname(em_prefix), nc_out, data_tstep=data_tstep,
+                             output_frequency=output_frequency, dt=dt,
+                             year=year, month=month, day=day)
+
+    return nc_out
 
 
 class IPW(object):
@@ -456,8 +491,9 @@ class IPW(object):
         return None
 
 
-def generate_standard_nc(base_dir, nc_out, data_tstep=60, output_frequency=1,
-                         dt='hours', year=2010, month=10, day='01'):
+def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
+                         output_frequency=1, dt='hours', year=2010, month=10,
+                         day='01'):
     """Use the utilities from netcdf.py to convert standard set of either input
        or output files to a NetCDF4 file. A standard set of files means
 
@@ -473,8 +509,8 @@ def generate_standard_nc(base_dir, nc_out, data_tstep=60, output_frequency=1,
               snow outputs in time steps named like em.0000 and snow.0000
 
         Arguments:
-            netcdf_path (str): Path to save the NetCDF to
-            ipw_source (str or [str]): path to either file or directory
+            base_dir (str): base directory of the data
+            nc_out (str): path to write data to
 
         Returns:
             (netCDF4.Dataset) Representation of the data
@@ -496,11 +532,11 @@ def generate_standard_nc(base_dir, nc_out, data_tstep=60, output_frequency=1,
         gt = ipw0.geotransform
         gb = [x for x in ipw0.bands if type(x) is GlobalBand][0]
 
-        nstep = len(input_files)
+        nsteps = len(input_files)
 
         template_args = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
                              dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
-                             data_tstep=data_tstep, nstep=nstep,
+                             data_tstep=data_tstep, nsteps=nsteps,
                              output_frequency=output_frequency, dt=dt,
                              year=year, month=month, day=day)
 
@@ -549,11 +585,11 @@ def generate_standard_nc(base_dir, nc_out, data_tstep=60, output_frequency=1,
         gt = ipw0.geotransform
         gb = [x for x in ipw0.bands if type(x) is GlobalBand][0]
 
-        nstep = len(output_files)
+        nsteps = len(output_files)
 
         template_args = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
                              dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
-                             data_tstep=data_tstep, nstep=nstep,
+                             data_tstep=data_tstep, nsteps=nsteps,
                              output_frequency=output_frequency, dt=dt,
                              year=year, month=month, day=day)
 
@@ -1197,7 +1233,4 @@ class IPWLines(object):
 
 
 class IPWFileError(Exception):
-    pass
-
-class IsnobalError(Exception):
     pass

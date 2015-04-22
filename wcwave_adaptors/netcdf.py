@@ -1,24 +1,43 @@
 """
+Utility functions for building NetCDF files and objects used extensively to
+convert between IPW (iSNOBAL) and NetCDF4. Designed to be general, so could
+be reused for any of the models.
 
+Author: Matthew Turner <maturner@uidaho.edu>
+Date: April 21, 2015
 """
-from jinja2 import Environment, FileSystemLoader
-from subprocess import Popen
-
+import datetime
 import numpy as np
-import netCDF4 as nc
+import netCDF4
 import os
 import uuid
 import utm
 
+from jinja2 import Environment, FileSystemLoader
+from subprocess import Popen
 
-def ncgen_from_template(template_filename, ncout_filename,
-                        cdl_output_filename=None, return_nc=True,
-                        clobber=False,
-                        **kwargs):
+
+def ncgen_from_template(template_filename, ncout_filename=None,
+                        cdl_output_filename=None, clobber=False, **kwargs):
     """Generate a NetCDF file from a template. If no cdl output filename is
         given, a temporary file in /tmp will be used. This is slightly
         dangerous, but the resulting template files are not too large, and we
         do try to clean up afterwards.
+
+        Arguments:
+            template_filename (str) path to template file used to build CDL
+            ncout_filename (str) path where resulting NetCDF should be saved
+            cdl_output_filename (str or None) if the user wants to save the
+                CDL file generated in the process of creating the .nc, provide
+                it here
+            clobber (bool) Whether or not to overwrite file `ncout_filename`
+                if it exists
+            **kwargs arguments to be passed to build the template; requires
+                knowledge of the arguments of the template
+
+        Returns:
+            (netCDF4.Dataset) NetCDF4 initialized with structure defined in
+                the CDL template when the template variables are filled in
     """
     # assign a random temp file name for
     if not cdl_output_filename:
@@ -29,6 +48,9 @@ def ncgen_from_template(template_filename, ncout_filename,
                        cdl_output_filename)
 
     _build_cdl(template_filename, cdl_output_filename, **kwargs)
+
+    if ncout_filename is None:
+        ncout_filename = os.path.join('/tmp', str(datetime.datetime.now()))
 
     nc = ncgen(cdl_output_filename, ncout_filename)
 
@@ -76,7 +98,7 @@ def ncgen(cdl_path, output_path, return_nc=True):
 
     elif return_nc:
         # return dataset in 'append' mode. NC4 all day ery day (default)
-        return nc.Dataset(output_path, 'a')
+        return netCDF4.Dataset(output_path, 'a')
 
 
 class NCOError(Exception):
@@ -87,7 +109,9 @@ def utm2latlon(bsamp=None, bline=None, dsamp=None, dline=None,
                nsamp=None, nline=None, utm_zone=11, utm_letter='T'):
     """Create latitude and longitude variables based on the bline and bsamp
        variables given. Default UTM zone is 11T, where Dry Crrek and Reynold's
-       Creek are.
+       Creek are. Included here because we will follow Climate and Forecasting
+       (CF) standards for our NetCDF files, which demands lat/lon be present
+       in addition to whatever grid variables used by a model.
 
        Returns:
            2 x (nline * nsamp) array of lat/lon coordinates
