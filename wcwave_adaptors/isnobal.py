@@ -18,7 +18,7 @@ import struct
 from collections import namedtuple, defaultdict
 from copy import deepcopy
 from netCDF4 import Dataset
-from numpy import zeros, ravel, reshape, fromstring, dtype, floor
+from numpy import zeros, ravel, reshape, fromstring, dtype, floor, log10
 from numpy import sum as npsum
 from numpy import round as npround
 from numpy.ma.core import MaskedArray
@@ -51,15 +51,19 @@ GlobalBand = namedtuple("GlobalBand", 'byteorder nLines nSamps nBands')
 IsHeaderStart = lambda headerLine: headerLine.split()[0] == "!<header>"
 
 
-def IsISNOBALInput(nc):
-    "Check if a NetCDF conforms to iSNOBAL requirements for running that model"
+def AssertISNOBALInput(nc):
+    """Check if a NetCDF conforms to iSNOBAL requirements for running that
+       model. Throw a ISNOBALNetcdfError if not
+
+    """
     nca = nc.ncattrs()
-    valid = ('tstep' in nca and 'nsteps' in nca and 'output_freq' in nca)
+    valid = ('data_tstep' in nca and 'nsteps' in nca and
+             'output_frequency' in nca)
 
     if not valid:
-        print "Attributes 'tstep', 'nsteps', 'output_freq', 'bline', \
-                'bsamp', 'dline', and 'dsamp' not all in NetCDF"
-        return valid
+        raise ISNOBALNetcdfError("Attributes 'data_tstep', 'nsteps', " +
+                                 "'output_frequency', 'bline', 'bsamp', " +
+                                 "'dline', and 'dsamp' not all in NetCDF")
 
     ncv = nc.variables
     valid = ('alt' in ncv and 'mask' in ncv and 'time' in ncv and
@@ -67,25 +71,23 @@ def IsISNOBALInput(nc):
              'lon' in ncv)
 
     if not valid:
-        print "Variables 'alt', 'mask', 'time', 'easting', 'northing', 'lat'\
-                and 'lon' not all present in NetCDF"
-        return valid
+        raise ISNOBALNetcdfError("Variables 'alt', 'mask', 'time', 'easting', \
+                'northing', 'lat' and 'lon' not all present in NetCDF")
 
     ncg = nc.groups
     valid = ('Initial' in ncg and 'Precipitation' in ncg and 'Input' in ncg)
 
     if not valid:
-        print "'Initial', 'Precipitation', and 'Input' groups not present in \
-                NetCDF"
-        return valid
+        raise ISNOBALNetcdfError("'Initial', 'Precipitation', and 'Input' \
+                groups not present in NetCDF")
 
     gvars = ncg['Input'].variables
     valid = ('I_lw' in gvars and 'T_a' in gvars and 'e_a' in gvars and
              'u' in gvars and 'T_g' in gvars and 'S_n' in gvars)
 
     if not valid:
-        print "All required variables not present in inputs group of NetCDF"
-        return valid
+        raise ISNOBALNetcdfError("All required variables not present in inputs\
+                group of NetCDF")
 
     gvars = ncg['Initial'].variables
     valid = ('z' in gvars and 'z_0' in gvars and 'z_s' in gvars and
@@ -93,19 +95,16 @@ def IsISNOBALInput(nc):
              'h2o_sat' in gvars)
 
     if not valid:
-        print "All required variables not present in initialization \
-                group of NetCDF"
-        return valid
+        raise ISNOBALNetcdfError("All required variables not present in \
+                initialization group of NetCDF")
 
     gvars = ncg['Precipitation'].variables
     valid = ('m_pp' in gvars and 'percent_snow' in gvars and
              'rho_snow' in gvars)
 
     if not valid:
-        print "All precipitation variables are not present in NetCDF"
-        return valid
-
-    return valid
+        raise ISNOBALNetcdfError("All precipitation variables are not present \
+                in NetCDF")
 
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
@@ -131,15 +130,25 @@ PACK_DICT = \
     }
 
 
-def isnobal(nc_in=None, nc_out=None, data_tstep=60, nsteps=8758,
+def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
             init_img="data/init.ipw", precip_file="data/ppt_desc",
             mask_file="data/tl2p5mask.ipw", input_prefix="data/inputs/in",
             output_frequency=1, em_prefix="data/outputs/em",
             snow_prefix="data/outputs/snow", dt='hours', year=2010,
             month=10, day='01'):
-    """
-    Wrapper for running the ISNOBAL
-    (http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html) model.
+    """ Wrapper for running the ISNOBAL
+        (http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html)
+        model.
+
+        Arguments:
+            nc_in (netCDF4.Dataset) Input NetCDF4 dataset. See
+                AssertISNOBALInput for requirements.
+            nc_out_fname (str) Name of NetCDF file to write to, if desired
+
+            For explanations the rest, see the link above.
+
+        Returns:
+            (netCDF4.Dataset) NetCDF Dataset object of the outputs
     """
     if not nc_in:
 
@@ -154,21 +163,35 @@ def isnobal(nc_in=None, nc_out=None, data_tstep=60, nsteps=8758,
                                "-e " + em_prefix,
                                "-s " + snow_prefix])
 
+        # TODO sanitize this isnobalcmd or better yet, avoid shell=True
+        output = subprocess.check_output(isnobalcmd, shell=True)
+        logging.debug("ISNOBAL process output: " + output)
+
+        # create a NetCDF of the outputs and return it
+        nc_out = \
+            generate_standard_nc(dirname(em_prefix), nc_out_fname,
+                                 data_tstep=data_tstep,
+                                 output_frequency=output_frequency, dt=dt,
+                                 year=year, month=month, day=day)
+
+        return nc_out
+
     else:
 
-        tmpdir = '/tmp/isnobalrun' + str(datetime.datetime.now())
-        mkdir(tmpdir)
-
-        assert IsISNOBALInput(nc_in),\
-            "NetCDF Dataset not a valid iSNOBAL Dataset"
+        AssertISNOBALInput(nc_in)
 
         # these are guaranteed to be present by the above assertion
         data_tstep = nc_in.data_tstep
         nsteps = nc_in.nsteps
         output_frequency = nc_in.output_frequency
 
-        # create standard IPW data in tmpdir
+        # create standard IPW data in tmpdir; creates tmpdir
+        tmpdir = '/tmp/isnobalrun' + \
+            str(datetime.datetime.now()).replace(' ', '')
+
         nc_to_standard_ipw(nc_in, tmpdir)
+
+        mkdir(osjoin(tmpdir, 'outputs'))
 
         # nc_to_standard_ipw is well tested, we know these will be present
         init_img = osjoin(tmpdir, 'init.ipw')
@@ -179,23 +202,15 @@ def isnobal(nc_in=None, nc_out=None, data_tstep=60, nsteps=8758,
         snow_prefix = osjoin(tmpdir, 'outputs/snow')
 
         # recursively run isnobal with nc_in=None
-        isnobal(data_tstep=data_tstep, nsteps=nsteps, init_img=init_img,
-                precip_file=precip_file, mask_file=mask_file,
-                input_prefix=input_prefix, output_frequency=output_frequency,
-                em_prefix=em_prefix, snow_prefix=snow_prefix)
+        nc_out = isnobal(data_tstep=data_tstep, nsteps=nsteps,
+                         init_img=init_img, precip_file=precip_file,
+                         mask_file=mask_file, input_prefix=input_prefix,
+                         output_frequency=output_frequency,
+                         em_prefix=em_prefix, snow_prefix=snow_prefix)
 
-    # TODO sanitize this isnobalcmd or better yet, avoid shell=True
-    output = subprocess.check_output(isnobalcmd, shell=True)
-    logging.debug("ISNOBAL process output: " + output)
+        rmtree(tmpdir)
 
-    # create a NetCDF of the outputs and return it
-    nc_out = \
-        generate_standard_nc(dirname(em_prefix), nc_out, data_tstep=data_tstep,
-                             output_frequency=output_frequency, dt=dt,
-                             year=year, month=month, day=day)
-
-    return nc_out
-
+        return nc_out
 
 class IPW(object):
     """
@@ -532,7 +547,9 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
         gt = ipw0.geotransform
         gb = [x for x in ipw0.bands if type(x) is GlobalBand][0]
 
-        nsteps = len(input_files)
+        # in iSNOBAL speak, literally the number of steps, not number of
+        # time index entries
+        nsteps = len(input_files) - 1
 
         template_args = dict(bline=gt[3], bsamp=gt[0], dline=gt[5],
                              dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
@@ -737,15 +754,19 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
         inputs_dir = osjoin(ipw_base_dir, 'inputs')
         mkdir(inputs_dir)
 
+        tsteps = len(time_index)
+
+        zeropad_factor = floor(log10(tsteps))
+
         print "Writing 'Input' Data to IPW files"
         with ProgressBar(maxval=time_index[-1]) as progress:
             for i, idx in enumerate(time_index):
                 if idx < 10:
-                    idxstr = "000" + str(idx)
+                    idxstr = "0"*zeropad_factor + str(idx)
                 elif idx < 100:
-                    idxstr = "00" + str(idx)
+                    idxstr = "0"*(zeropad_factor - 1) + str(idx)
                 elif idx < 1000:
-                    idxstr = "0" + str(idx)
+                    idxstr = "0"*(zeropad_factor - 2) + str(idx)
                 else:
                     idxstr = str(idx)
 
@@ -1233,4 +1254,7 @@ class IPWLines(object):
 
 
 class IPWFileError(Exception):
+    pass
+
+class ISNOBALNetcdfError(Exception):
     pass

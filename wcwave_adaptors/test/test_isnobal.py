@@ -19,7 +19,7 @@ from StringIO import StringIO
 from wcwave_adaptors.isnobal import (VARNAME_DICT, _make_bands,
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,
     _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,
-    reaggregate_ipws, _is_consecutive, IsISNOBALInput)
+    reaggregate_ipws, _is_consecutive, AssertISNOBALInput, ISNOBALNetcdfError)
 
 
 class TestIPW(unittest.TestCase):
@@ -726,5 +726,9 @@ class TestISNOBAL(unittest.TestCase):
 
     def test_is_isnobal(self):
         """Enforce a NetCDF satisfies iSNOBAL requirements for input"""
-        assert IsISNOBALInput(self.nc_in)
-        assert not IsISNOBALInput(self.nc_out)
+        AssertISNOBALInput(self.nc_in)
+
+    @raises(ISNOBALNetcdfError)
+    def test_not_isnobal_raises(self):
+        "If a NetCDF does not satisfy iSNOBAL requirements, throw ISNOBALNetcdfError"
+        AssertISNOBALInput(self.nc_out)

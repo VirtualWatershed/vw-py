@@ -3,7 +3,7 @@ netcdf {{ write_filename }} {
     // these are required for running iSNOBAL
     :data_tstep = {{ data_tstep }};
     :nsteps = {{ nsteps }};
-    :output_freq = {{ output_freq }};
+    :output_frequency = {{ output_frequency }};
     :bline = {{ bline }};
     :bsamp = {{ bsamp }};
     :dline = {{ dline }};

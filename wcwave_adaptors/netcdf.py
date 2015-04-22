@@ -46,11 +46,11 @@ def ncgen_from_template(template_filename, ncout_filename=None,
     if os.path.isfile(cdl_output_filename) and not clobber:
         raise NCOError("CDL file %s already exists and clobber is false" %
                        cdl_output_filename)
-
+    print kwargs
     _build_cdl(template_filename, cdl_output_filename, **kwargs)
 
     if ncout_filename is None:
-        ncout_filename = os.path.join('/tmp', str(datetime.datetime.now()))
+        ncout_filename = os.path.join('/tmp', str(uuid.uuid4()))
 
     nc = ncgen(cdl_output_filename, ncout_filename)
 
@@ -87,7 +87,8 @@ def ncgen(cdl_path, output_path, return_nc=True):
     """Wrapper for the NCO tool of the same name. See
         https://www.mankier.com/1/ncgen
     """
-    p = Popen('ncgen -o %s %s' % (output_path, cdl_path), shell=True)
+    ncgen_cmd = 'ncgen -o %s %s' % (output_path, cdl_path)
+    p = Popen(ncgen_cmd, shell=True)
 
     retvals = p.communicate()
 
