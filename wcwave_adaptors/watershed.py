@@ -7,7 +7,6 @@ associated metadata.
 
 import configparser
 import datetime
-# from datetime import datetime
 import logging
 import json
 import os

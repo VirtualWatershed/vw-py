@@ -530,7 +530,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
         Returns:
             (netCDF4.Dataset) Representation of the data
     """
-    if 'outputs' == base_dir.split('/')[-1]:
+    if 'outputs' in base_dir.split('/')[-1]:
         ipw_type = 'outputs'
 
     elif 'inputs' in listdir(base_dir):
