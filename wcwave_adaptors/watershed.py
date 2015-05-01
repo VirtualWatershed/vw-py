@@ -193,7 +193,7 @@ class VWClient:
         """ Initialize a new connection to the virtual watershed """
 
         # Check our credentials
-        auth_url = "http://" + ip_address + "/apps/vwp/auth"
+        auth_url = "http://" + ip_address + "/apps/vwp/apilogin"
         r = requests.get(auth_url, auth=(uname, passwd), verify=False)
         r.raise_for_status()
 

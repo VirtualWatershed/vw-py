@@ -8,6 +8,9 @@ first generates a list of in/out dirs
 
 import sys
 import os
+
+sys.path.append('../../')
+
 from wcwave_adaptors.isnobal import isnobal
 
 inputDir = sys.argv[1]

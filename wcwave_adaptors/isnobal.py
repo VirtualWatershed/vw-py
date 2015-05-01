@@ -1118,8 +1118,8 @@ def _bands_to_header_lines(bands_dict):
         float_max = \
             (b.float_max, int(b.float_max))[b.float_max == int(b.float_max)]
         other_lines += ["!<header> lq {0} $Revision: 1.6 $".format(i),
-                       "map = {0} {1} ".format(int_min, float_min),
-                       "map = {0} {1} ".format(int_max, float_max)]
+                        "map = {0} {1} ".format(int_min, float_min),
+                        "map = {0} {1} ".format(int_max, float_max)]
 
     # build the geographic header
     for i, b in enumerate(bands):

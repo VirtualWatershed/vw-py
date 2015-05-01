@@ -13,6 +13,8 @@ now in `original_inputs`
 import sys
 import os
 
+sys.path.append('../../')
+
 from wcwave_adaptors.isnobal import IPW
 
 input_file = sys.argv[1]
@@ -23,7 +25,7 @@ ipw = IPW(input_file)
 # save file to the appropriate outputdir
 ipw.recalculate_header()
 
-save_dir = "data/inputs/"
+save_dir = os.path.join(os.path.dirname(input_file).split('/')[0], "inputs/")
 
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
