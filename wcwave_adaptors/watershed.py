@@ -193,9 +193,11 @@ class VWClient:
         """ Initialize a new connection to the virtual watershed """
 
         # Check our credentials
-        auth_url = "http://" + ip_address + "/apps/vwp/apilogin"
-        r = requests.get(auth_url, auth=(uname, passwd), verify=False)
-        r.raise_for_status()
+        auth_url = "http://" + ip_address + "/apilogin"
+        self.sesh = requests.session()
+
+        l = self.sesh.get(auth_url, auth=(uname, passwd), verify=False)
+        l.raise_for_status()
 
         self.uname = uname
         self.passwd = passwd
@@ -254,8 +256,8 @@ class VWClient:
         # TODO make this class-level
         auth = (self.uname, self.passwd)
 
-        result = requests.post(self.new_run_url, data=json.dumps(data),
-                               auth=auth, verify=False)
+        result = self.sesh.post(self.new_run_url, data=json.dumps(data),
+                                auth=auth, verify=False)
 
         result.raise_for_status()
 
@@ -313,10 +315,10 @@ class VWClient:
         num_tries = 0
         while num_tries < self._retry_num:
             try:
-                result = requests.put(self.insert_dataset_url,
-                                      data=watershedMetadata,
-                                      auth=(self.uname, self.passwd),
-                                      verify=False)
+                result = self.sesh.put(self.insert_dataset_url,
+                                       data=watershedMetadata,
+                                       auth=(self.uname, self.passwd),
+                                       verify=False)
 
                 logging.debug(result.content)
 
@@ -327,7 +329,6 @@ class VWClient:
                 num_tries += 1
                 continue
 
-        print result.content
         raise requests.HTTPError()
 
     def upload(self, modelRunUUID, dataFilePath):
@@ -341,9 +342,9 @@ class VWClient:
         while num_tries < self._retry_num:
             try:
                 result = \
-                    requests.post(self.data_upload_url, data=dataPayload,
-                                  files={'file': open(dataFilePath, 'rb')},
-                                  auth=(self.uname, self.passwd), verify=False)
+                    self.sesh.post(self.data_upload_url, data=dataPayload,
+                                   files={'file': open(dataFilePath, 'rb')},
+                                   auth=(self.uname, self.passwd), verify=False)
 
                 result.raise_for_status()
                 return result
@@ -352,6 +353,8 @@ class VWClient:
                 num_tries += 1
                 continue
 
+        import ipdb
+        ipdb.set_trace()
         raise requests.HTTPError()
 
 

@@ -205,7 +205,7 @@ class TestVWClient(unittest.TestCase):
     @raises(HTTPError)
     def test_authFail(self):
         """ Test that failed authorization is correctly caught """
-        actualVWip = '129.24.196.23'
+        actualVWip = 'vwp-dev.unm.edu'
         VWClient(actualVWip, 'fake_user', 'fake_passwd')
 
     def test_insert(self):
