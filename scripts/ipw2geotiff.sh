@@ -6,7 +6,11 @@
 # Hudspeth (ipw2GeoTiff.py)
 #
 # Example usage (use full path for IPW functions):
-# find -f /Users/mturner/data/ | parallel ./ipw2geotiff.sh 1 4326 I_lw
+# find -f /Users/mturner/data/inputs | grep -e "in.[0-9]\{4\}$" | parallel ./ipw2geotiff.sh 0 4326 I_lw
+# will create geotiffs of the first band, long-wave input radiation, for each 
+# IPW input file in /Users/mturner/data/inputs
+#
+# Currently only uses output EPSG 26911 whatever that means.
 #
 # Date: January 7, 2015
 

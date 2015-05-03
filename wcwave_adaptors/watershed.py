@@ -15,6 +15,7 @@ requests.packages.urllib3.disable_warnings()
 import urllib
 import pandas as pd
 
+from progressbar import ProgressBar
 from string import Template
 
 
@@ -237,7 +238,6 @@ class VWClient:
             (str) a newly-intialized model_run_uuid
 
         """
-        print model_run_name
         assert description, \
             "You must provide a description for your new model run"
         assert model_run_name, \
@@ -566,7 +566,9 @@ def upsert(input_path, model_run_name=None, description=None, keywords=None,
     print "upserting file(s) from %s with model_run_uuid %s" % \
         (input_path, model_run_uuid)
 
-    for file_ in files:
-        _upsert(file_)
+    with ProgressBar(maxval=len(files)) as progress:
+        for i, file_ in enumerate(files):
+            _upsert(file_)
+            progress.update(i)
 
     return (parent_model_run_uuid, model_run_uuid)

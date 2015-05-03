@@ -58,3 +58,4 @@ wcwave_adaptors/test/data/tmp_write_reagg
 wcwave_adaptors/test/data/full_nc_example/ipw_from_nc
 examples/temperature_experiment/data/
 examples/temperature_experiment/*data
+venv
