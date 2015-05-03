@@ -29,10 +29,10 @@ from pandas import date_range, DataFrame, Series, Timedelta
 from progressbar import ProgressBar
 from shutil import rmtree
 
-from wcwave_adaptors.watershed import (get_config, make_fgdc_metadata,
+from .watershed import (get_config, make_fgdc_metadata,
                                        make_watershed_metadata)
 
-from wcwave_adaptors.netcdf import ncgen_from_template
+from .netcdf import ncgen_from_template
 
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years

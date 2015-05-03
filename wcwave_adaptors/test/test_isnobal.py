@@ -16,7 +16,7 @@ from netCDF4 import Dataset
 from nose.tools import raises
 
 from StringIO import StringIO
-from wcwave_adaptors.isnobal import (VARNAME_DICT, _make_bands,
+from ..isnobal import (VARNAME_DICT, _make_bands,
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,
     _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,
     reaggregate_ipws, _is_consecutive, AssertISNOBALInput, ISNOBALNetcdfError)

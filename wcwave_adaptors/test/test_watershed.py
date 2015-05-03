@@ -2,7 +2,7 @@
 Testing module for Virtual Watershed Data adaptor.
 """
 
-from wcwave_adaptors.watershed import make_watershed_metadata, make_fgdc_metadata, \
+from ..watershed import make_watershed_metadata, make_fgdc_metadata, \
     VWClient, default_vw_client, get_config, upsert, metadata_from_file
 
 import datetime
@@ -19,7 +19,7 @@ from requests.exceptions import HTTPError
 
 from nose.tools import raises
 
-from wcwave_adaptors.isnobal import VARNAME_DICT
+from ..isnobal import VARNAME_DICT
 
 
 def show_string_diff(s1, s2):

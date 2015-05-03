@@ -7,9 +7,9 @@ import unittest
 import numpy as np
 from netCDF4 import Dataset
 
-from wcwave_adaptors.netcdf import utm2latlon, ncgen_from_template
+from ..netcdf import utm2latlon, ncgen_from_template
 # include tests for generate_standard_nc in this module
-from wcwave_adaptors.isnobal import (_nc_insert_ipw, IPW, nc_to_standard_ipw,
+from ..isnobal import (_nc_insert_ipw, IPW, nc_to_standard_ipw,
                                      GlobalBand, generate_standard_nc)
 
 
