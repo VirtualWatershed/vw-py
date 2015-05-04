@@ -12,6 +12,7 @@ import json
 import os
 import requests
 requests.packages.urllib3.disable_warnings()
+
 import urllib
 import pandas as pd
 
@@ -397,13 +398,13 @@ def default_vw_client(config_file="default.conf"):
 
         Returns: VWClient connected to the ip address given in config_file
     """
-    config = get_config(config_file)
+    config = _get_config(config_file)
     common = config['Common']
 
     return VWClient(common['watershedIP'], common['user'], common['passwd'])
 
 
-def get_config(config_file=None):
+def _get_config(config_file=None):
     """Provide user with a ConfigParser that has read the `config_file`
 
         Returns:
@@ -432,9 +433,9 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     assert dt is None or issubclass(type(dt), datetime.timedelta)
 
     if config_file:
-        config = get_config(config_file)
+        config = _get_config(config_file)
     else:
-        config = get_config(
+        config = _get_config(
             os.path.join(os.path.dirname(__file__), '../default.conf'))
 
     fgdc_metadata = make_fgdc_metadata(input_file, config,

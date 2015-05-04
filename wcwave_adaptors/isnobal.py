@@ -29,7 +29,7 @@ from pandas import date_range, DataFrame, Series, Timedelta
 from progressbar import ProgressBar
 from shutil import rmtree
 
-from .watershed import (get_config, make_fgdc_metadata,
+from .watershed import (_get_config, make_fgdc_metadata,
                                        make_watershed_metadata)
 
 from .netcdf import ncgen_from_template
@@ -261,8 +261,8 @@ class IPW(object):
                 config_file = \
                     osjoin(dirname(__file__), '../default.conf')
 
-            # helper function get_config uses ConfigParser to parse config file
-            config = get_config(config_file)
+            # helper function _get_config uses ConfigParser to parse config file
+            config = _get_config(config_file)
 
             if file_type in ['in', 'em', 'snow']:
 

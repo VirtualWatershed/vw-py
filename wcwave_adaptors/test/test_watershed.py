@@ -3,7 +3,7 @@ Testing module for Virtual Watershed Data adaptor.
 """
 
 from ..watershed import make_watershed_metadata, make_fgdc_metadata, \
-    VWClient, default_vw_client, get_config, upsert, metadata_from_file
+    VWClient, default_vw_client, _get_config, upsert, metadata_from_file
 
 import datetime
 import json
@@ -58,7 +58,7 @@ class TestJSONMetadata(unittest.TestCase):
         initialize the class with some appropriate entry
         metadata from file
         """
-        self.config = get_config('wcwave_adaptors/test/test.conf')
+        self.config = _get_config('wcwave_adaptors/test/test.conf')
 
         self.modelRunUUID = '09079630-5ef8-11e4-9803-0800200c9a66'
         self.parentModelRunUUID = '373ae181-a0b2-4998-ba32-e27da190f6dd'
@@ -122,7 +122,7 @@ class TestFGDCMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        self.config = get_config('wcwave_adaptors/test/test.conf')
+        self.config = _get_config('wcwave_adaptors/test/test.conf')
 
         self.modelRunUUID = '09079630-5ef8-11e4-9803-0800200c9a66'
         self.dataFile = 'wcwave_adaptors/test/data/in.0000'
@@ -142,7 +142,7 @@ class TestVWClient(unittest.TestCase):
     """ Test the functionality of the Virtual Watershed client """
     def setUp(self):
 
-        self.config = get_config('wcwave_adaptors/test/test.conf')
+        self.config = _get_config('wcwave_adaptors/test/test.conf')
 
         self.kwargs = {'keywords': 'Snow,iSNOBAL,wind',
                        'researcher_name': self.config['Common']['researcherName'],
