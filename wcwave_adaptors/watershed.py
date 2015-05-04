@@ -530,7 +530,7 @@ def upsert(input_path, model_run_name=None, description=None, keywords=None,
 
     # initialize the vw_client manually (not defuault) since we need
     # config info
-    commonConfig = get_config(config_file)['Common']
+    commonConfig = _get_config(config_file)['Common']
 
     vw_client = VWClient(commonConfig['watershedIP'], commonConfig['user'],
                          commonConfig['passwd'])
