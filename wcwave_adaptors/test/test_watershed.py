@@ -85,6 +85,7 @@ class TestJSONMetadata(unittest.TestCase):
                                           start_datetime,
                                           end_datetime
                                           )
+
         # load expected json metadata file
         expected = open('wcwave_adaptors/test/data/expected1_in.json', 'r').read()
 
@@ -145,7 +146,7 @@ class TestVWClient(unittest.TestCase):
         self.config = _get_config('wcwave_adaptors/test/test.conf')
 
         self.kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                       'researcher_name': self.config['Common']['researcherName'],
+                       'researcher_name': self.config['Researcher']['researcher_name'],
                        'description': 'unittest',
                        'model_run_name': 'unittest' + str(uuid4())}
 

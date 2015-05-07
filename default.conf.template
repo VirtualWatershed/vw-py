@@ -1,38 +1,21 @@
 ### Configuration file for the virtual watershed data adaptors ###
-[Common]
-watershedIP = vwp-dev.unm.edu
-user = your_uname
-passwd = your_supersecret_password
-westBnd = -116.142905556
-eastBnd = -116.137583333
-northBnd = 43.7326972222
-southBnd = 43.7294055556
-model = isnobal
-model_set_taxonomy = grid
-water_year = 2010
-researcherName = Matthew Turner
+[Connection]
+watershed_url = https://vwp-dev.unm.edu
+user          = your_uname
+pass          = your_password
 
-[FGDC Metadata]
-template_path = /EDIT-THIS-PATH-TO/adaptors/resources/fgdc_template.xml
-procdate = 11112014
-begdate = 10012010
-enddate = 09302011
-themekey = watershed
-mailing_address = 875 Perimeter Drive MS2358
-city = Moscow
-state = Idaho
-zipCode = 83843
-researcherPhone = (208)885-7129
-researcherEmail = maturner@uidaho.edu
-rowcount = 170
-columncount = 148
-latres = 2.5
-longres = 2.5
-mapUnits = meters
+[Researcher]
+researcher_name = Your Name
+mailing_address = 8659 Your Work Street (Mailstop, etc.)
+city            = City of your Research Institution
+state           = State of your Research Institution
+zip_code        = Zip Code of your Research Institution
+phone           = 555-555-5555
+email           = youremail@yourinstitute.edu
 
-[Watershed Metadata]
-template_path = /EDIT-THIS-PATH-TO/adaptors/resources/watershed_template.json
-orig_epsg = 4326
-epsg = 26911
-location = Dry Creek
-state = Idaho
+[Geo]
+# repo comes with these to include three WCWAVE states
+default_west_bound  = -120.01
+default_east_bound  = -102.66
+default_north_bound = 49.13
+default_south_bound = 31.17

@@ -16,62 +16,100 @@ requests.packages.urllib3.disable_warnings()
 import urllib
 import pandas as pd
 
+from jinja2 import Environment, FileSystemLoader
 from progressbar import ProgressBar
 from string import Template
 
 
-def make_fgdc_metadata(dataFile, config, modelRunUUID):
+def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,
+                       **kwargs):
     """
-    For a single `dataFile`, write the XML FGDC metadata
+    For a single `data_file`, write the XML FGDC metadata
+       valid kwargs:
+           proc_date: date data was processed
+           begin_date: date observations began
+           end_date: date observations ended
+           theme_key: thematic keywords
+           model: scientific model, e.g., WindNinja, iSNOBAL, PRMS, etc.
+           researcher_name: name of researcher
+           mailing_address: researcher's mailing address
+           city: research institute city
+           state: research institute state
+           zip_code: research institute zip code
+           researcher_phone: researcher phone number
+           row_count: number of rows in dataset
+           column_count: number of columns in dataset
+           lat_res: resolution in latitude direction (degrees or meters)
+           lon_res: resolution in longitude direction (degrees or meters)
+           map_units: distance units of the map (e.g. 'm')
+           west_bound: westernmost longitude of bounding box
+           east_bound: easternmost longitude of bounding box
+           north_bound: northernmost latitude of bounding box
+           south_bound: southernmost latitude of bounding box
+           file_ext: extension of file used to fill out digtinfo:formname
 
     Returns: XML metadata string
     """
     try:
-        statinfo = os.stat(dataFile)
-        filesizeMB = "%s" % str(statinfo.st_size/1000000)
+        statinfo = os.stat(file_name)
+        file_size = "%s" % str(statinfo.st_size/1000000)
     except OSError:
-        filesizeMB = "NA"
+        file_size = "NA"
 
-    fgdc_config = config['FGDC Metadata']
-    common_config = config['Common']
+    # handle missing required fields not provided in kwargs
+    geoconf = config['Geo']
+    resconf = config['Researcher']
 
-    # use templates and the fgdc configuration to write the metadata for a file
-    xml_template = fgdc_config['template_path']
+    # if any of the bounding boxes are not given, all go to default
+    if not ('west_bound' in kwargs and 'east_bound' in kwargs
+            and 'north_bound' in kwargs and 'south_bound' in kwargs):
+        kwargs['west_bound'] = geoconf['default_west_bound']
+        kwargs['east_bound'] = geoconf['default_east_bound']
+        kwargs['north_bound'] = geoconf['default_north_bound']
+        kwargs['south_bound'] = geoconf['default_south_bound']
 
-    template_object = open(xml_template, 'r')
-    template = Template(template_object.read())
+    if not 'researcher_name' in kwargs:
+        kwargs['researcher_name'] = resconf['researcher_name']
 
-    output = template.substitute(filename=dataFile,
-                                 filesizeMB=filesizeMB,
-                                 model_run_uuid=modelRunUUID,
-                                 procdate=fgdc_config['procdate'],
-                                 begdate=fgdc_config['begdate'],
-                                 enddate=fgdc_config['enddate'],
-                                 westBnd=common_config['westBnd'],
-                                 eastBnd=common_config['eastBnd'],
-                                 northBnd=common_config['northBnd'],
-                                 southBnd=common_config['southBnd'],
-                                 themekey=fgdc_config['themekey'],
-                                 model=common_config['model'],
-                                 researcherName=common_config['researcherName'],
-                                 mailing_address=fgdc_config['mailing_address'],
-                                 city=fgdc_config['city'],
-                                 state=fgdc_config['state'],
-                                 zipCode=fgdc_config['zipCode'],
-                                 researcherPhone=fgdc_config['researcherPhone'],
-                                 researcherEmail=fgdc_config['researcherEmail'],
-                                 rowcount=fgdc_config['rowcount'],
-                                 columncount=fgdc_config['columncount'],
-                                 latres=fgdc_config['latres'],
-                                 longres=fgdc_config['longres'],
-                                 mapUnits=fgdc_config['mapUnits'])
+    if not 'mailing_address' in kwargs:
+        kwargs['mailing_address'] = resconf['mailing_address']
+
+    if not 'city' in kwargs:
+        kwargs['city'] = resconf['city']
+
+    if not 'state' in kwargs:
+        kwargs['state'] = resconf['state']
+
+    if not 'zip_code' in kwargs:
+        kwargs['zip_code'] = resconf['zip_code']
+
+    if not 'researcher_phone' in kwargs:
+        kwargs['researcher_phone'] = resconf['researcher_phone']
+
+    if not 'researcher_email' in kwargs:
+        kwargs['researcher_email'] = resconf['researcher_email']
+
+    if 'file_ext' not in kwargs:
+        kwargs['file_ext'] = file_name.split('.')[-1]
+
+    template_env = Environment(loader=FileSystemLoader(
+                               os.path.join(os.path.dirname(__file__), 'cdl')))
+
+    template = template_env.get_template('../templates/watershed_template.json')
+
+    output = template.render(file_name=file_name,
+                             file_size=file_size,
+                             model_run_uuid=model_run_uuid,
+                             **kwargs)
 
     return output
 
 
 def make_watershed_metadata(dataFile, config, parentModelRunUUID,
-                          modelRunUUID, model_set, description="",
-                          model_vars="", fgdcMetadata="", start_datetime=None,
+                          modelRunUUID, model_set, orig_epsg=None, epsg=None,
+                          model_set_taxonomy="grid", water_year=None,
+                          model_name=None, description=None, model_vars=None,
+                          fgdcMetadata=None, start_datetime=None,
                           end_datetime=None):
 
     """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
@@ -111,19 +149,13 @@ def make_watershed_metadata(dataFile, config, parentModelRunUUID,
 
     basename = os.path.basename(dataFile)
 
-    watershedConfig = config['Watershed Metadata']
-    common_config = config['Common']
+    geo_config = config['Geo']
 
     firstTwoUUID = modelRunUUID[:2]
     inputFilePath = os.path.join("/geodata/watershed-data",
                                  firstTwoUUID,
                                  modelRunUUID,
                                  os.path.basename(dataFile))
-
-    json_template = watershedConfig['template_path']
-
-    template_object = open(json_template, 'r')
-    template = Template(template_object.read())
 
     # properly escape xml metadata escape chars
     fgdcMetadata = fgdcMetadata.replace('\n', '\\n').replace('\t', '\\t')
@@ -143,40 +175,48 @@ def make_watershed_metadata(dataFile, config, parentModelRunUUID,
                         "or pass a datetime object. Not %s" % str(type(start_datetime)))
 
     # write the metadata for a file
-    output = template.substitute(# determined by file ext, set within function
-                                 wcs=wcs,
-                                 wms=wms,
-                                 tax=tax,
-                                 ext=ext,
-                                 mimetype=mimetype,
-                                 model_set_type=model_set_type,
-                                 # passed as args to parent function
-                                 model_run_uuid=modelRunUUID,
-                                 model_vars=model_vars,
-                                 description=description,
-                                 model_set=model_set,
-                                 fgdcMetadata=fgdcMetadata,
-                                 # derived from parent function args
-                                 basename=basename,
-                                 inputFilePath=inputFilePath,
-                                 # given in config file
-                                 parent_model_run_uuid=parentModelRunUUID,
-                                 modelname=common_config['model'],
-                                 state=watershedConfig['state'],
-                                 model_set_taxonomy=common_config['model_set_taxonomy'],
-                                 orig_epsg=watershedConfig['orig_epsg'],
-                                 westBnd=common_config['westBnd'],
-                                 eastBnd=common_config['eastBnd'],
-                                 northBnd=common_config['northBnd'],
-                                 southBnd=common_config['southBnd'],
-                                 start_datetime=start_datetime,
-                                 end_datetime=end_datetime,
-                                 epsg=watershedConfig['epsg'],
-                                 location=watershedConfig['location'],
-                                 # static default values defined at top of func
-                                 recs=RECS,
-                                 features=FEATURES
-                                 )
+    # output = template.substitute(# determined by file ext, set within function
+    template_env = Environment(loader=FileSystemLoader(
+                               os.path.join(os.path.dirname(__file__), 'cdl')))
+
+    template = template_env.get_template('../templates/watershed_template.json')
+
+    output = template.render(wcs=wcs,
+                             wms=wms,
+                             tax=tax,
+                             ext=ext,
+                             mimetype=mimetype,
+                             model_set_type=model_set_type,
+                             # passed as args to parent function
+                             model_run_uuid=modelRunUUID,
+                             model_vars=model_vars,
+                             description=description,
+                             model_set=model_set,
+                             fgdc_metadata=fgdc_metadata,
+                             # derived from parent function args
+                             basename=basename,
+                             inputFilePath=inputFilePath,
+                             # given in config file
+                             parent_model_run_uuid=parentModelRunUUID,
+                             model_name=model_name,
+                             state=state,
+                             model_set_taxonomy=model_set_taxonomy,
+                             orig_epsg=orig_epsg,
+
+                             west_bound=geo_config['default_west_bound'],
+                             east_bound=geo_config['default_east_bound'],
+                             north_bound=geo_config['default_north_bound'],
+                             south_bound=geo_config['default_south_bound'],
+
+                             start_datetime=start_datetime,
+                             end_datetime=end_datetime,
+                             epsg=epsg,
+                             watershed_name=watershed_name,
+
+                             # static default values defined at top of func
+                             recs=RECS,
+                             features=FEATURES
+                             )
 
     return output
 
@@ -190,11 +230,11 @@ class VWClient:
     # number of times to re-try an http request
     _retry_num = 3
 
-    def __init__(self, ip_address, uname, passwd):
+    def __init__(self, host_url, uname, passwd):
         """ Initialize a new connection to the virtual watershed """
 
         # Check our credentials
-        auth_url = "http://" + ip_address + "/apilogin"
+        auth_url = host_url + "/apilogin"
         self.sesh = requests.session()
 
         l = self.sesh.get(auth_url, auth=(uname, passwd), verify=False)
@@ -204,18 +244,18 @@ class VWClient:
         self.passwd = passwd
 
         # Initialize URLS used by class methods
-        self.insert_dataset_url = "https://" + ip_address + \
+        self.insert_dataset_url = host_url + \
             "/apps/vwp/datasets"
 
-        self.data_upload_url = "https://" + ip_address + "/apps/vwp/data"
+        self.data_upload_url = host_url + "/apps/vwp/data"
 
-        self.uuid_check_url = "https://" + ip_address + \
+        self.uuid_check_url = host_url + \
             "/apps/vwp/checkmodeluuid"
 
-        self.search_url = "https://" + ip_address + \
+        self.search_url = host_url + \
             "/apps/vwp/search/datasets.json?version=3"
 
-        self.new_run_url = "https://" + ip_address + \
+        self.new_run_url = host_url + \
             "/apps/vwp/newmodelrun"
 
     def initialize_model_run(self, model_run_name=None, description=None,
@@ -399,9 +439,9 @@ def default_vw_client(config_file="default.conf"):
         Returns: VWClient connected to the ip address given in config_file
     """
     config = _get_config(config_file)
-    common = config['Common']
+    conn = config['Connection']
 
-    return VWClient(common['watershedIP'], common['user'], common['passwd'])
+    return VWClient(conn['watershed_url'], conn['user'], conn['pass'])
 
 
 def _get_config(config_file=None):
@@ -530,20 +570,17 @@ def upsert(input_path, model_run_name=None, description=None, keywords=None,
 
     # initialize the vw_client manually (not defuault) since we need
     # config info
-    commonConfig = _get_config(config_file)['Common']
+    conn = _get_config(config_file)['Connection']
 
-    vw_client = VWClient(commonConfig['watershedIP'], commonConfig['user'],
-                         commonConfig['passwd'])
+    vw_client = VWClient(conn['watershed_url'], conn['user'], conn['pass'])
 
     # get either parent_model_run_uuid and/or model_run_uuid if need be
     # final case to handle is if model_run_uuid is given but not its parent
     if not parent_model_run_uuid:
         parent_model_run_uuid = \
             vw_client.initialize_model_run(model_run_name=model_run_name,
-                                           description=description,
-                                           keywords=keywords,
-                                           researcher_name=commonConfig['researcherName']
-                                           )
+               description=description, keywords=keywords,
+               researcher_name=_get_config(config_file)['Researcher']['researcher_name'])
 
         model_run_uuid = parent_model_run_uuid
 

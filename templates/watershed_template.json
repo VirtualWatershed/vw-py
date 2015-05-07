@@ -1,0 +1,56 @@
+{
+    "orig_epsg": "{% if orig_epsg %}{{ orig_epsg }}{% else %}99999{% endif %}",
+    "description": "{{ description }}",
+    "taxonomy": "{{ tax }}",
+    "basename": "{{ basename }}",
+    "parent_model_run_uuid": "{{ parent_model_run_uuid }}",
+    "model_run_uuid": "{{ model_run_uuid }}",
+    "model_vars": "{{ model_vars }}",
+    "model_set": "{{ model_set }}",
+    "model_set_type": "{{ model_set_type }}",
+    "model_set_taxonomy": "{{ model_set_taxonomy }}",
+    "spatial": {
+        "geomtype": "grid",
+        "records":"{{ recs }}",
+        "epsg": "{% if epsg %}{{ epsg }}{% else %}99999{% endif %}",
+        "features":"{{ features }}",
+        "bbox": "{{ west_bound }},{{ south_bound }},{{ east_bound }},{{ north_bound }}"
+    },
+    "dates": {
+        "start": "{{ start_datetime }}",
+        "end": "{{ end_datetime }}"
+    },
+    "records": "{{ recs }}",
+    "active": "true",
+    "services": [
+    "{{ wms }}",
+    "{{ wcs }}"
+    ],
+    "categories": [{
+            "location": "{{ watershed_name }}",
+            "modelname": "{{ model_name }}",
+            "state": "{{ state }}"
+        }],
+    "sources": [{
+        "mimetype": "{{ mimetype }}",
+        "files": ["{{ inputFilePath }}"],
+        "set": "original",
+        "external": "False",
+        "extension": "{{ ext }}"
+    }],
+    "standards": [
+        "FGDC-STD-001-1998",
+        "ISO-19115:2003",
+        "ISO-19119",
+        "ISO-19110"
+    ],
+    "formats": [
+        "{{ ext }}"
+    ],
+    "metadata": {
+        "xml": "{{ fgdc_metadata }}",
+        "upgrade": "true",
+        "standard": "FGDC-STD-001-1998"
+    },
+    "apps": ["my_app"]
+}
