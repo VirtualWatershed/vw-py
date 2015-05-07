@@ -130,11 +130,29 @@ class TestFGDCMetadata(unittest.TestCase):
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
+        cfg = self.config
 
-        generated = make_fgdc_metadata(self.dataFile, self.config,
-                                       self.modelRunUUID)
+        generated = make_fgdc_metadata('wcwave_adaptors/test/data/in.0000',
+                                       cfg, 'MODELRUNXX**AA*', "2010-10-01",
+                                       "2011-09-31", proc_date="2015-05-07",
+                                       file_ext='ipw')
 
-        expected = open('wcwave_adaptors/test/data/expected1_in.xml', 'r').read()
+        expected = open('wcwave_adaptors/test/data/expected_minimal_fgdc.xml',
+                        'r').read()
+
+        assert generated == expected, \
+            show_string_diff(generated, expected)
+
+        generated = \
+            make_fgdc_metadata('wcwave_adaptors/test/data/in.0010.I_lw.tif',
+                               cfg, 'MODELRUNXX**AA*', "2010-10-01",
+                               "2011-09-31", theme_key="watershed",
+                               row_count=170, column_count=124, lat_res=2.5,
+                               lon_res=2.5, map_units='m')
+
+        expected = open('wcwave_adaptors/test/data/expected_full_fgdc.xml',
+                        'r').read()
+
         assert generated == expected, \
             show_string_diff(generated, expected)
 

@@ -6,7 +6,6 @@ associated metadata.
 """
 
 import configparser
-import datetime
 import logging
 import json
 import os
@@ -16,209 +15,11 @@ requests.packages.urllib3.disable_warnings()
 import urllib
 import pandas as pd
 
+from datetime import datetime, date, timedelta
 from jinja2 import Environment, FileSystemLoader
 from progressbar import ProgressBar
 from string import Template
 
-
-def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,
-                       **kwargs):
-    """
-    For a single `data_file`, write the XML FGDC metadata
-       valid kwargs:
-           proc_date: date data was processed
-           begin_date: date observations began
-           end_date: date observations ended
-           theme_key: thematic keywords
-           model: scientific model, e.g., WindNinja, iSNOBAL, PRMS, etc.
-           researcher_name: name of researcher
-           mailing_address: researcher's mailing address
-           city: research institute city
-           state: research institute state
-           zip_code: research institute zip code
-           researcher_phone: researcher phone number
-           row_count: number of rows in dataset
-           column_count: number of columns in dataset
-           lat_res: resolution in latitude direction (degrees or meters)
-           lon_res: resolution in longitude direction (degrees or meters)
-           map_units: distance units of the map (e.g. 'm')
-           west_bound: westernmost longitude of bounding box
-           east_bound: easternmost longitude of bounding box
-           north_bound: northernmost latitude of bounding box
-           south_bound: southernmost latitude of bounding box
-           file_ext: extension of file used to fill out digtinfo:formname
-
-    Returns: XML metadata string
-    """
-    try:
-        statinfo = os.stat(file_name)
-        file_size = "%s" % str(statinfo.st_size/1000000)
-    except OSError:
-        file_size = "NA"
-
-    # handle missing required fields not provided in kwargs
-    geoconf = config['Geo']
-    resconf = config['Researcher']
-
-    # if any of the bounding boxes are not given, all go to default
-    if not ('west_bound' in kwargs and 'east_bound' in kwargs
-            and 'north_bound' in kwargs and 'south_bound' in kwargs):
-        kwargs['west_bound'] = geoconf['default_west_bound']
-        kwargs['east_bound'] = geoconf['default_east_bound']
-        kwargs['north_bound'] = geoconf['default_north_bound']
-        kwargs['south_bound'] = geoconf['default_south_bound']
-
-    if not 'researcher_name' in kwargs:
-        kwargs['researcher_name'] = resconf['researcher_name']
-
-    if not 'mailing_address' in kwargs:
-        kwargs['mailing_address'] = resconf['mailing_address']
-
-    if not 'city' in kwargs:
-        kwargs['city'] = resconf['city']
-
-    if not 'state' in kwargs:
-        kwargs['state'] = resconf['state']
-
-    if not 'zip_code' in kwargs:
-        kwargs['zip_code'] = resconf['zip_code']
-
-    if not 'researcher_phone' in kwargs:
-        kwargs['researcher_phone'] = resconf['researcher_phone']
-
-    if not 'researcher_email' in kwargs:
-        kwargs['researcher_email'] = resconf['researcher_email']
-
-    if 'file_ext' not in kwargs:
-        kwargs['file_ext'] = file_name.split('.')[-1]
-
-    template_env = Environment(loader=FileSystemLoader(
-                               os.path.join(os.path.dirname(__file__), 'cdl')))
-
-    template = template_env.get_template('../templates/watershed_template.json')
-
-    output = template.render(file_name=file_name,
-                             file_size=file_size,
-                             model_run_uuid=model_run_uuid,
-                             **kwargs)
-
-    return output
-
-
-def make_watershed_metadata(dataFile, config, parentModelRunUUID,
-                          modelRunUUID, model_set, orig_epsg=None, epsg=None,
-                          model_set_taxonomy="grid", water_year=None,
-                          model_name=None, description=None, model_vars=None,
-                          fgdcMetadata=None, start_datetime=None,
-                          end_datetime=None):
-
-    """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
-        metadata.
-
-        Take the modelRunUUID from the result of initializing a new model
-        run in the virtual watershed.
-
-        model_set must be
-
-        Returns: JSON metadata string
-    """
-    assert model_set in ["inputs", "outputs"], "parameter model_set must be \
-            either 'inputs' or 'outputs', not %s" % model_set
-
-    RECS = "1"
-    FEATURES = "1"
-
-    # logic to figure out mimetype and such based on extension
-    _, ext = os.path.splitext(dataFile)
-    if ext == '.tif':
-        wcs = 'wcs'
-        wms = 'wms'
-        tax = 'geoimage'
-        ext = 'tif'
-        mimetype = 'application/x-zip-compressed'
-        # type_subdir = 'geotiffs'
-        model_set_type = 'vis'
-    else:
-        wcs = ''
-        wms = ''
-        tax = 'file'
-        ext = 'bin'
-        mimetype = 'application/x-binary'
-        # type_subdir = 'bin'
-        model_set_type = 'binary'
-
-    basename = os.path.basename(dataFile)
-
-    geo_config = config['Geo']
-
-    firstTwoUUID = modelRunUUID[:2]
-    inputFilePath = os.path.join("/geodata/watershed-data",
-                                 firstTwoUUID,
-                                 modelRunUUID,
-                                 os.path.basename(dataFile))
-
-    # properly escape xml metadata escape chars
-    fgdcMetadata = fgdcMetadata.replace('\n', '\\n').replace('\t', '\\t')
-
-    # If one of the datetimes is missing
-    if start_datetime is None or end_datetime is None:
-        start_datetime = "1970-10-01 00:00:00"
-        end_datetime = "1970-10-01 01:00:00"
-    elif (type(start_datetime) is datetime.datetime
-          and type(end_datetime) is datetime.datetime):
-
-        fmt = lambda dt: dt.strftime('%Y-%m-%d %H:%M:%S')
-        start_datetime, end_datetime = map(fmt, (start_datetime, end_datetime))
-    else:
-
-        raise Exception("Either pass no start/end datetime " +\
-                        "or pass a datetime object. Not %s" % str(type(start_datetime)))
-
-    # write the metadata for a file
-    # output = template.substitute(# determined by file ext, set within function
-    template_env = Environment(loader=FileSystemLoader(
-                               os.path.join(os.path.dirname(__file__), 'cdl')))
-
-    template = template_env.get_template('../templates/watershed_template.json')
-
-    output = template.render(wcs=wcs,
-                             wms=wms,
-                             tax=tax,
-                             ext=ext,
-                             mimetype=mimetype,
-                             model_set_type=model_set_type,
-                             # passed as args to parent function
-                             model_run_uuid=modelRunUUID,
-                             model_vars=model_vars,
-                             description=description,
-                             model_set=model_set,
-                             fgdc_metadata=fgdc_metadata,
-                             # derived from parent function args
-                             basename=basename,
-                             inputFilePath=inputFilePath,
-                             # given in config file
-                             parent_model_run_uuid=parentModelRunUUID,
-                             model_name=model_name,
-                             state=state,
-                             model_set_taxonomy=model_set_taxonomy,
-                             orig_epsg=orig_epsg,
-
-                             west_bound=geo_config['default_west_bound'],
-                             east_bound=geo_config['default_east_bound'],
-                             north_bound=geo_config['default_north_bound'],
-                             south_bound=geo_config['default_south_bound'],
-
-                             start_datetime=start_datetime,
-                             end_datetime=end_datetime,
-                             epsg=epsg,
-                             watershed_name=watershed_name,
-
-                             # static default values defined at top of func
-                             recs=RECS,
-                             features=FEATURES
-                             )
-
-    return output
 
 
 class VWClient:
@@ -470,7 +271,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     """
     Generate metadata for input_file.
     """
-    assert dt is None or issubclass(type(dt), datetime.timedelta)
+    assert dt is None or issubclass(type(dt), timedelta)
 
     if config_file:
         config = _get_config(config_file)
@@ -510,7 +311,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     start_dt = dt * dt_multiplier
 
     start_datetime = \
-        datetime.datetime(water_year_start, 10, 01) + start_dt
+        datetime(water_year_start, 10, 01) + start_dt
 
     end_datetime = start_datetime + dt
 
@@ -545,7 +346,7 @@ def upsert(input_path, model_run_name=None, description=None, keywords=None,
         "If model_run_uuid is given, its parent must also be given!"
 
     # redundant, but better to catch this before we continue
-    assert dt is None or issubclass(type(dt), datetime.timedelta)
+    assert dt is None or issubclass(type(dt), timedelta)
 
     # get the configuration file path if not given
     if not config_file:
@@ -610,3 +411,230 @@ def upsert(input_path, model_run_name=None, description=None, keywords=None,
             progress.update(i)
 
     return (parent_model_run_uuid, model_run_uuid)
+
+
+def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,
+                       **kwargs):
+    """
+    For a single `data_file`, write the XML FGDC metadata
+       valid kwargs:
+           proc_date: date data was processed
+
+           begin_date: date observations began
+
+           end_date: date observations ended
+
+           theme_key: thematic keywords
+
+           model: scientific model, e.g., WindNinja, iSNOBAL, PRMS, etc.
+
+           researcher_name: name of researcher
+
+           mailing_address: researcher's mailing address
+
+           city: research institute city
+
+           state: research institute state
+
+           zip_code: research institute zip code
+
+           researcher_phone: researcher phone number
+
+           row_count: number of rows in dataset
+
+           column_count: number of columns in dataset
+
+           lat_res: resolution in latitude direction (meters)
+
+           lon_res: resolution in longitude direction (meters)
+
+           map_units: distance units of the map (e.g. 'm')
+
+           west_bound: westernmost longitude of bounding box
+
+           east_bound: easternmost longitude of bounding box
+
+           north_bound: northernmost latitude of bounding box
+
+           south_bound: southernmost latitude of bounding box
+
+           file_ext: extension of file used to fill out digtinfo:formname;
+            if not specified, make_fgdc_metadata takes extension
+
+        Any other kwargs will be ignored
+
+    Returns: XML FGDC metadata string
+    """
+    try:
+        statinfo = os.stat(file_name)
+        file_size = "%s" % str(statinfo.st_size/1000000)
+    except OSError:
+        file_size = "NA"
+
+    # handle missing required fields not provided in kwargs
+    geoconf = config['Geo']
+    resconf = config['Researcher']
+
+    # if any of the bounding boxes are not given, all go to default
+    if not ('west_bound' in kwargs and 'east_bound' in kwargs
+            and 'north_bound' in kwargs and 'south_bound' in kwargs):
+        kwargs['west_bound'] = geoconf['default_west_bound']
+        kwargs['east_bound'] = geoconf['default_east_bound']
+        kwargs['north_bound'] = geoconf['default_north_bound']
+        kwargs['south_bound'] = geoconf['default_south_bound']
+
+    if not 'proc_date' in kwargs:
+        kwargs['proc_date'] = date.strftime(date.today(), '%Y-%m-%d')
+
+    if not 'researcher_name' in kwargs:
+        kwargs['researcher_name'] = resconf['researcher_name']
+
+    if not 'mailing_address' in kwargs:
+        kwargs['mailing_address'] = resconf['mailing_address']
+
+    if not 'city' in kwargs:
+        kwargs['city'] = resconf['city']
+
+    if not 'state' in kwargs:
+        kwargs['state'] = resconf['state']
+
+    if not 'zip_code' in kwargs:
+        kwargs['zip_code'] = resconf['zip_code']
+
+    if not 'researcher_phone' in kwargs:
+        kwargs['researcher_phone'] = resconf['phone']
+
+    if not 'researcher_email' in kwargs:
+        kwargs['researcher_email'] = resconf['email']
+
+    if 'file_ext' not in kwargs:
+        kwargs['file_ext'] = file_name.split('.')[-1]
+
+    template_env = Environment(loader=FileSystemLoader(
+                               os.path.join(os.path.dirname(__file__), '../templates')))
+
+    template = template_env.get_template('fgdc_template.xml')
+
+    output = template.render(file_name=file_name,
+                             file_size=file_size,
+                             model_run_uuid=model_run_uuid,
+                             **kwargs)
+
+    return output
+
+
+def make_watershed_metadata(dataFile, config, parentModelRunUUID,
+                          modelRunUUID, model_set, orig_epsg=None, epsg=None,
+                          model_set_taxonomy="grid", water_year=None,
+                          model_name=None, description=None, model_vars=None,
+                          fgdcMetadata=None, start_datetime=None,
+                          end_datetime=None):
+
+    """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
+        metadata.
+
+        Take the modelRunUUID from the result of initializing a new model
+        run in the virtual watershed.
+
+        model_set must be
+
+        Returns: JSON metadata string
+    """
+    assert model_set in ["inputs", "outputs"], "parameter model_set must be \
+            either 'inputs' or 'outputs', not %s" % model_set
+
+    RECS = "1"
+    FEATURES = "1"
+
+    # logic to figure out mimetype and such based on extension
+    _, ext = os.path.splitext(dataFile)
+    if ext == '.tif':
+        wcs = 'wcs'
+        wms = 'wms'
+        tax = 'geoimage'
+        ext = 'tif'
+        mimetype = 'application/x-zip-compressed'
+        # type_subdir = 'geotiffs'
+        model_set_type = 'vis'
+    else:
+        wcs = ''
+        wms = ''
+        tax = 'file'
+        ext = 'bin'
+        mimetype = 'application/x-binary'
+        # type_subdir = 'bin'
+        model_set_type = 'binary'
+
+    basename = os.path.basename(dataFile)
+
+    geo_config = config['Geo']
+
+    firstTwoUUID = modelRunUUID[:2]
+    inputFilePath = os.path.join("/geodata/watershed-data",
+                                 firstTwoUUID,
+                                 modelRunUUID,
+                                 os.path.basename(dataFile))
+
+    # properly escape xml metadata escape chars
+    fgdcMetadata = fgdcMetadata.replace('\n', '\\n').replace('\t', '\\t')
+
+    # If one of the datetimes is missing
+    if start_datetime is None or end_datetime is None:
+        start_datetime = "1970-10-01 00:00:00"
+        end_datetime = "1970-10-01 01:00:00"
+    elif (type(start_datetime) is datetime.datetime
+          and type(end_datetime) is datetime.datetime):
+
+        fmt = lambda dt: dt.strftime('%Y-%m-%d %H:%M:%S')
+        start_datetime, end_datetime = map(fmt, (start_datetime, end_datetime))
+    else:
+
+        raise Exception("Either pass no start/end datetime " +\
+                        "or pass a datetime object. Not %s" % str(type(start_datetime)))
+
+    # write the metadata for a file
+    # output = template.substitute(# determined by file ext, set within function
+    template_env = Environment(loader=FileSystemLoader(
+                               os.path.join(os.path.dirname(__file__), 'cdl')))
+
+    template = template_env.get_template('../templates/watershed_template.json')
+
+    output = template.render(wcs=wcs,
+                             wms=wms,
+                             tax=tax,
+                             ext=ext,
+                             mimetype=mimetype,
+                             model_set_type=model_set_type,
+                             # passed as args to parent function
+                             model_run_uuid=modelRunUUID,
+                             model_vars=model_vars,
+                             description=description,
+                             model_set=model_set,
+                             fgdc_metadata=fgdc_metadata,
+                             # derived from parent function args
+                             basename=basename,
+                             inputFilePath=inputFilePath,
+                             # given in config file
+                             parent_model_run_uuid=parentModelRunUUID,
+                             model_name=model_name,
+                             state=state,
+                             model_set_taxonomy=model_set_taxonomy,
+                             orig_epsg=orig_epsg,
+
+                             west_bound=geo_config['default_west_bound'],
+                             east_bound=geo_config['default_east_bound'],
+                             north_bound=geo_config['default_north_bound'],
+                             south_bound=geo_config['default_south_bound'],
+
+                             start_datetime=start_datetime,
+                             end_datetime=end_datetime,
+                             epsg=epsg,
+                             watershed_name=watershed_name,
+
+                             # static default values defined at top of func
+                             recs=RECS,
+                             features=FEATURES
+                             )
+
+    return output
+

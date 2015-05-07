@@ -1,19 +1,19 @@
 <!DOCTYPE metadata SYSTEM 'http://www.fgdc.gov/metadata/fgdc-std-001-1998.dtd'>
 <metadata>
 	<idinfo>
-		<model_run_uuid>{{ model_run_uuid }}</model_run_uuid>
+		<model_run_uuid>MODELRUNXX**AA*</model_run_uuid>
 		<citation>
 			<citeinfo>
 				<origin>Tri-State EPSCoR WC-WAVE</origin>
-				<pubdate>{{ proc_date }}</pubdate>
-				<title>{{ file_name }}</title>
+				<pubdate>2015-05-07</pubdate>
+				<title>wcwave_adaptors/test/data/in.0000</title>
 			</citeinfo>
 		</citation>
 		<timeperd>
 			<timeinfo>
 				<rngdates>
-					<begdate>{{ beg_date }}</begdate>
-					<enddate>{{ end_date }}</enddate>
+					<begdate></begdate>
+					<enddate></enddate>
 				</rngdates>
 			</timeinfo>
 			<current>Year long record for which the ISNOBAL model was run</current>
@@ -24,73 +24,44 @@
 		</status>
 		<spdom>
 			<bounding>
-				<westbc>{{ west_bound }}</westbc>
-				<eastbc>{{ east_bound }}</eastbc>
-				<northbc>{{ north_bound }}</northbc>
-				<southbc>{{ south_bound }}</southbc>
+				<westbc>-120.01</westbc>
+				<eastbc>-102.66</eastbc>
+				<northbc>49.13</northbc>
+				<southbc>31.17</southbc>
 			</bounding>
 		</spdom>
-                {% if theme_key or state %}
+                
 		<keywords>
-                    {% if theme_key %}
-			<theme>
-			    <themekt>CF</themekt>
-			    <themekey>{{ theme_key }}</themekey>
-			</theme>		
-                        {% if model %}
-			<theme>
-				<themekt>None</themekt>
-				<themekey>{{ model }}</themekey>
-				<themekey>{{ theme_key }}</themekey>
-			</theme>
-                        {% endif %}
-                    {% endif %}
+                    
 			<place>
 				<placekt>None</placekt>
-				<placekey>{{ state }}</placekey>
+				<placekey>Idaho</placekey>
 			</place>
 		</keywords>
-                {% endif %}
+                
 		<ptcontac>
 			<cntinfo>
 				<cntperp>
-					<cntper>{{ researcher_name }}</cntper>
+					<cntper>Matthew Turner</cntper>
 				</cntperp>
 				<cntaddr>
                                     <addrtype>mailing address</addrtype>
-                                        <address>{{ mailing_address }}</address>
-                                        <city>{{ city }}</city>
-                                        <state>{{ state }}</state>
-                                        <postal>{{ zip_code }}</postal>
+                                        <address>875 Perimeter Drive MS 2358</address>
+                                        <city>Moscow</city>
+                                        <state>Idaho</state>
+                                        <postal>83843</postal>
 					<country>USA</country>
 				</cntaddr>
-                                <cntvoice>{{ researcher_phone }}</cntvoice>
-                                <cntemail>{{ researcher_email }}</cntemail>
+                                <cntvoice>208-885-7129</cntvoice>
+                                <cntemail>maturner@uidaho.edu</cntemail>
 			</cntinfo>
 		</ptcontac>
 	</idinfo>
 	<spdoinfo>
 		<indspref>United States</indspref>
-                {% if rowcount and columncount %}
-		<rastinfo>
-			<rasttype>Pixel</rasttype>
-                        <rowcount>{{ rowcount }}</rowcount>
-                        <colcount>{{ columncount }}</colcount>
-			<vrtcount>1</vrtcount>
-		</rastinfo>
-                {% endif %}
+                
 	</spdoinfo>
-        {% if lat_res and lon_res and map_units %}
-	<spref>
-		<horizsys>
-			<geograph>
-				<latres>{{ lat_res }}</latres>
-				<longres>{{ lon_res }}</longres>
-				<geogunit>{{ map_units }}</geogunit>
-			</geograph>
-		</horizsys>
-	</spref>
-        {% endif %}
+        
 	<distinfo>
 		<distrib>
 			<cntinfo>
@@ -119,8 +90,8 @@
 		<stdorder>
 			<digform>
 				<digtinfo>
-                                        <formname>{{ file_ext }}</formname>
-					<transize>{{ file_size }}</transize>
+                                        <formname>ipw</formname>
+					<transize>0</transize>
 				</digtinfo>
 				<digtopt>
 					<offoptn>
