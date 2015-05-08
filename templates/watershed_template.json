@@ -5,35 +5,37 @@
     "basename": "{{ basename }}",
     "parent_model_run_uuid": "{{ parent_model_run_uuid }}",
     "model_run_uuid": "{{ model_run_uuid }}",
-    "model_vars": "{{ model_vars }}",
+    "model_vars": "{% if model_vars %}{{ model_vars }}{% else %}unknown{% endif %}",
     "model_set": "{{ model_set }}",
     "model_set_type": "{{ model_set_type }}",
     "model_set_taxonomy": "{{ model_set_taxonomy }}",
     "spatial": {
-        "geomtype": "grid",
-        "records":"{{ recs }}",
+        "geomtype": "{{ model_set_taxonomy }}",
+        "records":"1",
         "epsg": "{% if epsg %}{{ epsg }}{% else %}99999{% endif %}",
-        "features":"{{ features }}",
+        "features":"1",
         "bbox": "{{ west_bound }},{{ south_bound }},{{ east_bound }},{{ north_bound }}"
     },
     "dates": {
         "start": "{{ start_datetime }}",
         "end": "{{ end_datetime }}"
     },
-    "records": "{{ recs }}",
+    "records": "1",
     "active": "true",
     "services": [
-    "{{ wms }}",
-    "{{ wcs }}"
+    "{{ wms_str }}",
+    "{{ wcs_str }}"
     ],
     "categories": [{
-            "location": "{{ watershed_name }}",
-            "modelname": "{{ model_name }}",
-            "state": "{{ state }}"
+            "location": 
+             "{% if watershed_name %}{{ watershed_name }}{% else %}None{% endif %}",
+            "modelname": 
+             "{% if model_name %}{{ model_name }}{% else %}None{% endif %}",
+            "state": "{% if state %}{{ state }}{% else %}Not Given{% endif %}"
         }],
     "sources": [{
         "mimetype": "{{ mimetype }}",
-        "files": ["{{ inputFilePath }}"],
+        "files": ["{{ input_file_path }}"],
         "set": "original",
         "external": "False",
         "extension": "{{ ext }}"
@@ -52,5 +54,5 @@
         "upgrade": "true",
         "standard": "FGDC-STD-001-1998"
     },
-    "apps": ["my_app"]
+    "apps": ["vwp"]
 }

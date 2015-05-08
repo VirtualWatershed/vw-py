@@ -65,50 +65,77 @@ class TestJSONMetadata(unittest.TestCase):
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (JSON)"""
-        # Run test for 'inputs' model_set
-        # create metadata file
-        model_set = 'inputs'
-        description = 'Testing metadata!'
-        model_vars = 'R_n,H,L_v_E,G,M,delta_Q'
-        fgdcMetadata = '<XML>yup.</XML>'
-        dataFile = 'wcwave_adaptors/test/data/i_dont_exist.data'
-        start_datetime = datetime.datetime(2010, 10, 01, 0)
-        end_datetime = datetime.datetime(2010, 10, 01, 1)
-        generated = make_watershed_metadata(dataFile,
-                                          self.config,
-                                          self.parentModelRunUUID,
-                                          self.modelRunUUID,
-                                          model_set,
-                                          description,
-                                          model_vars,
-                                          fgdcMetadata,
-                                          start_datetime,
-                                          end_datetime
-                                          )
+
+        # minimal watershed JSON with geotiff
+        generated = make_watershed_metadata(
+            'wcwave_adaptors/test/data/in.0010.I_lw.tif',
+            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'outputs')
 
         # load expected json metadata file
-        expected = open('wcwave_adaptors/test/data/expected1_in.json', 'r').read()
+        expected = open('wcwave_adaptors/test/data/expected_minimal_tif_watershed.json',
+                        'r').read()
 
         # check equality
         assert generated == expected, \
             show_string_diff(generated, expected)
 
-        dataFile = 'wcwave_adaptors/test/data/fake_output.tif'
-        model_set = 'outputs'
-        generated = make_watershed_metadata(dataFile,
-                                          self.config,
-                                          self.parentModelRunUUID,
-                                          self.modelRunUUID,
-                                          model_set,
-                                          description,
-                                          model_vars,
-                                          fgdcMetadata,
-                                          start_datetime,
-                                          end_datetime
-                                          )
+        # minimal watershed JSON with iSNOBAL binary
+        generated = make_watershed_metadata(
+            'wcwave_adaptors/test/data/in.0010',
+            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
+            ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n')
+
+        expected = open('wcwave_adaptors/test/data/expected_minimal_isno_watershed.json',
+                        'r').read()
+
+        # check equality
+        assert generated == expected, \
+            show_string_diff(generated, expected)
+
+        # full watershed JSON with geotiff
+        xml = make_fgdc_metadata('wcwave_adaptors/test/data/in.0010.I_lw.tif',
+                                 self.config, 'MODELRUNXX**AA*',
+                                 "2010-10-01", "2011-09-31",
+                                 proc_date="2015-05-07",
+                                 theme_key="watershed", row_count=170,
+                                 column_count=124, lat_res=2.5,
+                                 lon_res=2.5, map_units='m')
+
+        generated = make_watershed_metadata(
+            'wcwave_adaptors/test/data/in.0010.I_lw.tif',
+            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'outputs',
+            orig_epsg=26911, epsg=4326, model_set_type='tif', model_vars='I_lw',
+            model_set_taxonomy='grid', start_datetime='2010-10-01 10:00:00',
+            end_datetime='2010-10-01 11:00:00', watershed_name='Dry Creek',
+            model_name='iSNOBAL', state='Idaho', fgdc_metadata=xml)
+
         # load expected json metadata file
-        expected = \
-            open('wcwave_adaptors/test/data/expected_w_services.json', 'r').read()
+        expected = open('wcwave_adaptors/test/data/expected_full_tif_watershed.json',
+                        'r').read()
+
+        # check equality
+        assert generated == expected, \
+            show_string_diff(generated, expected)
+
+        # full watershed JSON with iSNOBAL binary
+        xml = make_fgdc_metadata('wcwave_adaptors/test/data/in.0010',
+                                 self.config, 'MODELRUNXX**AA*',
+                                 "2010-10-01", "2011-09-31",
+                                 proc_date="2015-05-07",
+                                 theme_key="watershed", row_count=170,
+                                 column_count=124, lat_res=2.5,
+                                 lon_res=2.5, map_units='m', file_ext='bin')
+
+        generated = make_watershed_metadata(
+            'wcwave_adaptors/test/data/in.0010',
+            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
+            start_datetime='2010-01-01 10:00:00', end_datetime='2010-01-01 11:00:00',
+            orig_epsg=26911, epsg=4326, model_set_type='binary', state='Idaho',
+            ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
+            model_name='iSNOBAL', fgdc_metadata=xml)
+
+        expected = open('wcwave_adaptors/test/data/expected_full_isno_watershed.json',
+                        'r').read()
 
         # check equality
         assert generated == expected, \
@@ -145,9 +172,11 @@ class TestFGDCMetadata(unittest.TestCase):
 
         generated = \
             make_fgdc_metadata('wcwave_adaptors/test/data/in.0010.I_lw.tif',
-                               cfg, 'MODELRUNXX**AA*', "2010-10-01",
-                               "2011-09-31", theme_key="watershed",
-                               row_count=170, column_count=124, lat_res=2.5,
+                               cfg, 'MODELRUNXX**AA*',
+                               "2010-10-01", "2011-09-31",
+                               proc_date="2015-05-07",
+                               theme_key="watershed", row_count=170,
+                               column_count=124, lat_res=2.5,
                                lon_res=2.5, map_units='m')
 
         expected = open('wcwave_adaptors/test/data/expected_full_fgdc.xml',
@@ -160,7 +189,7 @@ class TestFGDCMetadata(unittest.TestCase):
 class TestVWClient(unittest.TestCase):
     """ Test the functionality of the Virtual Watershed client """
     def setUp(self):
-
+        # TODO: clean up any pre-existing
         self.config = _get_config('wcwave_adaptors/test/test.conf')
 
         self.kwargs = {'keywords': 'Snow,iSNOBAL,wind',
@@ -332,7 +361,7 @@ class TestVWClient(unittest.TestCase):
             else:
                 num_expected = 1 * factor
 
-            res = vwc.search(model_run_uuid=UUID)
+            res = vwc.dataset_search(model_run_uuid=UUID)
             print "testing model_run_uuid %s" % UUID
             assert res.total == num_expected, \
                 "Data was not upserted as expected.\n" +\

@@ -45,19 +45,23 @@ class VWClient:
         self.passwd = passwd
 
         # Initialize URLS used by class methods
-        self.insert_dataset_url = host_url + \
-            "/apps/vwp/datasets"
+        self.insert_dataset_url = host_url + "/apps/vwp/datasets"
 
         self.data_upload_url = host_url + "/apps/vwp/data"
 
-        self.uuid_check_url = host_url + \
-            "/apps/vwp/checkmodeluuid"
+        self.uuid_check_url = host_url + "/apps/vwp/checkmodeluuid"
 
-        self.search_url = host_url + \
-            "/apps/vwp/search/datasets.json?version=3"
+        self.dataset_search_url = \
+            host_url + "/apps/vwp/search/datasets.json?version=3"
 
-        self.new_run_url = host_url + \
-            "/apps/vwp/newmodelrun"
+        self.modelrun_search_url = \
+            host_url + "/apps/vwp/search/modelruns.json?version=3"
+
+        self.modelrun_delete_url = host_url + "/apps/vwp/deletemodelid"
+
+        self.new_run_url = host_url + "/apps/vwp/newmodelrun"
+
+
 
     def initialize_model_run(self, model_run_name=None, description=None,
                              researcher_name=None, keywords=None):
@@ -106,26 +110,27 @@ class VWClient:
 
         return model_run_uuid
 
-    def search(self, **kwargs):
+    def modelrun_search(self, **kwargs):
+        "Search the model run database"
+        full_url = _build_query(self.modelrun_search_url, **kwargs)
+
+        r = self.sesh.get(full_url, verify=False)
+
+        return QueryResult(r.json())
+
+
+    def dataset_search(self, **kwargs):
         """
         Search the VW for JSON metadata records with matching parameters.
         Use key, value pairs as specified in the `Virtual Watershed
         Documentation
-        <http://129.24.196.43//docs/stable/search.html#search-objects>`_
+        <http://vwp-dev.unm.edu/docs/stable/search.html#search-objects>`_
 
         Returns: a list of JSON records as dictionaries
         """
-        full_url = self.search_url
+        full_url = _build_query(self.dataset_search_url, **kwargs)
 
-        for key, val in kwargs.iteritems():
-
-            if type(val) is not str:
-                val = str(val)
-
-            full_url += "&%s=%s" % (key, val)
-
-        r = requests.get(full_url, verify=False)
-
+        r = self.sesh.get(full_url, verify=False)
 
         return QueryResult(r.json())
 
@@ -198,6 +203,47 @@ class VWClient:
         ipdb.set_trace()
         raise requests.HTTPError()
 
+    def delete_model_run(self, model_run_uuid):
+        """
+        Delete a model run associated with model_run_uuid
+
+        Returns:
+            (bool) True if successful, False if not
+        """
+        full_url = self.modelrun_delete_url + model_run_uuid
+
+        result = self.sesh.delete(self.modelrun_delete_url,
+            data=json.dumps({'model_uuid': model_run_uuid}), verify=False)
+
+        if result.status_code == 200:
+            return True
+        else:
+            return False
+
+    def create_new_user(self, userid, first_name, last_name, email, password,
+                        address1, address2, city, state, zipcode, tel_voice,
+                        country='USA'):
+        """
+        Create a new virtual watershed user. This is only available to users
+        with admin status on the virtual waterhsed.
+
+        Returns:
+            (bool) True if succesful, False if not
+        """
+        pass
+
+
+def _build_query(search_route, **kwargs):
+    "build the end of a query by translating dict to key1=val1&key2=val2..."
+    full_url = search_route
+    for key, val in kwargs.iteritems():
+
+        if type(val) is not str:
+            val = str(val)
+
+        full_url += "&%s=%s" % (key, val)
+
+    return full_url
 
 class QueryResult:
     """
@@ -523,118 +569,151 @@ def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,
     return output
 
 
-def make_watershed_metadata(dataFile, config, parentModelRunUUID,
-                          modelRunUUID, model_set, orig_epsg=None, epsg=None,
-                          model_set_taxonomy="grid", water_year=None,
-                          model_name=None, description=None, model_vars=None,
-                          fgdcMetadata=None, start_datetime=None,
-                          end_datetime=None):
+def make_watershed_metadata(file_name, config, parent_model_run_uuid,
+                            model_run_uuid, model_set, fgdc_metadata=None,
+                            **kwargs):
 
-    """ For a single `dataFile`, write the corresponding Virtual Watershed JSON
+    """ For a single `file_name`, write the corresponding Virtual Watershed JSON
         metadata.
 
-        Take the modelRunUUID from the result of initializing a new model
-        run in the virtual watershed.
+        valid kwargs:
+            orig_epsg: original EPSG code of projection
 
-        model_set must be
+            epsg: current EPSG code
+
+            taxonomy: likely 'file'; representation of the data
+
+            model_vars: variable(s) represented in the data
+
+            model_set: 'inputs' or 'outputs'; AssertionError if not
+
+            model_set_type: e.g., 'binary', 'csv', 'tif', etc.
+
+            model_set_taxonomy: 'grid', 'vector', etc.
+
+            west_bound: westernmost longitude of bounding box
+
+            east_bound: easternmost longitude of bounding box
+
+            north_bound: northernmost latitude of bounding box
+
+            south_bound: southernmost latitude of bounding box
+
+            start_datetime: datetime observations began, formatted like "2010-01-01 22:00:00"
+
+            end_datetime: datetime observations ended, formatted like "2010-01-01 22:00:00"
+
+            wms: True if wms service can and should be enabled
+
+            wcs: True if wcs service can and should be enabled
+
+            watershed_name: Name of watershed, e.g. 'Dry Creek' or 'Lehman Creek'
+
+            model_name: Name of model, if applicaple; e.g. 'iSNOBAL', 'PRMS'
+
+            state: State where the data was collected
+
+            mimetype: defaults to application/octet-stream
+
+            ext: extension to be associated with the dataset; make_watershed_metadata
+             will take the extension of file_name if not given explicitly
+
+            fgdc_metadata: FGDC md probably created by make_fgdc_metadata; if not
+             given, a default version is created (see source for details)
 
         Returns: JSON metadata string
     """
     assert model_set in ["inputs", "outputs"], "parameter model_set must be \
             either 'inputs' or 'outputs', not %s" % model_set
 
-    RECS = "1"
-    FEATURES = "1"
-
     # logic to figure out mimetype and such based on extension
-    _, ext = os.path.splitext(dataFile)
+    _, ext = os.path.splitext(file_name)
     if ext == '.tif':
-        wcs = 'wcs'
-        wms = 'wms'
-        tax = 'geoimage'
-        ext = 'tif'
-        mimetype = 'application/x-zip-compressed'
-        # type_subdir = 'geotiffs'
-        model_set_type = 'vis'
-    else:
-        wcs = ''
-        wms = ''
-        tax = 'file'
-        ext = 'bin'
-        mimetype = 'application/x-binary'
-        # type_subdir = 'bin'
-        model_set_type = 'binary'
+        if 'wcs' not in kwargs:
+            kwargs['wcs'] = True
+        if 'wms' not in kwargs:
+            kwargs['wms'] = True
+        if 'tax' not in kwargs:
+            kwargs['tax'] = 'geoimage'
+        if 'ext' not in kwargs:
+            kwargs['ext'] = 'tif'
+        if 'mimetype' not in kwargs:
+            kwargs['mimetype'] = 'application/x-zip-compressed'
+        if 'model_set_type' not in kwargs:
+            kwargs['model_set_type'] = 'vis'
 
-    basename = os.path.basename(dataFile)
+    if 'ext' not in kwargs:
+        kwargs['ext'] = ext
+
+    if 'mimetype' not in kwargs:
+        kwargs['mimetype'] = 'application/octet-stream'
+
+    # If one of the datetimes is missing
+    if not ('start_datetime' in kwargs and 'end_datetime' in kwargs):
+        kwargs['start_datetime'] = "1970-10-01 00:00:00"
+        kwargs['end_datetime'] = "1970-10-01 01:00:00"
+
+    if not fgdc_metadata:
+        fgdc_kwargs = {k: v for k,v in kwargs.iteritems()
+                       if k not in ['start_datetime', 'end_datetime']}
+        # can just include all remaining kwargs; no problem if they go unused
+        fgdc_metadata = make_fgdc_metadata(file_name, config, model_run_uuid,
+                                           kwargs['start_datetime'],
+                                           kwargs['end_datetime'],
+                                           **fgdc_kwargs)
+
+
+    basename = os.path.basename(file_name)
 
     geo_config = config['Geo']
 
-    firstTwoUUID = modelRunUUID[:2]
-    inputFilePath = os.path.join("/geodata/watershed-data",
+    firstTwoUUID = model_run_uuid[:2]
+    input_file_path = os.path.join("/geodata/watershed-data",
                                  firstTwoUUID,
-                                 modelRunUUID,
-                                 os.path.basename(dataFile))
+                                 model_run_uuid,
+                                 os.path.basename(file_name))
 
     # properly escape xml metadata escape chars
-    fgdcMetadata = fgdcMetadata.replace('\n', '\\n').replace('\t', '\\t')
+    fgdc_metadata = \
+        fgdc_metadata.replace('\n', '\\n').replace('\t', '\\t')
 
-    # If one of the datetimes is missing
-    if start_datetime is None or end_datetime is None:
-        start_datetime = "1970-10-01 00:00:00"
-        end_datetime = "1970-10-01 01:00:00"
-    elif (type(start_datetime) is datetime.datetime
-          and type(end_datetime) is datetime.datetime):
+    geoconf = config['Geo']
+    resconf = config['Researcher']
 
-        fmt = lambda dt: dt.strftime('%Y-%m-%d %H:%M:%S')
-        start_datetime, end_datetime = map(fmt, (start_datetime, end_datetime))
-    else:
-
-        raise Exception("Either pass no start/end datetime " +\
-                        "or pass a datetime object. Not %s" % str(type(start_datetime)))
+    # if any of the bounding boxes are not given, all go to default
+    if not ('west_bound' in kwargs and 'east_bound' in kwargs
+            and 'north_bound' in kwargs and 'south_bound' in kwargs):
+        kwargs['west_bound'] = geoconf['default_west_bound']
+        kwargs['east_bound'] = geoconf['default_east_bound']
+        kwargs['north_bound'] = geoconf['default_north_bound']
+        kwargs['south_bound'] = geoconf['default_south_bound']
 
     # write the metadata for a file
     # output = template.substitute(# determined by file ext, set within function
     template_env = Environment(loader=FileSystemLoader(
-                               os.path.join(os.path.dirname(__file__), 'cdl')))
+                               os.path.join(os.path.dirname(__file__),
+                                            '../templates')))
 
-    template = template_env.get_template('../templates/watershed_template.json')
+    template = template_env.get_template('watershed_template.json')
 
-    output = template.render(wcs=wcs,
-                             wms=wms,
-                             tax=tax,
-                             ext=ext,
-                             mimetype=mimetype,
-                             model_set_type=model_set_type,
-                             # passed as args to parent function
-                             model_run_uuid=modelRunUUID,
-                             model_vars=model_vars,
-                             description=description,
+    if 'wcs' in kwargs and kwargs['wcs']:
+        wcs_str = 'wcs'
+    else:
+        wcs_str = None
+
+    if 'wms' in kwargs and kwargs['wms']:
+        wms_str = 'wms'
+    else:
+        wms_str = None
+
+    output = template.render(basename=basename,
+                             parent_model_run_uuid=parent_model_run_uuid,
+                             model_run_uuid=model_run_uuid,
                              model_set=model_set,
+                             wcs_str=wcs_str,
+                             wms_str=wms_str,
+                             input_file_path=input_file_path,
                              fgdc_metadata=fgdc_metadata,
-                             # derived from parent function args
-                             basename=basename,
-                             inputFilePath=inputFilePath,
-                             # given in config file
-                             parent_model_run_uuid=parentModelRunUUID,
-                             model_name=model_name,
-                             state=state,
-                             model_set_taxonomy=model_set_taxonomy,
-                             orig_epsg=orig_epsg,
-
-                             west_bound=geo_config['default_west_bound'],
-                             east_bound=geo_config['default_east_bound'],
-                             north_bound=geo_config['default_north_bound'],
-                             south_bound=geo_config['default_south_bound'],
-
-                             start_datetime=start_datetime,
-                             end_datetime=end_datetime,
-                             epsg=epsg,
-                             watershed_name=watershed_name,
-
-                             # static default values defined at top of func
-                             recs=RECS,
-                             features=FEATURES
-                             )
-
+                             **kwargs)
     return output
 
