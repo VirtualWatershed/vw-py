@@ -225,8 +225,8 @@ class IPW(object):
     >>> ipw.writeBinary("in.plusOne.000")
 
     """
-    def __init__(self, input_file=None, config_file=None, dt=None,
-                 file_type=None):
+    def __init__(self, input_file=None, config_file=None,
+                 water_year=None, dt=None, file_type=None):
 
         assert dt is None or issubclass(type(dt), datetime.timedelta)
 
@@ -266,8 +266,9 @@ class IPW(object):
 
             if file_type in ['in', 'em', 'snow']:
 
-                # get the water year
-                water_year_start = int(config['Common']['water_year'])
+                # set the water year to default if not given
+                if not water_year:
+                    water_year = 2010
 
                 # note that we have not generalized for non-hour timestep data
                 if dt is None:
@@ -280,7 +281,7 @@ class IPW(object):
                 start_dt = dt * int(input_split[-1])
 
                 start_datetime = \
-                    datetime.datetime(water_year_start, 10, 01) + start_dt
+                    datetime.datetime(water_year, 10, 01) + start_dt
 
                 end_datetime = start_datetime + dt
 
@@ -1066,10 +1067,8 @@ def _calc_float_value(band, integerValue):
 
     Returns: Floating point value of the mapped int_
     """
-    # TODO create Band.floatRange
     floatRange = band.float_max - band.float_min
 
-    # TODO create Band.scaleMult = floatRange/band.int_max
     return integerValue * (floatRange / band.int_max) + band.float_min
 
 

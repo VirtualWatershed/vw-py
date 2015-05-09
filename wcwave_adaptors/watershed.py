@@ -199,8 +199,6 @@ class VWClient:
                 num_tries += 1
                 continue
 
-        import ipdb
-        ipdb.set_trace()
         raise requests.HTTPError()
 
     def delete_model_run(self, model_run_uuid):
@@ -312,8 +310,11 @@ def _get_config(config_file=None):
 
 
 def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
-                       description, water_year_start=2010, water_year_end=2011,
-                       config_file=None, dt=None):
+                       description, watershed_name, state, start_datetime=None,
+                       end_datetime=None, model_name=None, fgdc_metadata=None,
+                       model_set_type=None, model_set_taxonomy=None,
+                       water_year_start=2010, water_year_end=2011,
+                       config_file=None, dt=None, **kwargs):
     """
     Generate metadata for input_file.
     """
@@ -325,9 +326,6 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         config = _get_config(
             os.path.join(os.path.dirname(__file__), '../default.conf'))
 
-    fgdc_metadata = make_fgdc_metadata(input_file, config,
-                                     model_run_uuid)
-
     input_split = os.path.basename(input_file).split('.')
 
     input_prefix = input_split[0]
@@ -336,9 +334,12 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     model_set = ("outputs", "inputs")[input_prefix == "in"]
 
+    start_datetime_str = ""
+    end_datetime_str = ""
     if output_ext == ".tif":
         model_vars = input_split[-2]
-    else:
+
+    elif model_name == 'isnobal':
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
         VARNAME_DICT = \
             {
@@ -350,33 +351,52 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
             }
         model_vars = ','.join(VARNAME_DICT[input_prefix])
 
-    if dt is None:
-        dt = pd.Timedelta('1 hour')
+        if dt is None:
+            dt = pd.Timedelta('1 hour')
 
-    # calculate the "dates" fields for the watershed JSON metadata
-    start_dt = dt * dt_multiplier
+        # calculate the "dates" fields for the watershed JSON metadata
+        start_dt = dt * dt_multiplier
 
-    start_datetime = \
-        datetime(water_year_start, 10, 01) + start_dt
+        if not (start_datetime and end_datetime):
+            start_datetime = datetime(water_year_start, 10, 01) + start_dt
+            start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S')
 
-    end_datetime = start_datetime + dt
+            end_datetime = start_datetime + dt
+            end_datetime_str = datetime.strftime(start_datetime + dt,
+                                             '%Y-%m-%d %H:%M:%S')
 
-    return \
+
+        fgdc_metadata = make_fgdc_metadata(input_file, config,
+                                           model_run_uuid, start_datetime,
+                                           end_datetime)
+    else:
+        raise Exception('File was not an iSNOBAL file or a geotiff. File not supported')
+
+    js =  \
         make_watershed_metadata(input_file,
-                              config,
-                              parent_model_run_uuid,
-                              model_run_uuid,
-                              model_set,
-                              description,
-                              model_vars,
-                              fgdc_metadata,
-                              start_datetime,
-                              end_datetime)
+                                config,
+                                parent_model_run_uuid,
+                                model_run_uuid,
+                                model_set,
+                                watershed_name,
+                                state,
+                                model_name=model_name,
+                                model_set_type=model_set_type,
+                                model_set_taxonomy='grid',
+                                fgdc_metadata=fgdc_metadata,
+                                description=description,
+                                model_vars=model_vars,
+                                start_datetime=start_datetime_str,
+                                end_datetime=end_datetime_str,
+                                **kwargs)
+
+    return js
 
 
-def upsert(input_path, model_run_name=None, description=None, keywords=None,
-           parent_model_run_uuid=None, model_run_uuid=None, config_file=None,
-           dt=None):
+def upsert(input_path, watershed_name, state,
+           model_run_name=None, description=None, keywords=None,
+           parent_model_run_uuid=None, model_run_uuid=None, model_name=None,
+           model_set_type=None, ext=None, config_file=None, dt=None):
     """Upload the file or files located at input_path, which could be a
        directory. This function also creates and inserts metadata records for
        every file as required by the virtual watershed.
@@ -441,20 +461,22 @@ def upsert(input_path, model_run_name=None, description=None, keywords=None,
 
     # closure to do the upsert on each file
     def _upsert(file_):
-        json = metadata_from_file(file_, parent_model_run_uuid,
-                                  model_run_uuid, description,
+        js = metadata_from_file(file_, parent_model_run_uuid,
+                                  model_run_uuid, description, watershed_name,
+                                  state, model_set_type=model_set_type,
+                                  model_name=model_name, ext=ext,
                                   config_file=config_file, dt=dt)
 
         vw_client.upload(model_run_uuid, file_)
-        vw_client.insert_metadata(json)
+        vw_client.insert_metadata(js)
 
     print "upserting file(s) from %s with model_run_uuid %s" % \
         (input_path, model_run_uuid)
 
-    with ProgressBar(maxval=len(files)) as progress:
-        for i, file_ in enumerate(files):
-            _upsert(file_)
-            progress.update(i)
+    # with ProgressBar(maxval=len(files)) as progress:
+    for i, file_ in enumerate(files):
+        _upsert(file_)
+            # progress.update(i)
 
     return (parent_model_run_uuid, model_run_uuid)
 
@@ -570,7 +592,8 @@ def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,
 
 
 def make_watershed_metadata(file_name, config, parent_model_run_uuid,
-                            model_run_uuid, model_set, fgdc_metadata=None,
+                            model_run_uuid, model_set, watershed_name,
+                            state, fgdc_metadata=None,
                             **kwargs):
 
     """ For a single `file_name`, write the corresponding Virtual Watershed JSON
@@ -611,8 +634,6 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
 
             model_name: Name of model, if applicaple; e.g. 'iSNOBAL', 'PRMS'
 
-            state: State where the data was collected
-
             mimetype: defaults to application/octet-stream
 
             ext: extension to be associated with the dataset; make_watershed_metadata
@@ -625,6 +646,15 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
     """
     assert model_set in ["inputs", "outputs"], "parameter model_set must be \
             either 'inputs' or 'outputs', not %s" % model_set
+
+    # TODO get valid_states and valid_watersheds from VW w/ TODO VWClient method
+    valid_states = ['Idaho', 'Nevada', 'New Mexico']
+    assert state in valid_states, "state passed was " + state + \
+            ". Must be one of " + ", ".join(valid_states)
+
+    valid_watersheds = ['Dry Creek', 'Jemez Caldera', 'Lehman Creek', 'Reynolds Creek']
+    assert watershed_name in valid_watersheds, "watershed passed was " + \
+            watershed_name + ". Must be one of " + ", ".join(valid_watersheds)
 
     # logic to figure out mimetype and such based on extension
     _, ext = os.path.splitext(file_name)
@@ -710,10 +740,13 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                              parent_model_run_uuid=parent_model_run_uuid,
                              model_run_uuid=model_run_uuid,
                              model_set=model_set,
+                             watershed_name=watershed_name,
+                             state=state,
                              wcs_str=wcs_str,
                              wms_str=wms_str,
                              input_file_path=input_file_path,
                              fgdc_metadata=fgdc_metadata,
                              **kwargs)
     return output
+
 

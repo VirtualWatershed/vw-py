@@ -69,7 +69,8 @@ class TestJSONMetadata(unittest.TestCase):
         # minimal watershed JSON with geotiff
         generated = make_watershed_metadata(
             'wcwave_adaptors/test/data/in.0010.I_lw.tif',
-            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'outputs')
+            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
+            'Dry Creek', 'Idaho', model_name='isnobal')
 
         # load expected json metadata file
         expected = open('wcwave_adaptors/test/data/expected_minimal_tif_watershed.json',
@@ -83,7 +84,8 @@ class TestJSONMetadata(unittest.TestCase):
         generated = make_watershed_metadata(
             'wcwave_adaptors/test/data/in.0010',
             self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
-            ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n')
+            'Dry Creek', 'Idaho', ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
+            model_name='isnobal')
 
         expected = open('wcwave_adaptors/test/data/expected_minimal_isno_watershed.json',
                         'r').read()
@@ -103,11 +105,11 @@ class TestJSONMetadata(unittest.TestCase):
 
         generated = make_watershed_metadata(
             'wcwave_adaptors/test/data/in.0010.I_lw.tif',
-            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'outputs',
+            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
+            'Dry Creek', 'Idaho', fgdc_metadata=xml,
             orig_epsg=26911, epsg=4326, model_set_type='tif', model_vars='I_lw',
             model_set_taxonomy='grid', start_datetime='2010-10-01 10:00:00',
-            end_datetime='2010-10-01 11:00:00', watershed_name='Dry Creek',
-            model_name='iSNOBAL', state='Idaho', fgdc_metadata=xml)
+            end_datetime='2010-10-01 11:00:00', model_name='isnobal')
 
         # load expected json metadata file
         expected = open('wcwave_adaptors/test/data/expected_full_tif_watershed.json',
@@ -129,10 +131,11 @@ class TestJSONMetadata(unittest.TestCase):
         generated = make_watershed_metadata(
             'wcwave_adaptors/test/data/in.0010',
             self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
+            'Dry Creek', 'Idaho', fgdc_metadata=xml,
             start_datetime='2010-01-01 10:00:00', end_datetime='2010-01-01 11:00:00',
-            orig_epsg=26911, epsg=4326, model_set_type='binary', state='Idaho',
+            orig_epsg=26911, epsg=4326, model_set_type='binary',
             ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
-            model_name='iSNOBAL', fgdc_metadata=xml)
+            model_name='isnobal')
 
         expected = open('wcwave_adaptors/test/data/expected_full_isno_watershed.json',
                         'r').read()
@@ -201,8 +204,9 @@ class TestVWClient(unittest.TestCase):
 
         self.parent_uuid = self.UUID
 
-        upsert('wcwave_adaptors/test/data/in.0000', 'unittest insert for download',
-               parent_model_run_uuid=self.parent_uuid,
+        upsert('wcwave_adaptors/test/data/in.0000', 'Dry Creek', 'Idaho',
+               description='unittest insert for download', model_set_type='binary',
+               parent_model_run_uuid=self.parent_uuid, model_name='isnobal', ext='bin',
                model_run_uuid=self.UUID, config_file='wcwave_adaptors/test/test.conf')
 
         time.sleep(1)
@@ -219,7 +223,7 @@ class TestVWClient(unittest.TestCase):
         new_uuid = \
             VW_CLIENT.initialize_model_run(**kwargs)
 
-        result = VW_CLIENT.search(model_run_uuid=new_uuid)
+        result = VW_CLIENT.dataset_search(model_run_uuid=new_uuid)
 
         assert result.total == 0, \
             'Result does not exist?? result.total = %d' % result.total
@@ -237,7 +241,7 @@ class TestVWClient(unittest.TestCase):
         VW_CLIENT.initialize_model_run(keywords=keywords,
                                        description=description,
                                        model_run_name=model_run_name,
-                                       researcher_name=self.config['Common']['researcherName'])
+                                       researcher_name=self.config['Researcher']['researcher_name'])
 
         print "first inserted successfully"
 
@@ -246,20 +250,20 @@ class TestVWClient(unittest.TestCase):
         # fake submission will throw
 
         VW_CLIENT.initialize_model_run(keywords=keywords,
-                                       researcher_name=self.config['Common']['researcherName'],
+                                       researcher_name=self.config['Researcher']['researcher_name'],
                                        description=description,
                                        model_run_name=model_run_name)
 
     @raises(HTTPError)
     def test_authFail(self):
         """ Test that failed authorization is correctly caught """
-        actualVWip = 'vwp-dev.unm.edu'
-        VWClient(actualVWip, 'fake_user', 'fake_passwd')
+        vw_host = self.config['Connection']['watershed_url']
+        VWClient(vw_host, 'fake_user', 'fake_passwd')
 
     def test_insert(self):
         """ VW Client properly inserts data """
         kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                  'researcher_name': self.config['Common']['researcherName'],
+                  'researcher_name': self.config['Researcher']['researcher_name'],
                   'description': 'unittest',
                   'model_run_name': 'unittest' + str(uuid4())}
         UUID = \
@@ -270,18 +274,21 @@ class TestVWClient(unittest.TestCase):
         dataFile = 'wcwave_adaptors/test/data/in.0000'
 
         fgdcXML = \
-            make_fgdc_metadata(dataFile, self.config, modelRunUUID=UUID)
+            make_fgdc_metadata(dataFile, self.config, UUID,
+                               "2010-10-01 00:00:00", "2010-10-01 01:00:00")
 
         watershedJSON = \
             make_watershed_metadata(dataFile, self.config, UUID,
-                                    UUID, 'inputs',
-                                    'Description of the data',
-                                    model_vars='R_n,H,L_v_E,G,M,delta_Q',
-                                    fgdcMetadata=fgdcXML)
+                UUID, 'inputs', 'Dry Creek', 'Idaho',
+                description='Description of the data',
+                start_datetime='2010-01-01 10:00:00',
+                end_datetime='2010-01-01 11:00:00', orig_epsg=26911, epsg=4326,
+                model_set_type='binary', ext='bin',
+                model_vars='I_lw,T_a,e_a,u,T_g,S_n', model_name='isnobal')
 
         VW_CLIENT.insert_metadata(watershedJSON)
 
-        vwTestUUIDEntries = VW_CLIENT.search(model_run_uuid=UUID)
+        vwTestUUIDEntries = VW_CLIENT.dataset_search(model_run_uuid=UUID)
 
         assert vwTestUUIDEntries,\
             'No VW Entries corresponding to the test UUID'
@@ -295,7 +302,7 @@ class TestVWClient(unittest.TestCase):
         """ VW Client properly uploads data """
         # fetch the file from the url we know from the VW file storage pattern
         results = \
-            VW_CLIENT.search(model_run_uuid=self.UUID, limit=1)
+            VW_CLIENT.dataset_search(model_run_uuid=self.UUID, limit=1)
 
         url = results.records[0]['downloads'][0]['bin']
 
@@ -316,7 +323,10 @@ class TestVWClient(unittest.TestCase):
         VW Client properly downloads data
         """
         result = \
-            VW_CLIENT.search(model_run_uuid=self.UUID, limit=1)
+            VW_CLIENT.dataset_search(model_run_uuid=self.UUID, limit=1)
+
+        # import ipdb
+        # ipdb.set_trace()
 
         r0 = result.records[0]
         url = r0['downloads'][0]['bin']
@@ -392,7 +402,7 @@ class TestVWClient(unittest.TestCase):
                   'model_run_name': 'unittest' + str(uuid4())}
 
         print kwargs['model_run_name']
-        parent_uuid, UUID = upsert(upsert_dir,
+        parent_uuid, UUID = upsert(upsert_dir, 'Dry Creek', 'Idaho', model_name='isnobal',
                                    config_file=test_conf, **kwargs)
         _worked(parent_uuid, UUID)
 
@@ -402,8 +412,8 @@ class TestVWClient(unittest.TestCase):
 
         # with no slash after directory name
         parent_uuid, UUID = \
-            upsert('wcwave_adaptors/test/data/upsert_test',
-                   config_file=test_conf, **kwargs)
+            upsert('wcwave_adaptors/test/data/upsert_test', 'Dry Creek',
+                   'Idaho', model_name='isnobal', config_file=test_conf, **kwargs)
         _worked(parent_uuid, UUID)
 
         kwargs = {'keywords': 'Snow,iSNOBAL,wind',
@@ -411,8 +421,10 @@ class TestVWClient(unittest.TestCase):
                   'model_run_name': 'unittest' + str(uuid4())}
         # as an existing model run
         inherit_parent = parent_uuid
-        parent_uuid, uuid = upsert(upsert_dir, parent_model_run_uuid=inherit_parent,
-                                   model_run_uuid=UUID, config_file=test_conf, **kwargs)
+        parent_uuid, uuid = upsert(upsert_dir, 'Dry Creek', 'Idaho', model_name='isnobal',
+                                   parent_model_run_uuid=inherit_parent,
+                                   model_run_uuid=UUID, config_file=test_conf,
+                                   **kwargs)
 
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
 
@@ -425,7 +437,7 @@ class TestVWClient(unittest.TestCase):
                   'description': 'unittest',
                   'model_run_name': 'unittest' + str(uuid4())}
 
-        parent_uuid, UUID = upsert(upsert_file,
+        parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
                                    config_file=test_conf, **kwargs)
         _worked(parent_uuid, UUID, dir_=False)
 
@@ -434,7 +446,7 @@ class TestVWClient(unittest.TestCase):
                   'description': 'unittest',
                   'model_run_name': 'unittest' + str(uuid4())}
 
-        parent_uuid, UUID = upsert(upsert_file,
+        parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
                                    config_file=test_conf, **kwargs)
 
         _worked(parent_uuid, UUID, dir_=False)
@@ -444,8 +456,10 @@ class TestVWClient(unittest.TestCase):
         kwargs = {'keywords': 'Snow,iSNOBAL,wind',
                   'description': 'unittest',
                   'model_run_name': 'unittest' + str(uuid4())}
-        parent_uuid, UUID = upsert(upsert_file, parent_model_run_uuid=inherit_parent,
-                                   model_run_uuid=UUID, config_file=test_conf, **kwargs)
+        parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
+                                   parent_model_run_uuid=inherit_parent,
+                                   model_run_uuid=UUID, config_file=test_conf,
+                                   **kwargs)
 
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
 
@@ -468,7 +482,8 @@ class TestVWClient(unittest.TestCase):
         generated = metadata_from_file('wcwave_adaptors/test/data/in.0000',
                                        parent_uuid,
                                        uuid,
-                                       description,
+                                       description, 'Dry Creek', 'Idaho',
+                                       model_name='isnobal',
                                        config_file='wcwave_adaptors/test/test.conf')
 
         with open('wcwave_adaptors/test/data/expected_ipw_metadata.json', 'w') as f:
@@ -488,7 +503,7 @@ class TestVWClient(unittest.TestCase):
         uuid = '09079630-5ef8-11e4-9803-0800200c9a66'
         # .tif
         generated = metadata_from_file('test/data/em.0134.melt.tif',
-            parent_uuid, uuid, 'Testing metadata!',
+            parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
             config_file='wcwave_adaptors/test/test.conf')
 
         expected = open('wcwave_adaptors/test/data/expected_tif.json', 'r').read()
@@ -498,9 +513,8 @@ class TestVWClient(unittest.TestCase):
         # now assume we have resampled to 3-day intervals
         dt = pd.Timedelta('3 days')
         generated = metadata_from_file('test/data/em.100.melt.tif',
-            parent_uuid, uuid,
-            'Testing metadata!', config_file='wcwave_adaptors/test/test.conf',
-            dt=dt)
+            parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
+            config_file='wcwave_adaptors/test/test.conf', dt=dt)
 
         expected = open('wcwave_adaptors/test/data/expected_tif_nonhourdt.json',
                         'r').read()

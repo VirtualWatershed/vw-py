@@ -1,12 +1,12 @@
 {
     "orig_epsg": "26911",
     "description": "",
-    "taxonomy": "geoimage",
+    "taxonomy": "file",
     "basename": "in.0010.I_lw.tif",
     "parent_model_run_uuid": "MODELRUNXX**A*",
     "model_run_uuid": "MODELRUNXX**A*",
     "model_vars": "I_lw",
-    "model_set": "outputs",
+    "model_set": "inputs",
     "model_set_type": "tif",
     "model_set_taxonomy": "grid",
     "spatial": {
@@ -27,10 +27,8 @@
     "wcs"
     ],
     "categories": [{
-            "location": 
-             "Dry Creek",
-            "modelname": 
-             "iSNOBAL",
+            "location": "Dry Creek",
+            "modelname": "isnobal",
             "state": "Idaho"
         }],
     "sources": [{

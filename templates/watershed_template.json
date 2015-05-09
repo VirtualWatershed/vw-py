@@ -1,7 +1,7 @@
 {
     "orig_epsg": "{% if orig_epsg %}{{ orig_epsg }}{% else %}99999{% endif %}",
     "description": "{{ description }}",
-    "taxonomy": "{{ tax }}",
+    "taxonomy": "file",
     "basename": "{{ basename }}",
     "parent_model_run_uuid": "{{ parent_model_run_uuid }}",
     "model_run_uuid": "{{ model_run_uuid }}",
@@ -27,11 +27,9 @@
     "{{ wcs_str }}"
     ],
     "categories": [{
-            "location": 
-             "{% if watershed_name %}{{ watershed_name }}{% else %}None{% endif %}",
-            "modelname": 
-             "{% if model_name %}{{ model_name }}{% else %}None{% endif %}",
-            "state": "{% if state %}{{ state }}{% else %}Not Given{% endif %}"
+            "location": "{{ watershed_name }}",
+            "modelname": "{% if model_name %}{{ model_name }}{% else %}reference{% endif %}",
+            "state": "{{ state }}"
         }],
     "sources": [{
         "mimetype": "{{ mimetype }}",

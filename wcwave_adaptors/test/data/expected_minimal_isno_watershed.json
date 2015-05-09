@@ -1,7 +1,7 @@
 {
     "orig_epsg": "99999",
     "description": "",
-    "taxonomy": "",
+    "taxonomy": "file",
     "basename": "in.0010",
     "parent_model_run_uuid": "MODELRUNXX**A*",
     "model_run_uuid": "MODELRUNXX**A*",
@@ -27,11 +27,9 @@
     "None"
     ],
     "categories": [{
-            "location": 
-             "None",
-            "modelname": 
-             "None",
-            "state": "Not Given"
+            "location": "Dry Creek",
+            "modelname": "isnobal",
+            "state": "Idaho"
         }],
     "sources": [{
         "mimetype": "application/octet-stream",
