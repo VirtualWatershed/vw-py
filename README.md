@@ -1,5 +1,7 @@
 # WC-WAVE Adaptors: Tools for watershed modeling and data management
 
+## Setup
+
 Welcome to the home for the WC-WAVE `adaptors`! Here you can clone the source
 code, raise issues if you'd like to have a feature added or if you run into a
 bug or other error, and collaborate with us by submitting your own additions or
@@ -27,6 +29,27 @@ pip install -r requirements.txt
 
 To deactivate the virtual environment, simply use the `deactivate` command
 that the sourced virtual environment provides.
+
+## Configuration Files
+
+In order to use functionality like default connections or setting a default
+bounding box for your metadata, create a personalized version of
+`default.conf.template` for yourself. To do this, first make a copy
+
+```bash
+cp default.conf.template default.conf
+```
+
+DO NOT SYNC `default.conf` WITH YOUR GIT REPO AS IT WILL CONTAIN YOUR LOGIN
+INFO.
+
+Next, edit `default.conf`, put in your personal VW Data Engine user name and
+password. Edit the biographic info for yourself, and if you like, put a custom
+bounding box. The values that come with the repository represent a box that 
+tightly includes the three WC-WAVE states, New Mexico, Idaho, and Nevada.
+
+
+## Usage and contributing
 
 For usage instructions, please see the [WC-WAVE
 documentation](http://tri-state-epscor.github.io/vw-doc/tutorial.html).

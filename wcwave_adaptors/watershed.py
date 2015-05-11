@@ -68,21 +68,17 @@ class VWClient:
         """Iniitalize a new model run.
 
         Args:
-            model_run_name (str): is the name for the new resource.
+            model_run_name (str): is the name for the new model run
 
-            description (str): a description of the new resource.
+            description (str): a description of the new model run
 
-            researcher_name (str): contact person for the data
+            researcher_name (str): contact person for the model run
 
-            keywords (str): comma-separated list of keywords associate with
-            resource
-
-        Returns:
-            (str) a newly-intialized model_run_uuid
+            keywords (str): comma-separated list of keywords associated with
+                model run
 
         Returns:
             (str) a newly-intialized model_run_uuid
-
         """
         assert description, \
             "You must provide a description for your new model run"
@@ -154,10 +150,6 @@ class VWClient:
 
             Returns: None
         """
-
-        # logging.debug("insert_dataset_url:\n" + self.insert_dataset_url)
-        # logging.debug("post data dumped:\n" + json.dumps(watershedMetadata))
-
         num_tries = 0
         while num_tries < self._retry_num:
             try:
@@ -175,7 +167,7 @@ class VWClient:
                 num_tries += 1
                 continue
 
-        raise requests.HTTPError()
+        return result
 
     def upload(self, modelRunUUID, dataFilePath):
         """ Upload data for a given modelRunUUID to the VW """
@@ -336,8 +328,10 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     start_datetime_str = ""
     end_datetime_str = ""
+
     if output_ext == ".tif":
         model_vars = input_split[-2]
+        model_set_type = "vis"
 
     elif model_name == 'isnobal':
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
@@ -351,26 +345,33 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
             }
         model_vars = ','.join(VARNAME_DICT[input_prefix])
 
-        if dt is None:
-            dt = pd.Timedelta('1 hour')
-
-        # calculate the "dates" fields for the watershed JSON metadata
-        start_dt = dt * dt_multiplier
-
-        if not (start_datetime and end_datetime):
-            start_datetime = datetime(water_year_start, 10, 01) + start_dt
-            start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S')
-
-            end_datetime = start_datetime + dt
-            end_datetime_str = datetime.strftime(start_datetime + dt,
-                                             '%Y-%m-%d %H:%M:%S')
-
 
         fgdc_metadata = make_fgdc_metadata(input_file, config,
                                            model_run_uuid, start_datetime,
                                            end_datetime)
     else:
         raise Exception('File was not an iSNOBAL file or a geotiff. File not supported')
+
+    if dt is None:
+        dt = pd.Timedelta('1 hour')
+
+    # calculate the "dates" fields for the watershed JSON metadata
+    start_dt = dt * dt_multiplier
+
+    if not (start_datetime and end_datetime):
+        start_datetime = datetime(water_year_start, 10, 01) + start_dt
+        start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S')
+
+        end_datetime = start_datetime + dt
+        end_datetime_str = datetime.strftime(start_datetime + dt,
+                                         '%Y-%m-%d %H:%M:%S')
+
+    elif type(start_datetime) is str and type(end_datetime) is str:
+        start_datetime_str = start_datetime
+        end_datetime_str = end_datetime
+
+    else:
+        raise TypeError('bad start_ and/or end_datetime arguments')
 
     js =  \
         make_watershed_metadata(input_file,
@@ -488,10 +489,6 @@ def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,
        valid kwargs:
            proc_date: date data was processed
 
-           begin_date: date observations began
-
-           end_date: date observations ended
-
            theme_key: thematic keywords
 
            model: scientific model, e.g., WindNinja, iSNOBAL, PRMS, etc.
@@ -538,6 +535,10 @@ def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,
         file_size = "%s" % str(statinfo.st_size/1000000)
     except OSError:
         file_size = "NA"
+
+    if not config:
+        config = _get_config(
+            os.path.join(os.path.dirname(__file__), '../default.conf'))
 
     # handle missing required fields not provided in kwargs
     geoconf = config['Geo']
@@ -684,6 +685,7 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
         kwargs['end_datetime'] = "1970-10-01 01:00:00"
 
     if not fgdc_metadata:
+
         fgdc_kwargs = {k: v for k,v in kwargs.iteritems()
                        if k not in ['start_datetime', 'end_datetime']}
         # can just include all remaining kwargs; no problem if they go unused
