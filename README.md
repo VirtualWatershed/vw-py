@@ -48,6 +48,13 @@ password. Edit the biographic info for yourself, and if you like, put a custom
 bounding box. The values that come with the repository represent a box that 
 tightly includes the three WC-WAVE states, New Mexico, Idaho, and Nevada.
 
+In order to run unittests, copy `default.conf` to the test folder as
+`test.conf`:
+
+```bash
+cp default.conf wcwave_adaptors/test/test.conf
+```
+
 
 ## Usage and contributing
 
