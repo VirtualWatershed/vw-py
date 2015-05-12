@@ -70,7 +70,7 @@ class TestJSONMetadata(unittest.TestCase):
         generated = make_watershed_metadata(
             'wcwave_adaptors/test/data/in.0010.I_lw.tif',
             self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
-            'Dry Creek', 'Idaho', model_name='isnobal')
+            'Dry Creek', 'Idaho', model_name='isnobal', proc_date='2015-05-08')
 
         # load expected json metadata file
         expected = open('wcwave_adaptors/test/data/expected_minimal_tif_watershed.json',
@@ -85,7 +85,7 @@ class TestJSONMetadata(unittest.TestCase):
             'wcwave_adaptors/test/data/in.0010',
             self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
             'Dry Creek', 'Idaho', ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
-            model_name='isnobal')
+            model_name='isnobal', proc_date='2015-05-08')
 
         expected = open('wcwave_adaptors/test/data/expected_minimal_isno_watershed.json',
                         'r').read()
@@ -293,10 +293,12 @@ class TestVWClient(unittest.TestCase):
         assert vwTestUUIDEntries,\
             'No VW Entries corresponding to the test UUID'
 
-    @raises(HTTPError)
     def test_insertFail(self):
-        """ VW Client throws error on failed insert"""
-        VW_CLIENT.insert_metadata('{"metadata": {"xml": "mo garbage"}}')
+        "VW Client passes along correct status code on failed insert"
+
+        response = VW_CLIENT.insert_metadata('{"metadata": {"xml": "mo garbage"}}')
+
+        assert response.status_code == 500
 
     def test_upload(self):
         """ VW Client properly uploads data """
@@ -484,7 +486,8 @@ class TestVWClient(unittest.TestCase):
                                        uuid,
                                        description, 'Dry Creek', 'Idaho',
                                        model_name='isnobal',
-                                       config_file='wcwave_adaptors/test/test.conf')
+                                       config_file='wcwave_adaptors/test/test.conf',
+                                       proc_date='2015-05-08')
 
         with open('wcwave_adaptors/test/data/expected_ipw_metadata.json', 'w') as f:
             f.write(generated)

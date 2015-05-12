@@ -21,7 +21,6 @@ from progressbar import ProgressBar
 from string import Template
 
 
-
 class VWClient:
     """
     Client class for interacting with a Virtual Watershed (VW). A VW
@@ -106,14 +105,22 @@ class VWClient:
 
         return model_run_uuid
 
-    def modelrun_search(self, **kwargs):
-        "Search the model run database"
+    def modelrun_search(self):
+        """
+        Get a list of model runs in the database. Currently no actual "search"
+        (see, e.g. dataset_search) is available from the Virtual Watershed
+        Data API.
+
+        Returns:
+            (QueryResult) A query result, containing total records matching,
+                the number of results returned (subtotal), and the records
+                themselves, which is a list of dict.
+        """
         full_url = _build_query(self.modelrun_search_url, **kwargs)
 
         r = self.sesh.get(full_url, verify=False)
 
         return QueryResult(r.json())
-
 
     def dataset_search(self, **kwargs):
         """
@@ -122,7 +129,10 @@ class VWClient:
         Documentation
         <http://vwp-dev.unm.edu/docs/stable/search.html#search-objects>`_
 
-        Returns: a list of JSON records as dictionaries
+        Returns:
+            (QueryResult) A query result, containing total records matching,
+                the number of results returned (subtotal), and the records
+                themselves, which is a list of dict.
         """
         full_url = _build_query(self.dataset_search_url, **kwargs)
 
@@ -130,31 +140,38 @@ class VWClient:
 
         return QueryResult(r.json())
 
-    def download(self, url, outFile):
-        """ Download a file from the VW using url to localFile on local disk
+    def download(self, url, out_file):
+        """
+        Download a file from the VW using url to out_file on local disk
 
-            Returns: None
+        Returns:
+            None
+
+        Raises:
+            AssertionError: assert that the status code from downloading is 200
         """
         data = urllib.urlopen(url)
 
         assert data.getcode() == 200, "Download Failed!"
 
-        with file(outFile, 'w+') as out:
+        with file(out_file, 'w+') as out:
             out.writelines(data.readlines())
 
         return None
 
-    def insert_metadata(self, watershedMetadata):
+    def insert_metadata(self, watershed_metadata):
         """ Insert metadata to the virtual watershed. The data that gets
             uploaded is the FGDC XML metadata.
 
-            Returns: None
+            Returns:
+                (requests.Response) Returned so that the user may inspect
+                the response.
         """
         num_tries = 0
         while num_tries < self._retry_num:
             try:
                 result = self.sesh.put(self.insert_dataset_url,
-                                       data=watershedMetadata,
+                                       data=watershed_metadata,
                                        auth=(self.uname, self.passwd),
                                        verify=False)
 
@@ -169,19 +186,27 @@ class VWClient:
 
         return result
 
-    def upload(self, modelRunUUID, dataFilePath):
-        """ Upload data for a given modelRunUUID to the VW """
+    def upload(self, model_run_uuid, data_file_path):
+        """
+        Upload data for a given model_run_uuid to the VW
+
+        Returns:
+            None
+
+        Raises:
+            requests.HTTPError: if the file cannot be successfully uploaded
+        """
 
         # currently 'name' is unused
-        dataPayload = {'name': os.path.basename(dataFilePath),
-                       'modelid': modelRunUUID}
+        dataPayload = {'name': os.path.basename(data_file_path),
+                       'modelid': model_run_uuid}
 
         num_tries = 0
         while num_tries < self._retry_num:
             try:
                 result = \
                     self.sesh.post(self.data_upload_url, data=dataPayload,
-                                   files={'file': open(dataFilePath, 'rb')},
+                                   files={'file': open(data_file_path, 'rb')},
                                    auth=(self.uname, self.passwd), verify=False)
 
                 result.raise_for_status()
@@ -237,37 +262,58 @@ def _build_query(search_route, **kwargs):
 
 class QueryResult:
     """
-    A request for records using the url built by ``VWClient.search`` and
-    ``VWClient.fetch_records`` returns a JSON string with three base fields:
-    ``total``, ``subtotal``, and ``results``. This structure wraps that
-    functionality and is returned by the aforementioned VWClient functions.
+    Represents the response from the VW Data API search methods, , which gives three fields,
+    'total', 'subtotal', and 'records', represented by the properties explained
+    in their own docstrings.
     """
     def __init__(self, json):
+        #: raw json returned from the VW
         self.json = json
+        #: total results available on VW
+        self.total = 0
+        #: total results returned to client with the query
+        self.subtotal = 0
+        #: a list of the results
+        self.records = json['results']
 
-    @property
-    def total(self):
-        """
-        Return the total records `known by the virtual watershed` that matched
-        the parameters passed to either the fetch_records or search function.
-        """
-        return self.json['total']
+        if 'total' in json:
+            self.total = int(json['total'])
+        else:
+            self.total = len(json['results'])
 
-    @property
-    def subtotal(self):
-        """
-        Return the `subtotal`, or the actual number of records that have been
-        transferred by the virtual watershed.
-        """
-        return self.json['subtotal']
+        if 'subtotal' in json:
+            self.subtotal = int(json['subtotal'])
+        else:
+            self.subtotal = len(json['results'])
 
-    @property
-    def records(self):
-        """
-        Return the records themselves returned by the Virtual Watershed in
-        response to the query built by either ``search`` or ``fetch_records``.
-        """
-        return self.json['results']
+
+
+    # @property
+    # def total(self):
+        # """
+
+        # Returns:
+            # (int) The total records `known by the virtual watershed` that matched
+        # the parameters passed to either the modelrun_search or dataset_search
+
+        # """
+        # return self.json['total']
+
+    # @property
+    # def subtotal(self):
+        # """
+        # Return the `subtotal`, or the actual number of records that have been
+        # transferred by the virtual watershed.
+        # """
+        # return self.json['subtotal']
+
+    # @property
+    # def records(self):
+        # """
+        # Return the records themselves returned by the Virtual Watershed in
+        # response to the query built by either ``search`` or ``fetch_records``.
+        # """
+        # return self.json['results']
 
 
 def default_vw_client(config_file="default.conf"):
