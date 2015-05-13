@@ -192,7 +192,15 @@ class TestFGDCMetadata(unittest.TestCase):
 class TestVWClient(unittest.TestCase):
     """ Test the functionality of the Virtual Watershed client """
     def setUp(self):
-        # TODO: clean up any pre-existing
+        # clean up pre-existing unittest model runs
+        modelruns = VW_CLIENT.modelrun_search()
+        unittest_uuids = [r['Model Run UUID'] for r in modelruns.records
+                          if 'unittest' in r['Model Run Name']]
+
+        for u in unittest_uuids:
+            s = VW_CLIENT.delete_modelrun(u)
+            print "pre-test cleanup success on %s: %s" % (u, str(s))
+
         self.config = _get_config('wcwave_adaptors/test/test.conf')
 
         self.kwargs = {'keywords': 'Snow,iSNOBAL,wind',
@@ -210,6 +218,8 @@ class TestVWClient(unittest.TestCase):
                model_run_uuid=self.UUID, config_file='wcwave_adaptors/test/test.conf')
 
         time.sleep(1)
+
+
 
     def test_initialize_modelrun(self):
         """
@@ -523,3 +533,13 @@ class TestVWClient(unittest.TestCase):
                         'r').read()
         assert generated == expected, \
             show_string_diff(generated, expected)
+
+    def tearDown(self):
+        # clean up pre-existing unittest model runs
+        modelruns = VW_CLIENT.modelrun_search()
+        unittest_uuids = [r['Model Run UUID'] for r in modelruns.records
+                          if 'unittest' in r['Model Run Name']]
+
+        for u in unittest_uuids:
+            s = VW_CLIENT.delete_modelrun(u)
+            print "post-test cleanup success on %s: %s" % (u, str(s))

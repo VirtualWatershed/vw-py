@@ -60,8 +60,6 @@ class VWClient:
 
         self.new_run_url = host_url + "/apps/vwp/newmodelrun"
 
-
-
     def initialize_modelrun(self, model_run_name=None, description=None,
                              researcher_name=None, keywords=None):
         """Iniitalize a new model run.
@@ -116,7 +114,7 @@ class VWClient:
                 the number of results returned (subtotal), and the records
                 themselves, which is a list of dict.
         """
-        full_url = _build_query(self.modelrun_search_url, **kwargs)
+        full_url = _build_query(self.modelrun_search_url)
 
         r = self.sesh.get(full_url, verify=False)
 
@@ -287,35 +285,6 @@ class QueryResult:
             self.subtotal = len(json['results'])
 
 
-
-    # @property
-    # def total(self):
-        # """
-
-        # Returns:
-            # (int) The total records `known by the virtual watershed` that matched
-        # the parameters passed to either the modelrun_search or dataset_search
-
-        # """
-        # return self.json['total']
-
-    # @property
-    # def subtotal(self):
-        # """
-        # Return the `subtotal`, or the actual number of records that have been
-        # transferred by the virtual watershed.
-        # """
-        # return self.json['subtotal']
-
-    # @property
-    # def records(self):
-        # """
-        # Return the records themselves returned by the Virtual Watershed in
-        # response to the query built by either ``search`` or ``fetch_records``.
-        # """
-        # return self.json['results']
-
-
 def default_vw_client(config_file="default.conf"):
     """ Use the credentials in config_file to initialize a new VWClient instance
 
@@ -355,6 +324,13 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        config_file=None, dt=None, **kwargs):
     """
     Generate metadata for input_file.
+
+    Arguments:
+        **kwargs: Set union of kwargs from make_fgdc_metadata and
+            make_watershed_metadata
+
+    Returns:
+        (str) watershed metadata
     """
     assert dt is None or issubclass(type(dt), timedelta)
 
