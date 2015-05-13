@@ -62,7 +62,7 @@ class VWClient:
 
 
 
-    def initialize_model_run(self, model_run_name=None, description=None,
+    def initialize_modelrun(self, model_run_name=None, description=None,
                              researcher_name=None, keywords=None):
         """Iniitalize a new model run.
 
@@ -218,7 +218,7 @@ class VWClient:
 
         raise requests.HTTPError()
 
-    def delete_model_run(self, model_run_uuid):
+    def delete_modelrun(self, model_run_uuid):
         """
         Delete a model run associated with model_run_uuid
 
@@ -492,7 +492,7 @@ def upsert(input_path, watershed_name, state,
     # final case to handle is if model_run_uuid is given but not its parent
     if not parent_model_run_uuid:
         parent_model_run_uuid = \
-            vw_client.initialize_model_run(model_run_name=model_run_name,
+            vw_client.initialize_modelrun(model_run_name=model_run_name,
                description=description, keywords=keywords,
                researcher_name=_get_config(config_file)['Researcher']['researcher_name'])
 
@@ -500,7 +500,7 @@ def upsert(input_path, watershed_name, state,
 
     elif not model_run_uuid and parent_model_run_uuid:
         model_run_uuid = \
-            vw_client.initialize_model_run(model_run_name=model_run_name,
+            vw_client.initialize_modelrun(model_run_name=model_run_name,
                                            description=description,
                                            keywords=keywords,
                                            researcher_name=commonConfig['researcherName']

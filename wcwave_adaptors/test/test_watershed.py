@@ -200,7 +200,7 @@ class TestVWClient(unittest.TestCase):
                        'description': 'unittest',
                        'model_run_name': 'unittest' + str(uuid4())}
 
-        self.UUID = VW_CLIENT.initialize_model_run(**self.kwargs)
+        self.UUID = VW_CLIENT.initialize_modelrun(**self.kwargs)
 
         self.parent_uuid = self.UUID
 
@@ -211,7 +211,7 @@ class TestVWClient(unittest.TestCase):
 
         time.sleep(1)
 
-    def test_initialize_model_run(self):
+    def test_initialize_modelrun(self):
         """
         Test that a new model_run_uuid corresponding to new model run is properly initialized
         """
@@ -221,7 +221,7 @@ class TestVWClient(unittest.TestCase):
                   'model_run_name': 'initialize unittest ' + str(uuid4())}
 
         new_uuid = \
-            VW_CLIENT.initialize_model_run(**kwargs)
+            VW_CLIENT.initialize_modelrun(**kwargs)
 
         result = VW_CLIENT.dataset_search(model_run_uuid=new_uuid)
 
@@ -238,7 +238,7 @@ class TestVWClient(unittest.TestCase):
 
         model_run_name = 'dup_test ' + str(uuid4())
 
-        VW_CLIENT.initialize_model_run(keywords=keywords,
+        VW_CLIENT.initialize_modelrun(keywords=keywords,
                                        description=description,
                                        model_run_name=model_run_name,
                                        researcher_name=self.config['Researcher']['researcher_name'])
@@ -249,7 +249,7 @@ class TestVWClient(unittest.TestCase):
         # at that point, this test will fail, but re-inserting Bill's
         # fake submission will throw
 
-        VW_CLIENT.initialize_model_run(keywords=keywords,
+        VW_CLIENT.initialize_modelrun(keywords=keywords,
                                        researcher_name=self.config['Researcher']['researcher_name'],
                                        description=description,
                                        model_run_name=model_run_name)
@@ -267,7 +267,7 @@ class TestVWClient(unittest.TestCase):
                   'description': 'unittest',
                   'model_run_name': 'unittest' + str(uuid4())}
         UUID = \
-            VW_CLIENT.initialize_model_run(**kwargs)
+            VW_CLIENT.initialize_modelrun(**kwargs)
 
         VW_CLIENT.upload(UUID, 'wcwave_adaptors/test/data/in.0000')
 
