@@ -367,10 +367,14 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
             }
         model_vars = ','.join(VARNAME_DICT[input_prefix])
 
+        if 'proc_time' in kwargs:
+            proc_time = kwargs['proc_time']
+        else:
+            proc_time = None
 
         fgdc_metadata = make_fgdc_metadata(input_file, config,
                                            model_run_uuid, start_datetime,
-                                           end_datetime)
+                                           end_datetime, proc_time=proc_time)
     else:
         raise Exception('File was not an iSNOBAL file or a geotiff. File not supported')
 
@@ -496,10 +500,8 @@ def upsert(input_path, watershed_name, state,
     print "upserting file(s) from %s with model_run_uuid %s" % \
         (input_path, model_run_uuid)
 
-    # with ProgressBar(maxval=len(files)) as progress:
     for i, file_ in enumerate(files):
         _upsert(file_)
-            # progress.update(i)
 
     return (parent_model_run_uuid, model_run_uuid)
 

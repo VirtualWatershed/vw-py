@@ -38,7 +38,6 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
     def test_generate_standard_nc_inputs(self):
         "Check that a sample NetCDF is properly built from a series of inputs"
-        print "Check that a sample NetCDF is properly built from a series of inputs"
 
         nc = generate_standard_nc(self.full_nc_base_dir, self.full_nc_out)
 
@@ -391,6 +390,18 @@ def _validate_input_nc(test_obj, nc, type_='inputs'):
     else:
         raise Exception('_validate_input_nc requires type_ to be \'inputs\' or\
                          \'outputs\'')
+
+    # test easting, northing, lat, lon, and time variables exist at all t
+    for varname in ['time', 'easting', 'lat', 'lon']:
+        curvar = nc.variables[varname]
+        assert all(abs(np.ravel(curvar[:])) >= 0) and all(abs(np.ravel(curvar[:])) < 1e6), \
+            'Defaults still present for dimension {}'.format(varname)
+
+    # make sure there is no dumb stuff going on like this
+    assert all(np.ravel(nc.variables['lat'][:] - nc.variables['lon'][:]))
+
+    north = nc.variables['northing']
+    assert all(abs(north[:]) > 0) and all(abs(north[:]) < 5e7)
 
 
 class TestNetCDF(unittest.TestCase):

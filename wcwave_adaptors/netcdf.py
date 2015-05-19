@@ -120,6 +120,7 @@ def utm2latlon(bsamp=None, bline=None, dsamp=None, dline=None,
     lines = [bline + dline*i for i in range(nline)]
     samps = [bsamp + dsamp*i for i in range(nsamp)]
 
-    latlon_arr = [utm.to_latlon(s, l, 11, 'U') for s in samps for l in lines]
+    latlon_arr = [utm.to_latlon(s, l, utm_zone, utm_letter)
+                  for s in samps for l in lines]
 
     return np.array(latlon_arr)

@@ -18,7 +18,8 @@ import struct
 from collections import namedtuple, defaultdict
 from copy import deepcopy
 from netCDF4 import Dataset
-from numpy import zeros, ravel, reshape, fromstring, dtype, floor, log10
+from numpy import (arange, array, zeros, ravel, reshape, fromstring, dtype,
+                   floor, log10)
 from numpy import sum as npsum
 from numpy import round as npround
 from numpy.ma.core import MaskedArray
@@ -30,9 +31,9 @@ from progressbar import ProgressBar
 from shutil import rmtree
 
 from .watershed import (_get_config, make_fgdc_metadata,
-                                       make_watershed_metadata)
+                        make_watershed_metadata)
 
-from .netcdf import ncgen_from_template
+from .netcdf import ncgen_from_template, utm2latlon
 
 
 #: IPW standard. assumed unchanging since they've been the same for 20 years
@@ -211,6 +212,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
         rmtree(tmpdir)
 
         return nc_out
+
 
 class IPW(object):
     """
@@ -593,12 +595,10 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                 _nc_insert_ipw(nc, el, tstep, gb.nLines, gb.nSamps)
 
                 progress.update(i)
-        print nc.groups['Input'].variables
 
     else:
 
         output_files = [osjoin(base_dir, el) for el in listdir(base_dir)]
-        print base_dir
         ipw0 = IPW(output_files[0])
         gt = ipw0.geotransform
         gb = [x for x in ipw0.bands if type(x) is GlobalBand][0]
@@ -624,7 +624,40 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
 
                 progress.update(i)
 
+    # import ipdb; ipdb.set_trace()
+    # whether inputs or outputs, we need to include the dimensional values
+    t = nc.variables['time']
+    t[:] = arange(len(t))
+
+    e = nc.variables['easting']
+    # eastings are "samples" in IPW
+    nsamps = len(e)
+    e[:] = array([nc.bsamp + nc.dsamp*i for i in range(nsamps)])
+
+    n = nc.variables['northing']
+    # northings are "lines" in IPW
+    nlines = len(n)
+    n[:] = array([nc.bline + nc.dline*i for i in range(nlines)])
+
+    # get a n_points x 2 array of lat/lon pairs at every point on the grid
+    latlon_arr = utm2latlon(nc.bsamp, nc.bline, nc.dsamp,
+                            nc.dline, nsamps, nlines)
+
+    # break this out into lat and lon separately at each point on the grid
+    lat = nc.variables['lat']
+    lat[:] = reshape(latlon_arr[:, 0], (nlines, nsamps))
+
+    # break this out into lat and lon separately at each point on the grid
+    lon = nc.variables['lon']
+    lon[:] = reshape(latlon_arr[:, 1], (nlines, nsamps))
+
+    # finish setting attributes
+    nc.data_tstep = data_tstep
+
+    nc.nsteps = len(t)
+
     nc.sync()
+
     return nc
 
 
@@ -693,6 +726,7 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
 
     else:
         raise Exception('File type %s not recognized!' % file_type)
+
 
 def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
     """Convert an iSNOBAL NetCDF file to an iSNOBAL standard directory structure
@@ -1254,6 +1288,7 @@ class IPWLines(object):
 
 class IPWFileError(Exception):
     pass
+
 
 class ISNOBALNetcdfError(Exception):
     pass

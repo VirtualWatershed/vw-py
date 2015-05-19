@@ -337,9 +337,6 @@ class TestVWClient(unittest.TestCase):
         result = \
             VW_CLIENT.dataset_search(model_run_uuid=self.UUID, limit=1)
 
-        # import ipdb
-        # ipdb.set_trace()
-
         r0 = result.records[0]
         url = r0['downloads'][0]['bin']
 
@@ -497,7 +494,7 @@ class TestVWClient(unittest.TestCase):
                                        description, 'Dry Creek', 'Idaho',
                                        model_name='isnobal',
                                        config_file='wcwave_adaptors/test/test.conf',
-                                       proc_date='2015-05-08')
+                                       proc_date='2015-05-12')
 
         with open('wcwave_adaptors/test/data/expected_ipw_metadata.json', 'w') as f:
             f.write(generated)
@@ -509,7 +506,7 @@ class TestVWClient(unittest.TestCase):
 
     def test_metadata_from_file(self):
         """
-        Test that metdata is properly generated from an IPW or .tif file
+        Test that metadata is properly generated from an IPW or .tif file
         """
         # some values we're using for testing
         parent_uuid = '373ae181-a0b2-4998-ba32-e27da190f6dd'
@@ -517,7 +514,8 @@ class TestVWClient(unittest.TestCase):
         # .tif
         generated = metadata_from_file('test/data/em.0134.melt.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
-            config_file='wcwave_adaptors/test/test.conf')
+            config_file='wcwave_adaptors/test/test.conf',
+            proc_date="2015-05-12")
 
         expected = open('wcwave_adaptors/test/data/expected_tif.json', 'r').read()
         assert generated == expected, \
@@ -527,7 +525,8 @@ class TestVWClient(unittest.TestCase):
         dt = pd.Timedelta('3 days')
         generated = metadata_from_file('test/data/em.100.melt.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
-            config_file='wcwave_adaptors/test/test.conf', dt=dt)
+            config_file='wcwave_adaptors/test/test.conf', dt=dt,
+            proc_date="2015-05-12")
 
         expected = open('wcwave_adaptors/test/data/expected_tif_nonhourdt.json',
                         'r').read()
