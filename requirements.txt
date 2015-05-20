@@ -1,4 +1,4 @@
-configparser==3.3.0.post2
+configparser==3.5.0b2
 Jinja2==2.7.3
 MarkupSafe==0.23
 netCDF4==1.1.7.1
