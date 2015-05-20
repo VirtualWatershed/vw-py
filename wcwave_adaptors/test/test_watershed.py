@@ -248,10 +248,10 @@ class TestVWClient(unittest.TestCase):
 
         model_run_name = 'dup_test ' + str(uuid4())
 
-        VW_CLIENT.initialize_modelrun(keywords=keywords,
-                                       description=description,
-                                       model_run_name=model_run_name,
-                                       researcher_name=self.config['Researcher']['researcher_name'])
+        uuid = VW_CLIENT.initialize_modelrun(keywords=keywords,
+                                             description=description,
+                                             model_run_name=model_run_name,
+                                             researcher_name=self.config['Researcher']['researcher_name'])
 
         print "first inserted successfully"
 
@@ -260,9 +260,11 @@ class TestVWClient(unittest.TestCase):
         # fake submission will throw
 
         VW_CLIENT.initialize_modelrun(keywords=keywords,
-                                       researcher_name=self.config['Researcher']['researcher_name'],
-                                       description=description,
-                                       model_run_name=model_run_name)
+                                      researcher_name=self.config['Researcher']['researcher_name'],
+                                      description=description,
+                                      model_run_name=model_run_name)
+
+        VW_CLIENT.delete_modelrun(uuid)
 
     @raises(HTTPError)
     def test_authFail(self):
