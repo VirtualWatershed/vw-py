@@ -103,7 +103,7 @@ class VWClient:
 
         return model_run_uuid
 
-    def modelrun_search(self):
+    def modelrun_search(self, **kwargs):
         """
         Get a list of model runs in the database. Currently no actual "search"
         (see, e.g. dataset_search) is available from the Virtual Watershed
@@ -114,8 +114,7 @@ class VWClient:
                 the number of results returned (subtotal), and the records
                 themselves, which is a list of dict.
         """
-        full_url = _build_query(self.modelrun_search_url)
-
+        full_url = _build_query(self.modelrun_search_url, **kwargs)
         r = self.sesh.get(full_url, verify=False)
 
         return QueryResult(r.json())
