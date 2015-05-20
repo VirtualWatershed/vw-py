@@ -10,13 +10,13 @@ changes.
 To install you'll need to first install the NetCDF library with its headers. On OS X you can use [homebrew](http://brew.sh/) to install the NetCDF-C library
 
 ```bash
-$ brew tap homebrew/science && brew install netcdf
+brew tap homebrew/science && brew install netcdf
 ```
 
 On Debian/Ubuntu
 
 ```bash
-$ sudo apt-get install libnetcdf-dev
+sudo apt-get install libnetcdf-dev
 ```
 
 To use some scripts, you'll also need GDAL installed. 
