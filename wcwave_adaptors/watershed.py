@@ -211,6 +211,7 @@ class VWClient:
 
             except requests.HTTPError:
                 num_tries += 1
+                import ipdb; ipdb.set_trace()
                 continue
 
         raise requests.HTTPError()
@@ -332,6 +333,9 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         (str) watershed metadata
     """
     assert dt is None or issubclass(type(dt), timedelta)
+    dt_multiplier = 1  # default if nothing else is known
+
+    model_vars = "none"
 
     if config_file:
         config = _get_config(config_file)
@@ -342,19 +346,21 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     input_split = os.path.basename(input_file).split('.')
 
     input_prefix = input_split[0]
-    output_ext = os.path.splitext(input_file)[-1]
-    dt_multiplier = int(input_split[1])
+    file_ext = os.path.splitext(input_file)[-1]
 
     model_set = ("outputs", "inputs")[input_prefix == "in"]
 
     start_datetime_str = ""
     end_datetime_str = ""
 
-    if output_ext == ".tif":
+    if file_ext == ".tif":
         model_vars = input_split[-2]
         model_set_type = "vis"
 
     elif model_name == 'isnobal':
+
+        # the number on the end of an isnobal file is the time index
+        dt_multiplier = int(input_split[1])
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
         VARNAME_DICT = \
             {
@@ -374,8 +380,6 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         fgdc_metadata = make_fgdc_metadata(input_file, config,
                                            model_run_uuid, start_datetime,
                                            end_datetime, proc_time=proc_time)
-    else:
-        raise Exception('File was not an iSNOBAL file or a geotiff. File not supported')
 
     if dt is None:
         dt = pd.Timedelta('1 hour')
@@ -632,7 +636,7 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
 
             model_vars: variable(s) represented in the data
 
-            model_set: 'inputs' or 'outputs'; AssertionError if not
+            model_set: 'inputs', 'outputs', or 'reference'; AssertionError if not
 
             model_set_type: e.g., 'binary', 'csv', 'tif', etc.
 
