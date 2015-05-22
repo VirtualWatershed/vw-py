@@ -21,6 +21,19 @@ from progressbar import ProgressBar
 from string import Template
 
 
+VARNAME_DICT = \
+    {
+        'in': ["I_lw", "T_a", "e_a", "u", "T_g", "S_n"],
+        'em': ["R_n", "H", "L_v_E", "G", "M", "delta_Q", "E_s", "melt",
+               "ro_predict", "cc_s"],
+        'snow': ["z_s", "rho", "m_s", "h2o", "T_s_0", "T_s_l", "T_s",
+                 "z_s_l", "h2o_sat"],
+        'init': ["z", "z_0", "z_s", "rho", "T_s_0", "T_s", "h2o_sat"],
+        'precip': ["m_pp", "percent_snow", "rho_snow", "T_pp"],
+        'mask': ["mask"],
+        'dem': ["alt"]
+    }
+
 class VWClient:
     """
     Client class for interacting with a Virtual Watershed (VW). A VW
@@ -211,7 +224,6 @@ class VWClient:
 
             except requests.HTTPError:
                 num_tries += 1
-                import ipdb; ipdb.set_trace()
                 continue
 
         raise requests.HTTPError()
@@ -321,7 +333,8 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        end_datetime=None, model_name=None, fgdc_metadata=None,
                        model_set_type=None, model_set_taxonomy=None,
                        water_year_start=2010, water_year_end=2011,
-                       config_file=None, dt=None, **kwargs):
+                       config_file=None, dt=None, model_set=None,
+                       model_vars=None, **kwargs):
     """
     Generate metadata for input_file.
 
@@ -335,8 +348,6 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     assert dt is None or issubclass(type(dt), timedelta)
     dt_multiplier = 1  # default if nothing else is known
 
-    model_vars = "none"
-
     if config_file:
         config = _get_config(config_file)
     else:
@@ -346,30 +357,31 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     input_split = os.path.basename(input_file).split('.')
 
     input_prefix = input_split[0]
-    file_ext = os.path.splitext(input_file)[-1]
+
+    if 'file_ext' in kwargs:
+        file_ext = kwargs['file_ext']
+    else:
+        file_ext = input_file.split('.')[-1]
 
     model_set = ("outputs", "inputs")[input_prefix == "in"]
 
     start_datetime_str = ""
     end_datetime_str = ""
 
-    if file_ext == ".tif":
-        model_vars = input_split[-2]
-        model_set_type = "vis"
-
-    elif model_name == 'isnobal':
-
+    is_ipw = False
+    try:
         # the number on the end of an isnobal file is the time index
         dt_multiplier = int(input_split[1])
+        is_ipw = True
+    except ValueError:
+        pass
+
+    if file_ext == "tif":
+        model_set_type = "vis"
+
+    elif model_name == 'isnobal' and is_ipw:
+
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
-        VARNAME_DICT = \
-            {
-                'in': ["I_lw", "T_a", "e_a", "u", "T_g", "S_n"],
-                'em': ["R_n", "H", "L_v_E", "G", "M", "delta_Q", "E_s", "melt",
-                       "ro_predict", "cc_s"],
-                'snow': ["z_s", "rho", "m_s", "h2o", "T_s_0", "T_s_l", "T_s",
-                         "z_s_l", "h2o_sat"]
-            }
         model_vars = ','.join(VARNAME_DICT[input_prefix])
 
         if 'proc_time' in kwargs:
@@ -380,6 +392,10 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         fgdc_metadata = make_fgdc_metadata(input_file, config,
                                            model_run_uuid, start_datetime,
                                            end_datetime, proc_time=proc_time)
+
+    elif model_name == 'isnobal' and file_ext == 'nc':
+
+        model_vars = ','.join([','.join(v) for v in VARNAME_DICT.itervalues()])
 
     if dt is None:
         dt = pd.Timedelta('1 hour')
@@ -418,6 +434,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                                 model_vars=model_vars,
                                 start_datetime=start_datetime_str,
                                 end_datetime=end_datetime_str,
+                                ext=file_ext,
                                 **kwargs)
 
     return js
@@ -426,7 +443,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 def upsert(input_path, watershed_name, state,
            model_run_name=None, description=None, keywords=None,
            parent_model_run_uuid=None, model_run_uuid=None, model_name=None,
-           model_set_type=None, ext=None, config_file=None, dt=None):
+           model_set_type=None, file_ext=None, config_file=None, dt=None):
     """Upload the file or files located at input_path, which could be a
        directory. This function also creates and inserts metadata records for
        every file as required by the virtual watershed.
@@ -494,7 +511,7 @@ def upsert(input_path, watershed_name, state,
         js = metadata_from_file(file_, parent_model_run_uuid,
                                   model_run_uuid, description, watershed_name,
                                   state, model_set_type=model_set_type,
-                                  model_name=model_name, ext=ext,
+                                  model_name=model_name, file_ext=file_ext,
                                   config_file=config_file, dt=dt)
 
         vw_client.upload(model_run_uuid, file_)
@@ -621,7 +638,7 @@ def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,
 
 def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                             model_run_uuid, model_set, watershed_name,
-                            state, fgdc_metadata=None,
+                            state, fgdc_metadata=None, file_ext=None,
                             **kwargs):
 
     """ For a single `file_name`, write the corresponding Virtual Watershed JSON
@@ -664,7 +681,7 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
 
             mimetype: defaults to application/octet-stream
 
-            ext: extension to be associated with the dataset; make_watershed_metadata
+            file_ext: extension to be associated with the dataset; make_watershed_metadata
              will take the extension of file_name if not given explicitly
 
             fgdc_metadata: FGDC md probably created by make_fgdc_metadata; if not
@@ -685,23 +702,25 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
             watershed_name + ". Must be one of " + ", ".join(valid_watersheds)
 
     # logic to figure out mimetype and such based on extension
-    _, ext = os.path.splitext(file_name)
-    if ext == '.tif':
+    if not file_ext:
+        file_ext = file_name.split('.')[-1]
+
+        # check that the file extension is not a digit as might happen for isnobal
+        if file_ext.isdigit():
+            raise ValueError("The extension is a digit. You must explicitly"
+                + " provide the file extension with keyword 'file_ext'")
+
+    if file_ext == 'tif':
         if 'wcs' not in kwargs:
             kwargs['wcs'] = True
         if 'wms' not in kwargs:
             kwargs['wms'] = True
         if 'tax' not in kwargs:
             kwargs['tax'] = 'geoimage'
-        if 'ext' not in kwargs:
-            kwargs['ext'] = 'tif'
         if 'mimetype' not in kwargs:
             kwargs['mimetype'] = 'application/x-zip-compressed'
         if 'model_set_type' not in kwargs:
             kwargs['model_set_type'] = 'vis'
-
-    if 'ext' not in kwargs:
-        kwargs['ext'] = ext
 
     if 'mimetype' not in kwargs:
         kwargs['mimetype'] = 'application/octet-stream'
@@ -720,7 +739,6 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                                            kwargs['start_datetime'],
                                            kwargs['end_datetime'],
                                            **fgdc_kwargs)
-
 
     basename = os.path.basename(file_name)
 
@@ -748,7 +766,7 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
         kwargs['south_bound'] = geoconf['default_south_bound']
 
     # write the metadata for a file
-    # output = template.substitute(# determined by file ext, set within function
+    # output = template.substitute(# determined by file file_ext, set within function
     template_env = Environment(loader=FileSystemLoader(
                                os.path.join(os.path.dirname(__file__),
                                             '../templates')))
@@ -775,7 +793,6 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                              wms_str=wms_str,
                              input_file_path=input_file_path,
                              fgdc_metadata=fgdc_metadata,
+                             file_ext=file_ext,
                              **kwargs)
     return output
-
-

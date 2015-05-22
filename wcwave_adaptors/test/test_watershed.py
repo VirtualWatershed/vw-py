@@ -19,6 +19,10 @@ from requests.exceptions import HTTPError
 
 from nose.tools import raises
 
+# Path hack.
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+
 from ..isnobal import VARNAME_DICT
 
 
@@ -69,8 +73,9 @@ class TestJSONMetadata(unittest.TestCase):
         # minimal watershed JSON with geotiff
         generated = make_watershed_metadata(
             'wcwave_adaptors/test/data/in.0010.I_lw.tif',
-            self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
-            'Dry Creek', 'Idaho', model_name='isnobal', proc_date='2015-05-08')
+            self.config, 'MODELRUNXX**A*', 'MODELRUNXX**A*', 'inputs',
+            'Dry Creek', 'Idaho', file_ext='tif',
+            model_name='isnobal', proc_date='2015-05-08')
 
         # load expected json metadata file
         expected = open('wcwave_adaptors/test/data/expected_minimal_tif_watershed.json',
@@ -84,7 +89,7 @@ class TestJSONMetadata(unittest.TestCase):
         generated = make_watershed_metadata(
             'wcwave_adaptors/test/data/in.0010',
             self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
-            'Dry Creek', 'Idaho', ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
+            'Dry Creek', 'Idaho', file_ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
             model_name='isnobal', proc_date='2015-05-08')
 
         expected = open('wcwave_adaptors/test/data/expected_minimal_isno_watershed.json',
@@ -134,7 +139,7 @@ class TestJSONMetadata(unittest.TestCase):
             'Dry Creek', 'Idaho', fgdc_metadata=xml,
             start_datetime='2010-01-01 10:00:00', end_datetime='2010-01-01 11:00:00',
             orig_epsg=26911, epsg=4326, model_set_type='binary',
-            ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
+            file_ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
             model_name='isnobal')
 
         expected = open('wcwave_adaptors/test/data/expected_full_isno_watershed.json',
@@ -212,14 +217,20 @@ class TestVWClient(unittest.TestCase):
 
         self.parent_uuid = self.UUID
 
-        upsert('wcwave_adaptors/test/data/in.0000', 'Dry Creek', 'Idaho',
-               description='unittest insert for download', model_set_type='binary',
-               parent_model_run_uuid=self.parent_uuid, model_name='isnobal', ext='bin',
-               model_run_uuid=self.UUID, config_file='wcwave_adaptors/test/test.conf')
+        VW_CLIENT.upload(self.UUID, 'wcwave_adaptors/test/data/in.0000')
+
+        fgdc_md = make_fgdc_metadata('wcwave_adaptors/test/data/in.0000',
+            self.config, self.UUID, "2010-10-01 00:00:00", "2010-10-01 01:00:00")
+
+        wmd_from_file = metadata_from_file('wcwave_adaptors/test/data/in.0000',
+            self.UUID, self.UUID, 'unittest for download', 'Dry Creek', 'Idaho',
+            start_datetime="2010-10-01 00:00:00", end_datetime="2010-10-01 01:00:00",
+            fgdc_metadata=fgdc_md, model_set_type='grid', file_ext='bin',
+            model_name='isnobal', epsg=4326, orig_epsg=26911)
+
+        VW_CLIENT.insert_metadata(wmd_from_file)
 
         time.sleep(1)
-
-
 
     def test_initialize_modelrun(self):
         """
@@ -295,14 +306,16 @@ class TestVWClient(unittest.TestCase):
                 description='Description of the data',
                 start_datetime='2010-01-01 10:00:00',
                 end_datetime='2010-01-01 11:00:00', orig_epsg=26911, epsg=4326,
-                model_set_type='binary', ext='bin',
+                model_set_type='binary', file_ext='bin',
                 model_vars='I_lw,T_a,e_a,u,T_g,S_n', model_name='isnobal')
 
-        VW_CLIENT.insert_metadata(watershedJSON)
+        insert_result = VW_CLIENT.insert_metadata(watershedJSON)
+
+        time.sleep(1)
 
         vwTestUUIDEntries = VW_CLIENT.dataset_search(model_run_uuid=UUID)
 
-        assert vwTestUUIDEntries,\
+        assert vwTestUUIDEntries.records,\
             'No VW Entries corresponding to the test UUID'
 
     def test_insertFail(self):
@@ -326,6 +339,36 @@ class TestVWClient(unittest.TestCase):
             os.remove(outfile)
 
         VW_CLIENT.download(url, outfile)
+
+        # check that the file now exists in the file system as expected
+        assert os.path.isfile(outfile)
+
+        os.remove(outfile)
+
+        # now do the same for netcdf
+        nc_file = 'wcwave_adaptors/test/data/flat_sample.nc'
+
+        VW_CLIENT.upload(self.UUID, nc_file)
+
+        wmd_from_file = metadata_from_file('flat_sample.nc', self.UUID, self.UUID,
+            'testing upload/download of netcdf', 'Dry Creek', 'Idaho',
+            model_name='isnobal', model_set_type='grid', model_set='inputs',
+            file_ext='nc', orig_epsg=26911, epsg=4326)
+
+        VW_CLIENT.insert_metadata(wmd_from_file)
+
+        time.sleep(1)
+
+        nc_url = [r['downloads'][0]['nc']
+                  for r in VW_CLIENT.dataset_search(model_run_uuid=self.UUID).records
+                  if r['name'].split('.')[-1] == 'nc'][0]
+
+        outfile = "wcwave_adaptors/test/data/back_in.nc"
+
+        if os.path.isfile(outfile):
+            os.remove(outfile)
+
+        VW_CLIENT.download(nc_url, outfile)
 
         # check that the file now exists in the file system as expected
         assert os.path.isfile(outfile)
@@ -414,7 +457,7 @@ class TestVWClient(unittest.TestCase):
 
         print kwargs['model_run_name']
         parent_uuid, UUID = upsert(upsert_dir, 'Dry Creek', 'Idaho', model_name='isnobal',
-                                   config_file=test_conf, **kwargs)
+                                   config_file=test_conf, file_ext='bin', **kwargs)
         _worked(parent_uuid, UUID)
 
         kwargs = {'keywords': 'Snow,iSNOBAL,wind',
@@ -424,7 +467,8 @@ class TestVWClient(unittest.TestCase):
         # with no slash after directory name
         parent_uuid, UUID = \
             upsert('wcwave_adaptors/test/data/upsert_test', 'Dry Creek',
-                   'Idaho', model_name='isnobal', config_file=test_conf, **kwargs)
+                   'Idaho', model_name='isnobal', config_file=test_conf,
+                   file_ext='bin', **kwargs)
         _worked(parent_uuid, UUID)
 
         kwargs = {'keywords': 'Snow,iSNOBAL,wind',
@@ -435,7 +479,7 @@ class TestVWClient(unittest.TestCase):
         parent_uuid, uuid = upsert(upsert_dir, 'Dry Creek', 'Idaho', model_name='isnobal',
                                    parent_model_run_uuid=inherit_parent,
                                    model_run_uuid=UUID, config_file=test_conf,
-                                   **kwargs)
+                                   file_ext='bin', **kwargs)
 
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
 
@@ -449,7 +493,7 @@ class TestVWClient(unittest.TestCase):
                   'model_run_name': 'unittest' + str(uuid4())}
 
         parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
-                                   config_file=test_conf, **kwargs)
+                                   config_file=test_conf, file_ext='bin', **kwargs)
         _worked(parent_uuid, UUID, dir_=False)
 
         # with no slash after directory name
@@ -458,7 +502,7 @@ class TestVWClient(unittest.TestCase):
                   'model_run_name': 'unittest' + str(uuid4())}
 
         parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
-                                   config_file=test_conf, **kwargs)
+                                   config_file=test_conf, file_ext='bin', **kwargs)
 
         _worked(parent_uuid, UUID, dir_=False)
 
@@ -470,7 +514,7 @@ class TestVWClient(unittest.TestCase):
         parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
                                    parent_model_run_uuid=inherit_parent,
                                    model_run_uuid=UUID, config_file=test_conf,
-                                   **kwargs)
+                                   file_ext='bin',  **kwargs)
 
         assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
 
@@ -495,6 +539,7 @@ class TestVWClient(unittest.TestCase):
                                        uuid,
                                        description, 'Dry Creek', 'Idaho',
                                        model_name='isnobal',
+                                       file_ext='bin',
                                        config_file='wcwave_adaptors/test/test.conf',
                                        proc_date='2015-05-12')
 
@@ -516,7 +561,7 @@ class TestVWClient(unittest.TestCase):
         # .tif
         generated = metadata_from_file('test/data/em.0134.melt.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
-            config_file='wcwave_adaptors/test/test.conf',
+            config_file='wcwave_adaptors/test/test.conf', model_vars='melt',
             proc_date="2015-05-12")
 
         expected = open('wcwave_adaptors/test/data/expected_tif.json', 'r').read()
@@ -527,7 +572,7 @@ class TestVWClient(unittest.TestCase):
         dt = pd.Timedelta('3 days')
         generated = metadata_from_file('test/data/em.100.melt.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
-            config_file='wcwave_adaptors/test/test.conf', dt=dt,
+            config_file='wcwave_adaptors/test/test.conf', dt=dt, model_vars='melt',
             proc_date="2015-05-12")
 
         expected = open('wcwave_adaptors/test/data/expected_tif_nonhourdt.json',
