@@ -334,7 +334,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        model_set_type=None, model_set_taxonomy=None,
                        water_year_start=2010, water_year_end=2011,
                        config_file=None, dt=None, model_set=None,
-                       model_vars=None, **kwargs):
+                       model_vars=None, file_ext=None, **kwargs):
     """
     Generate metadata for input_file.
 
@@ -358,9 +358,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     input_prefix = input_split[0]
 
-    if 'file_ext' in kwargs:
-        file_ext = kwargs['file_ext']
-    else:
+    if not file_ext:
         file_ext = input_file.split('.')[-1]
 
     model_set = ("outputs", "inputs")[input_prefix == "in"]
@@ -378,6 +376,8 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     if file_ext == "tif":
         model_set_type = "vis"
+        kwargs['taxonomy'] = "geoimage"
+        kwargs['mimetype'] = "application/x-zip-compressed"
 
     elif model_name == 'isnobal' and is_ipw:
 
@@ -436,6 +436,8 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                                 end_datetime=end_datetime_str,
                                 ext=file_ext,
                                 **kwargs)
+
+    # import ipdb; ipdb.set_trace()
 
     return js
 
@@ -783,7 +785,7 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
     else:
         wms_str = None
 
-    output = template.render(basename=basename,
+    output = template.render(basename=os.path.splitext(basename)[0],
                              parent_model_run_uuid=parent_model_run_uuid,
                              model_run_uuid=model_run_uuid,
                              model_set=model_set,
@@ -795,4 +797,5 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                              fgdc_metadata=fgdc_metadata,
                              file_ext=file_ext,
                              **kwargs)
+    # import ipdb; ipdb.set_trace()
     return output

@@ -28,5 +28,6 @@ p, u = upsert(parent_directory, description, config_file=config_file)
 # use that parent uuid for each of the modified temperature outputs
 for d in child_directories:
     print "upserting " + d
+    print "model run uuid: " + u
     upsert(d, description, parent_model_run_uuid=p,
            config_file=config_file)

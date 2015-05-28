@@ -1,18 +1,18 @@
 {
-    "orig_epsg": "{% if orig_epsg %}{{ orig_epsg }}{% else %}99999{% endif %}",
+    "orig_epsg": "{% if orig_epsg %}{{ orig_epsg }}{% else %}4326{% endif %}",
     "description": "{{ description }}",
-    "taxonomy": "file",
+    "taxonomy": "{{ taxonomy }}",
     "basename": "{{ basename }}",
     "parent_model_run_uuid": "{{ parent_model_run_uuid }}",
     "model_run_uuid": "{{ model_run_uuid }}",
-    "model_vars": "{% if model_vars %}{{ model_vars }}{% else %}unknown{% endif %}",
+    "model_vars": "{% if model_vars %}{{ model_vars }}{% else %} {% endif %}",
     "model_set": "{{ model_set }}",
     "model_set_type": "{{ model_set_type }}",
     "model_set_taxonomy": "{{ model_set_taxonomy }}",
     "spatial": {
         "geomtype": "{{ model_set_taxonomy }}",
         "records":"1",
-        "epsg": "{% if epsg %}{{ epsg }}{% else %}99999{% endif %}",
+        "epsg": "{% if epsg %}{{ epsg }}{% else %}4326{% endif %}",
         "features":"1",
         "bbox": "{{ west_bound }},{{ south_bound }},{{ east_bound }},{{ north_bound }}"
     },
@@ -21,7 +21,7 @@
         "end": "{{ end_datetime }}"
     },
     "records": "1",
-    "active": "true",
+    "active": "True",
     "services": [
     "{{ wms_str }}",
     "{{ wcs_str }}"
