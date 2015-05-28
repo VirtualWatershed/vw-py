@@ -74,12 +74,13 @@ class TestJSONMetadata(unittest.TestCase):
         generated = make_watershed_metadata(
             'wcwave_adaptors/test/data/in.0010.I_lw.tif',
             self.config, 'MODELRUNXX**A*', 'MODELRUNXX**A*', 'inputs',
-            'Dry Creek', 'Idaho', file_ext='tif',
+            'Dry Creek', 'Idaho', file_ext='tif', taxonomy='geoimage',
             model_name='isnobal', proc_date='2015-05-08')
 
         # load expected json metadata file
-        expected = open('wcwave_adaptors/test/data/expected_minimal_tif_watershed.json',
-                        'r').read()
+        expected = \
+            open('wcwave_adaptors/test/data/expected_minimal_tif_watershed.json',
+                 'r').read()
 
         # check equality
         assert generated == expected, \
@@ -94,6 +95,7 @@ class TestJSONMetadata(unittest.TestCase):
 
         expected = open('wcwave_adaptors/test/data/expected_minimal_isno_watershed.json',
                         'r').read()
+
 
         # check equality
         assert generated == expected, \
@@ -226,7 +228,7 @@ class TestVWClient(unittest.TestCase):
             self.UUID, self.UUID, 'unittest for download', 'Dry Creek', 'Idaho',
             start_datetime="2010-10-01 00:00:00", end_datetime="2010-10-01 01:00:00",
             fgdc_metadata=fgdc_md, model_set_type='grid', file_ext='bin',
-            model_name='isnobal', epsg=4326, orig_epsg=26911)
+            taxonomy='geoimage', model_set_taxonomy='grid', model_name='isnobal', epsg=4326, orig_epsg=26911)
 
         VW_CLIENT.insert_metadata(wmd_from_file)
 
@@ -307,6 +309,7 @@ class TestVWClient(unittest.TestCase):
                 start_datetime='2010-01-01 10:00:00',
                 end_datetime='2010-01-01 11:00:00', orig_epsg=26911, epsg=4326,
                 model_set_type='binary', file_ext='bin',
+                model_set_taxonomy='grid', taxonomy='geoimage',
                 model_vars='I_lw,T_a,e_a,u,T_g,S_n', model_name='isnobal')
 
         insert_result = VW_CLIENT.insert_metadata(watershedJSON)
@@ -353,6 +356,7 @@ class TestVWClient(unittest.TestCase):
         wmd_from_file = metadata_from_file('flat_sample.nc', self.UUID, self.UUID,
             'testing upload/download of netcdf', 'Dry Creek', 'Idaho',
             model_name='isnobal', model_set_type='grid', model_set='inputs',
+            model_set_taxonomy='grid', taxonomy='geoimage',
             file_ext='nc', orig_epsg=26911, epsg=4326)
 
         VW_CLIENT.insert_metadata(wmd_from_file)
@@ -460,9 +464,7 @@ class TestVWClient(unittest.TestCase):
                                    config_file=test_conf, file_ext='bin', **kwargs)
         _worked(parent_uuid, UUID)
 
-        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                  'description': 'unittest',
-                  'model_run_name': 'unittest' + str(uuid4())}
+        kwargs = _gen_kw_args()
 
         # with no slash after directory name
         parent_uuid, UUID = \
@@ -471,9 +473,7 @@ class TestVWClient(unittest.TestCase):
                    file_ext='bin', **kwargs)
         _worked(parent_uuid, UUID)
 
-        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                  'description': 'unittest',
-                  'model_run_name': 'unittest' + str(uuid4())}
+        kwargs = _gen_kw_args()
         # as an existing model run
         inherit_parent = parent_uuid
         parent_uuid, uuid = upsert(upsert_dir, 'Dry Creek', 'Idaho', model_name='isnobal',
@@ -488,18 +488,14 @@ class TestVWClient(unittest.TestCase):
         ## test upsert of a single file
         upsert_file = upsert_dir + "/snow.1345"
         # as a brand-new parent/model run
-        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                  'description': 'unittest',
-                  'model_run_name': 'unittest' + str(uuid4())}
+        kwargs = _gen_kw_args()
 
         parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
                                    config_file=test_conf, file_ext='bin', **kwargs)
         _worked(parent_uuid, UUID, dir_=False)
 
         # with no slash after directory name
-        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                  'description': 'unittest',
-                  'model_run_name': 'unittest' + str(uuid4())}
+        kwargs = _gen_kw_args()
 
         parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
                                    config_file=test_conf, file_ext='bin', **kwargs)
@@ -508,9 +504,9 @@ class TestVWClient(unittest.TestCase):
 
         # as a new model run with a parent
         inherit_parent = parent_uuid
-        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                  'description': 'unittest',
-                  'model_run_name': 'unittest' + str(uuid4())}
+
+        kwargs = _gen_kw_args()
+
         parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
                                    parent_model_run_uuid=inherit_parent,
                                    model_run_uuid=UUID, config_file=test_conf,
@@ -565,6 +561,10 @@ class TestVWClient(unittest.TestCase):
             proc_date="2015-05-12")
 
         expected = open('wcwave_adaptors/test/data/expected_tif.json', 'r').read()
+
+        # with open('wcwave_adaptors/test/data/expected_tif.json', 'w') as f:
+            # f.write(generated)
+
         assert generated == expected, \
             show_string_diff(generated, expected)
 
@@ -577,6 +577,7 @@ class TestVWClient(unittest.TestCase):
 
         expected = open('wcwave_adaptors/test/data/expected_tif_nonhourdt.json',
                         'r').read()
+
         assert generated == expected, \
             show_string_diff(generated, expected)
 
@@ -589,3 +590,16 @@ class TestVWClient(unittest.TestCase):
         for u in unittest_uuids:
             s = VW_CLIENT.delete_modelrun(u)
             print "post-test cleanup success on %s: %s" % (u, str(s))
+
+        dup_test_uuids = [r['Model Run UUID'] for r in modelruns.records
+                          if 'dup_test' in r['Model Run Name']]
+
+        for u in dup_test_uuids:
+            s = VW_CLIENT.delete_modelrun(u)
+            print "post-test cleanup success on %s: %s" % (u, str(s))
+
+
+def _gen_kw_args():
+    return {'keywords': 'Snow,iSNOBAL,wind',
+            'description': 'unittest',
+            'model_run_name': 'unittest' + str(uuid4())}

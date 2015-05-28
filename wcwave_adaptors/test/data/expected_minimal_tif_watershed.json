@@ -1,18 +1,18 @@
 {
-    "orig_epsg": "99999",
+    "orig_epsg": "4326",
     "description": "",
-    "taxonomy": "file",
-    "basename": "in.0010.I_lw.tif",
+    "taxonomy": "geoimage",
+    "basename": "in.0010.I_lw",
     "parent_model_run_uuid": "MODELRUNXX**A*",
     "model_run_uuid": "MODELRUNXX**A*",
-    "model_vars": "unknown",
+    "model_vars": " ",
     "model_set": "inputs",
     "model_set_type": "vis",
     "model_set_taxonomy": "",
     "spatial": {
         "geomtype": "",
         "records":"1",
-        "epsg": "99999",
+        "epsg": "4326",
         "features":"1",
         "bbox": "-120.01,31.17,-102.66,49.13"
     },
@@ -21,7 +21,7 @@
         "end": "1970-10-01 01:00:00"
     },
     "records": "1",
-    "active": "true",
+    "active": "True",
     "services": [
     "wms",
     "wcs"

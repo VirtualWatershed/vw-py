@@ -1,8 +1,8 @@
 {
     "orig_epsg": "26911",
     "description": "",
-    "taxonomy": "file",
-    "basename": "in.0010.I_lw.tif",
+    "taxonomy": "",
+    "basename": "in.0010.I_lw",
     "parent_model_run_uuid": "MODELRUNXX**A*",
     "model_run_uuid": "MODELRUNXX**A*",
     "model_vars": "I_lw",
@@ -21,7 +21,7 @@
         "end": "2010-10-01 11:00:00"
     },
     "records": "1",
-    "active": "true",
+    "active": "True",
     "services": [
     "wms",
     "wcs"

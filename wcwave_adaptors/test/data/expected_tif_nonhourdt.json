@@ -1,18 +1,18 @@
 {
-    "orig_epsg": "99999",
+    "orig_epsg": "4326",
     "description": "Testing metadata!",
-    "taxonomy": "file",
-    "basename": "em.100.melt.tif",
+    "taxonomy": "geoimage",
+    "basename": "em.100.melt",
     "parent_model_run_uuid": "373ae181-a0b2-4998-ba32-e27da190f6dd",
     "model_run_uuid": "09079630-5ef8-11e4-9803-0800200c9a66",
     "model_vars": "melt",
     "model_set": "outputs",
     "model_set_type": "vis",
-    "model_set_taxonomy": "grid",
+    "model_set_taxonomy": "None",
     "spatial": {
-        "geomtype": "grid",
+        "geomtype": "None",
         "records":"1",
-        "epsg": "99999",
+        "epsg": "4326",
         "features":"1",
         "bbox": "-120.01,31.17,-102.66,49.13"
     },
@@ -21,7 +21,7 @@
         "end": "2011-07-31 00:00:00"
     },
     "records": "1",
-    "active": "true",
+    "active": "True",
     "services": [
     "wms",
     "wcs"

@@ -428,16 +428,14 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                                 state,
                                 model_name=model_name,
                                 model_set_type=model_set_type,
-                                model_set_taxonomy='grid',
+                                model_set_taxonomy=model_set_taxonomy,
                                 fgdc_metadata=fgdc_metadata,
                                 description=description,
                                 model_vars=model_vars,
                                 start_datetime=start_datetime_str,
                                 end_datetime=end_datetime_str,
-                                ext=file_ext,
+                                file_ext=file_ext,
                                 **kwargs)
-
-    # import ipdb; ipdb.set_trace()
 
     return js
 
@@ -445,7 +443,8 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 def upsert(input_path, watershed_name, state,
            model_run_name=None, description=None, keywords=None,
            parent_model_run_uuid=None, model_run_uuid=None, model_name=None,
-           model_set_type=None, file_ext=None, config_file=None, dt=None):
+           model_set_type=None, file_ext=None, config_file=None, dt=None,
+           taxonomy='geoimage', model_set_taxonomy='grid'):
     """Upload the file or files located at input_path, which could be a
        directory. This function also creates and inserts metadata records for
        every file as required by the virtual watershed.
@@ -514,7 +513,9 @@ def upsert(input_path, watershed_name, state,
                                   model_run_uuid, description, watershed_name,
                                   state, model_set_type=model_set_type,
                                   model_name=model_name, file_ext=file_ext,
-                                  config_file=config_file, dt=dt)
+                                  config_file=config_file, dt=dt,
+                                  model_set_taxonomy=model_set_taxonomy,
+                                  taxonomy=taxonomy)
 
         vw_client.upload(model_run_uuid, file_)
         vw_client.insert_metadata(js)
@@ -785,7 +786,12 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
     else:
         wms_str = None
 
-    output = template.render(basename=os.path.splitext(basename)[0],
+    if kwargs['model_name'] == 'isnobal' and file_ext != 'tif':
+        basename = basename
+    else:
+        basename = os.path.splitext(basename)[0]
+
+    output = template.render(basename=basename,
                              parent_model_run_uuid=parent_model_run_uuid,
                              model_run_uuid=model_run_uuid,
                              model_set=model_set,
@@ -797,5 +803,4 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                              fgdc_metadata=fgdc_metadata,
                              file_ext=file_ext,
                              **kwargs)
-    # import ipdb; ipdb.set_trace()
     return output
