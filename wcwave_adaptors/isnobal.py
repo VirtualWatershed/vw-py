@@ -624,7 +624,6 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
 
                 progress.update(i)
 
-    # import ipdb; ipdb.set_trace()
     # whether inputs or outputs, we need to include the dimensional values
     t = nc.variables['time']
     t[:] = arange(len(t))
