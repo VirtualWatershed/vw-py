@@ -23,8 +23,9 @@
     "records": "1",
     "active": "True",
     "services": [
-    "{{ wms_str }}",
-    "{{ wcs_str }}"
+        "{{ wms_str }}",
+        "{{ wcs_str }}",
+        "{{ wfs_str }}"
     ],
     "categories": [{
             "location": "{{ watershed_name }}",
