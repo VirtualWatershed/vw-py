@@ -786,10 +786,17 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
     else:
         wms_str = None
 
+    if 'wfs' in kwargs and kwargs['wfs']:
+        wfs_str = 'wfs'
+    else:
+        wfs_str = None
+
     if kwargs['model_name'] == 'isnobal' and file_ext != 'tif':
         basename = basename
     else:
         basename = os.path.splitext(basename)[0]
+
+    import ipdb; ipdb.set_trace()
 
     output = template.render(basename=basename,
                              parent_model_run_uuid=parent_model_run_uuid,
@@ -799,6 +806,7 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                              state=state,
                              wcs_str=wcs_str,
                              wms_str=wms_str,
+                             wfs_str=wfs_str,
                              input_file_path=input_file_path,
                              fgdc_metadata=fgdc_metadata,
                              file_ext=file_ext,
