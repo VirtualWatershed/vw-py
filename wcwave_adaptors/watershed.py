@@ -73,8 +73,6 @@ class VWClient:
 
         self.new_run_url = host_url + "/apps/vwp/newmodelrun"
 
-        self.logout_url = host_url + "/logout"
-
     def initialize_modelrun(self, model_run_name=None, description=None,
                              researcher_name=None, keywords=None):
         """Iniitalize a new model run.
@@ -241,20 +239,6 @@ class VWClient:
 
         result = self.sesh.delete(self.modelrun_delete_url,
             data=json.dumps({'model_uuid': model_run_uuid}), verify=False)
-
-        if result.status_code == 200:
-            return True
-        else:
-            return False
-
-    def logout(self):
-        """
-        Close connection to the virtual waterhsed.
-
-        Returns:
-            (bool) True if successful, False if not
-        """
-        result = self.sesh.get(self.logout_url)
 
         if result.status_code == 200:
             return True
