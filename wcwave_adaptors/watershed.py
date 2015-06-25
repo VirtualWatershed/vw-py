@@ -796,6 +796,8 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
     else:
         basename = os.path.splitext(basename)[0]
 
+    import ipdb; ipdb.set_trace()
+
     output = template.render(basename=basename,
                              parent_model_run_uuid=parent_model_run_uuid,
                              model_run_uuid=model_run_uuid,
