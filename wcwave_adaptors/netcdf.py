@@ -46,7 +46,6 @@ def ncgen_from_template(template_filename, ncout_filename=None,
     if os.path.isfile(cdl_output_filename) and not clobber:
         raise NCOError("CDL file %s already exists and clobber is false" %
                        cdl_output_filename)
-    print kwargs
     _build_cdl(template_filename, cdl_output_filename, **kwargs)
 
     if ncout_filename is None:

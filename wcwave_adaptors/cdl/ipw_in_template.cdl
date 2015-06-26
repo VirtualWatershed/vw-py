@@ -61,67 +61,52 @@ netcdf {{ write_filename }} {
         byte mask(northing, easting) ;
             mask:long_name = "mask for more efficient computation";
             
+        float z(northing, easting) ;
+            z:ipw_desc = "elevation";
+            z:units = "m";
 
-    group: Initial {
-        
-        variables:
-            
-            float z(northing, easting) ;
-                z:ipw_desc = "elevation";
-                z:units = "m";
+        float z_0(northing, easting) ;
+            z_0:ipw_desc = "roughness length";
+            z_0:units = "m";
 
-            float z_0(northing, easting) ;
-                z_0:ipw_desc = "roughness length";
-                z_0:units = "m";
+        float z_s(northing, easting) ;
+            z_s:ipw_desc = "total snowcover depth";
+            z_s:units = "m";
 
-            float z_s(northing, easting) ;
-                z_s:ipw_desc = "total snowcover depth";
-                z_s:units = "m";
+        float rho(northing, easting) ;
+            rho:ipw_desc = "roughness length";
+            rho:units = "kg m-3";
 
-            float rho(northing, easting) ;
-                rho:ipw_desc = "roughness length";
-                rho:units = "kg m-3";
+        float T_s_0(northing, easting) ;
+            T_s_0:ipw_desc = "active snow layer temperature";
+            T_s_0:units = "C";
 
-            float T_s_0(northing, easting) ;
-                T_s_0:ipw_desc = "active snow layer temperature";
-                T_s_0:units = "C";
+        float T_s(northing, easting) ;
+            T_s:ipw_desc = "average snowcover temperature";
+            T_s:units = "C";
 
-            float T_s(northing, easting) ;
-                T_s:ipw_desc = "average snowcover temperature";
-                T_s:units = "C";
+        float h2o_sat(northing, easting) ;
+            h2o_sat:ipw_desc = "% of liquid H2O saturation (ratio of water in snowcover to snowcover water-holding potential";
+            h2o_sat:units = "C";
 
-            float h2o_sat(northing, easting) ;
-                h2o_sat:ipw_desc = "% of liquid H2O saturation (ratio of water in snowcover to snowcover water-holding potential";
-                h2o_sat:units = "C";
-    }
+        float m_pp(time, northing, easting) ;
+            m_pp:ipw_desc = "total precipitation mass";
+            m_pp:standard_name = "precipitation_amount";
+            m_pp:description = "mass precipitation flux through a 2D surface on its way to ground";
+            m_pp:units = "kg m-2";// snow flux
 
-    group: Precipitation {
+        float percent_snow(time, northing, easting) ;
+            percent_snow:ipw_desc = "fraction of precip mass that was snow (0 to 1.0)";
+            // unitless
 
-        variables:
+        float rho_snow(time, northing, easting) ;
+            rho_snow:ipw_desc = "density of snowfall";
+            rho_snow:units = "kg m-3"; 
 
-            float m_pp(time, northing, easting) ;
-                m_pp:ipw_desc = "total precipitation mass";
-                m_pp:standard_name = "precipitation_amount";
-                m_pp:description = "mass precipitation flux through a 2D surface on its way to ground";
-                m_pp:units = "kg m-2";// snow flux
+        float T_pp(time, northing, easting) ;
+            T_pp:ipw_desc = "average precip temperature";
+            T_pp:units = "C"; 
 
-            float percent_snow(time, northing, easting) ;
-                percent_snow:ipw_desc = "fraction of precip mass that was snow (0 to 1.0)";
-                // unitless
-
-            float rho_snow(time, northing, easting) ;
-                rho_snow:ipw_desc = "density of snowfall";
-                rho_snow:units = "kg m-3"; 
-
-            float T_pp(time, northing, easting) ;
-                T_pp:ipw_desc = "average precip temperature";
-                T_pp:units = "C"; 
-    }
-
-    group: Input { // This terrible name is taken from IPW itself, the 6-band "Input image"
-        
-    variables:
-        
         float I_lw(time, northing, easting) ;
             I_lw:ipw_desc = "incoming thermal (long-wave) radiation";
             I_lw:standard_name = "downwelling_longwave_flux_in_air";
@@ -151,5 +136,4 @@ netcdf {{ write_filename }} {
             S_n:ipw_desc = "net solar radiation";
             S_n:standard_name = "downwelling_shortwave_flux_in_air";
             S_n:units = "W m-2";
-    }
 }

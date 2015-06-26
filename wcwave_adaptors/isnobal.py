@@ -67,45 +67,18 @@ def AssertISNOBALInput(nc):
                                  "'dline', and 'dsamp' not all in NetCDF")
 
     ncv = nc.variables
-    valid = ('alt' in ncv and 'mask' in ncv and 'time' in ncv and
-             'easting' in ncv and 'northing' in ncv and 'lat' in ncv and
-             'lon' in ncv)
+    valid = ('alt' in ncv and 'mask' in ncv and 'time' in ncv
+             and 'easting' in ncv and 'northing' in ncv and 'lat' in ncv
+             and 'lon' in ncv and 'I_lw' in ncv and 'T_a' in ncv
+             and 'e_a' in ncv and 'u' in ncv and 'T_g' in ncv and 'S_n' in ncv
+             and 'z' in ncv and 'z_0' in ncv and 'z_s' in ncv and 'rho' in ncv
+             and 'T_s_0' in ncv and 'T_s' in ncv and 'h2o_sat' in ncv
+             and 'm_pp' in ncv and 'percent_snow' in ncv
+             and 'rho_snow' in ncv)
 
     if not valid:
         raise ISNOBALNetcdfError("Variables 'alt', 'mask', 'time', 'easting', \
                 'northing', 'lat' and 'lon' not all present in NetCDF")
-
-    ncg = nc.groups
-    valid = ('Initial' in ncg and 'Precipitation' in ncg and 'Input' in ncg)
-
-    if not valid:
-        raise ISNOBALNetcdfError("'Initial', 'Precipitation', and 'Input' \
-                groups not present in NetCDF")
-
-    gvars = ncg['Input'].variables
-    valid = ('I_lw' in gvars and 'T_a' in gvars and 'e_a' in gvars and
-             'u' in gvars and 'T_g' in gvars and 'S_n' in gvars)
-
-    if not valid:
-        raise ISNOBALNetcdfError("All required variables not present in inputs\
-                group of NetCDF")
-
-    gvars = ncg['Initial'].variables
-    valid = ('z' in gvars and 'z_0' in gvars and 'z_s' in gvars and
-             'rho' in gvars and 'T_s_0' in gvars and 'T_s' in gvars and
-             'h2o_sat' in gvars)
-
-    if not valid:
-        raise ISNOBALNetcdfError("All required variables not present in \
-                initialization group of NetCDF")
-
-    gvars = ncg['Precipitation'].variables
-    valid = ('m_pp' in gvars and 'percent_snow' in gvars and
-             'rho_snow' in gvars)
-
-    if not valid:
-        raise ISNOBALNetcdfError("All precipitation variables are not present \
-                in NetCDF")
 
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
@@ -263,8 +236,6 @@ class IPW(object):
                 config_file = \
                     osjoin(dirname(__file__), '../default.conf')
 
-            # helper function _get_config uses ConfigParser to parse config file
-            config = _get_config(config_file)
 
             if file_type in ['in', 'em', 'snow']:
 
@@ -351,12 +322,12 @@ class IPW(object):
         return map(lambda l: (l[0], IPW(l[1], file_type='precip')), pptlist)
 
     @classmethod
-    def from_nc(cls, nc_in, tstep=None, group=None, variable=None,
+    def from_nc(cls, nc_in, tstep=None, file_type=None, variable=None,
                 distance_units='m', coord_sys_ID='UTM'):
         """
         Generate an IPW object from a NetCDF file.
 
-        >>> ipw = IPW.from_nc('dataset.nc', tstep='1', group='Inputs')
+        >>> ipw = IPW.from_nc('dataset.nc', tstep='1', file_type='in')
         >>> ipw = IPW.from_nc(nc_in)
 
         If your data uses units of distance other than meters, set that
@@ -365,7 +336,8 @@ class IPW(object):
        Arguments:
             nc_in (str or NetCDF4.Dataset) NetCDF to convert to IPW
             tstep (int) The time step in whatever units are being used
-            group (str) Group of NetCDF variable, e.g. 'Precipitation'
+            file_type (str) file type of NetCDF variable, one of
+                'in', 'precip', 'em', 'snow', 'mask', 'init', 'dem'
             variable (str or list) One or many variable names to be
                 incorporated into IPW file
             distance_units (str) If you use a measure of distance other
@@ -378,13 +350,13 @@ class IPW(object):
         if type(nc_in) is str:
             nc_in = Dataset(nc_in, 'r')
         # check and get variables from netcdf
-        if group is None and variable is None:
-            raise Exception("group and variable both 'None': no data to convert!")
+        if file_type is None and variable is None:
+            raise Exception("file_type and variable both 'None': no data to convert!")
 
         # initialize the IPW and set its some global attributes
         ipw = IPW()
 
-        if group is None:
+        if file_type is None:
             if variable == 'alt':
                 ipw.file_type = 'dem'
             elif variable == 'mask':
@@ -394,14 +366,9 @@ class IPW(object):
             nc_vars = {variable: nc_in.variables[variable]}
 
         else:
-            nc_vars = nc_in.groups[group].variables  # throw if key `group` dne
+            nc_vars = nc_in.variables  # throw if key `group` dne
 
-            if group == 'Input':
-                ipw.file_type = 'in'
-            elif group == 'Precipitation':
-                ipw.file_type = 'precip'
-            elif group == 'Initial':
-                ipw.file_type = 'init'
+            ipw.file_type = file_type
 
         # read header info from nc and generate/assign to new IPW
         # build global dict
@@ -410,7 +377,7 @@ class IPW(object):
         ipw.nsamps = len(nc_in.dimensions['easting'])
 
         # if the bands are not part of a group, they are handled individually
-        if group:
+        if file_type:
             ipw.nbands = len(nc_vars)
         else:
             ipw.nbands = 1
@@ -660,6 +627,20 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
 
     return nc
 
+#: varnames for loading the NetCDF
+VARNAME_BY_FILETYPE = \
+    {
+        'dem': ['alt'],
+        'in': ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n'],
+        'precip': ['m_pp', 'percent_snow', 'rho_snow', 'T_pp'],
+        'mask': ['mask'],
+        'init': ['z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat'],
+        'em': ['R_n', 'H', 'L_v_E', 'G', 'M', 'delta_Q',
+               'E_s', 'melt', 'ro_predict', 'cc_s'],
+        'snow': ['z_s', 'rho', 'm_s', 'h2o', 'T_s_0',
+                 'T_s_l', 'T_s', 'z_s_l', 'h2o_sat']
+    }
+
 
 def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
     """Put IPW data into dataset based on file naming conventions
@@ -678,26 +659,27 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
 
     df = ipw.data_frame()
 
+    variables = dataset.variables
+
     if file_type == 'dem':
         # dem only has 'alt' information, stored in root group
         dataset.variables['alt'][:, :] = reshape(df['alt'],
                                                     (nlines, nsamps))
 
     elif file_type == 'in':
-        gvars = dataset.groups['Input'].variables
-        for var in gvars:
+
+        for var in VARNAME_BY_FILETYPE['in']:
             # can't just assign b/c if sun is 'down' var is absent from df
             if var in df.columns:
-                gvars[var][tstep, :, :] = reshape(df[var],
-                                                     (nlines, nsamps))
+                variables[var][tstep, :, :] = reshape(df[var],
+                                                  (nlines, nsamps))
             else:
-                gvars[var][tstep, :, :] = zeros((nlines, nsamps))
+                variables[var][tstep, :, :] = zeros((nlines, nsamps))
 
     elif file_type == 'precip':
-        gvars = dataset.groups['Precipitation'].variables
 
-        for var in gvars:
-            gvars[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
+        for var in VARNAME_BY_FILETYPE['precip']:
+            variables[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
 
     elif file_type == 'mask':
         # mask is binary and one-banded; store in root group
@@ -705,22 +687,19 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
                                                      (nlines, nsamps))
 
     elif file_type == 'init':
-        gvars = dataset.groups['Initial'].variables
 
-        for var in gvars:
-            gvars[var][:, :] = reshape(df[var], (nlines, nsamps))
+        for var in VARNAME_BY_FILETYPE['init']:
+            variables[var][:, :] = reshape(df[var], (nlines, nsamps))
 
     elif file_type == 'em':
-        gvars = dataset.groups['em'].variables
 
-        for var in gvars:
-            gvars[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
+        for var in VARNAME_BY_FILETYPE['em']:
+            variables[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
 
     elif file_type == 'snow':
-        gvars = dataset.groups['snow'].variables
 
-        for var in gvars:
-            gvars[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
+        for var in VARNAME_BY_FILETYPE['snow']:
+            variables[var][tstep, :, :] = reshape(df[var], (nlines, nsamps))
 
     # TODO file_type == "em" and "snow" for outputs
 
@@ -728,7 +707,7 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
         raise Exception('File type %s not recognized!' % file_type)
 
 
-def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
+def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
     """Convert an iSNOBAL NetCDF file to an iSNOBAL standard directory structure
        in IPW format. This means that for
 
@@ -756,23 +735,15 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
     else:
         assert isinstance(nc_in, Dataset)
 
-    nc_groups = nc_in.groups.keys()
-    if 'Input' in nc_groups:
-        type_ = 'inputs'
-    elif 'Output' in nc_groups:
-        type_ = 'outputs'
-    else:
-        raise IPWFileError("NetCDF %s is not a valid iSNOBAL representation"
-                           % nc_in)
+    present_vars = set(nc_in.variables.keys())
+    expected_vars = set([u'time', u'easting', u'northing', u'lat', u'lon',
+        u'alt', u'mask', 'I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n',
+        'm_pp', 'percent_snow', 'rho_snow', 'T_pp',
+        'z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat'])
 
-    assert set(nc_in.groups.keys()) == \
-        set([u'Initial', u'Precipitation', u'Input']), \
-        "%s not a valid input iSNOBAL NetCDF" % nc_in.filepath()
-
-    assert set(nc_in.variables.keys()) == \
-        set([u'time', u'easting', u'northing', u'lat', u'lon',
-             u'alt', u'mask']), \
-        "%s not a valid input iSNOBAL NetCDF" % nc_in.filepath()
+    assert present_vars == expected_vars, \
+        "%s not a valid input iSNOBAL NetCDF; %s are missing" \
+        % (nc_in.filepath(), expected_vars.difference(present_vars))
 
     if clobber and exists(ipw_base_dir):
         rmtree(ipw_base_dir)
@@ -783,9 +754,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
     time_index = range(len(nc_in.variables['time']))
 
     if type_ == 'inputs':
-
         # for each time step create an IPW file
-        group = 'Input'
         inputs_dir = osjoin(ipw_base_dir, 'inputs')
         mkdir(inputs_dir)
 
@@ -794,6 +763,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
         zeropad_factor = floor(log10(tsteps))
 
         print "Writing 'Input' Data to IPW files"
+        file_type = 'in'
         with ProgressBar(maxval=time_index[-1]) as progress:
             for i, idx in enumerate(time_index):
                 if idx < 10:
@@ -805,13 +775,13 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
                 else:
                     idxstr = str(idx)
 
-                IPW.from_nc(nc_in, tstep=idx, group=group
+                IPW.from_nc(nc_in, tstep=idx, file_type=file_type,
                             ).write(osjoin(inputs_dir, 'in.' + idxstr))
 
                 progress.update(i)
 
-        group = 'Initial'
-        IPW.from_nc(nc_in, group=group
+        file_type = 'init'
+        IPW.from_nc(nc_in, file_type=file_type
                     ).write(osjoin(ipw_base_dir, 'init.ipw'))
 
         IPW.from_nc(nc_in, variable='alt'
@@ -823,12 +793,12 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
         # precip is weird. for no precip tsteps, no IPW exists
         # list of tsteps that had precip and associated
         # files stored in ppt_desc
-        group = 'Precipitation'
+        file_type = 'precip'
         ppt_images_dir = osjoin(ipw_base_dir, 'ppt_images_dist')
         mkdir(ppt_images_dir)
 
         # can use just one variable (precip mass) to see which
-        mpp = nc_in.groups[group].variables['m_pp']
+        mpp = nc_in.variables['m_pp']
 
         # if no precip at a tstep, variable type is numpy.ma.core.MaskedArray
         time_indexes = [i for i, el in enumerate(mpp)
@@ -845,7 +815,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True):
                                    osjoin(ppt_images_dir,
                                           'ppt_' + str(idx) + '.ipw')))
 
-                    ipw = IPW.from_nc(nc_in, tstep=idx, group=group)
+                    ipw = IPW.from_nc(nc_in, tstep=idx, file_type=file_type)
 
                     ipw.write(osjoin(ppt_images_dir,
                                      'ppt_' + str(idx) + '.ipw'))
@@ -1201,6 +1171,9 @@ def _floatdf_to_binstring(bands, df):
     # use the struct package to pack ints to bytes; use '=' to prevent padding
     # that causes problems with the IPW scheme
     pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
+
+    if int_df.isnull().any().any():
+        import ipdb; ipdb.set_trace()
 
     return b''.join([struct.pack(pack_str, *r[1]) for r in int_df.iterrows()])
 

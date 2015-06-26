@@ -4,13 +4,14 @@
 
 import os
 import unittest
-import numpy as np
+
 from netCDF4 import Dataset
+from numpy import ravel, shape, sum
 
 from ..netcdf import utm2latlon, ncgen_from_template
 # include tests for generate_standard_nc in this module
 from ..isnobal import (_nc_insert_ipw, IPW, nc_to_standard_ipw,
-                                     GlobalBand, generate_standard_nc)
+                       GlobalBand, generate_standard_nc)
 
 
 class TestIsnobalNetCDF(unittest.TestCase):
@@ -64,8 +65,6 @@ class TestIsnobalNetCDF(unittest.TestCase):
         # check new file was created
         assert os.path.isfile(outputs_nc_out)
 
-        assert set(nc.groups.keys()) == set(['em', 'snow'])
-
         # check that nc created in memory is valid
         _validate_nc(self, nc, type_='outputs')
 
@@ -99,44 +98,39 @@ class TestIsnobalNetCDF(unittest.TestCase):
                                  datadir + 'nc_insert_ipw.tmp',
                                  **template_args)
 
-        # helper for getting varnames within a group
-        group_varnames = lambda g: [var for var in nc.groups[g].variables]
-
         # input
         _nc_insert_ipw(nc, ipw, 0, self.nlines, self.nsamps)
 
         # check that nc and nc_insert_ipw.tmp have been updated properly
-        g = 'Input'
-        assert group_varnames(g) == ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n']
+        # 'Input'
+        group_varnames = ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n']
 
-        for varname in group_varnames(g):
+        for varname in group_varnames:
 
-            curvar = nc.groups[g].variables[varname]
+            curvar = nc.variables[varname]
 
             assert curvar.shape == (1, gb.nLines, gb.nSamps)
 
             if varname in ['I_lw', 'T_a', 'e_a', 'u']:
-                assert all(abs(np.ravel(curvar)) > 0) and\
-                    all(abs(np.ravel(curvar)) < 1e6)
+                assert all(abs(ravel(curvar)) > 0) and\
+                    all(abs(ravel(curvar)) < 1e6)
 
         # init
         ipw = IPW(datadir + 'init.ipw')
         _nc_insert_ipw(nc, ipw, None, self.nlines, self.nsamps)
+
         # check that nc and nc_insert_ipw.tmp have been updated properly
-        g = 'Initial'
-        assert group_varnames(g) == \
-            ['z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat']
+        group_varnames = ['z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat']
 
-        for varname in group_varnames(g):
+        for varname in group_varnames:
 
-            curvar = nc.groups[g].variables[varname]
+            curvar = nc.variables[varname]
 
-            assert nc.groups[g].variables[varname].shape ==\
-                (gb.nLines, gb.nSamps)
+            assert nc.variables[varname].shape == (gb.nLines, gb.nSamps)
 
             if varname in ['z', 'z_0']:
-                assert all(abs(np.ravel(curvar)) > 0) and\
-                    all(abs(np.ravel(curvar)) < 1e6)
+                assert all(abs(ravel(curvar)) > 0) and\
+                    all(abs(ravel(curvar)) < 1e6)
         # mask
         ipw = IPW(os.path.join(self.full_nc_base_dir, 'tl2p5mask.ipw'),
                   file_type='mask')
@@ -145,34 +139,36 @@ class TestIsnobalNetCDF(unittest.TestCase):
         # check that nc and nc_insert_ipw.tmp have been updated properly
 
         # precip; include time index manually for this test
-        ipw = IPW(os.path.join(self.full_nc_base_dir, 'ppt_images_dist/ppt4b_10.ipw'),
-
+        ipw = IPW(os.path.join(self.full_nc_base_dir,
+                               'ppt_images_dist/ppt4b_10.ipw'),
                   file_type='precip')
 
         # insert an input file at the tenth timestep, making len of timevar 11
         _nc_insert_ipw(nc, ipw, 10, self.nlines, self.nsamps)
 
         # check that nc and nc_insert_ipw.tmp have been updated properly
-        g = 'Precipitation'
-        assert group_varnames(g) ==\
-            ['m_pp', 'percent_snow', 'rho_snow', 'T_pp']
 
-        for varname in group_varnames(g):
+        # 'Precipitation'
+        group_varnames = ['m_pp', 'percent_snow', 'rho_snow', 'T_pp']
 
-            curvar = nc.groups[g].variables[varname]
+        for varname in group_varnames:
+
+            curvar = nc.variables[varname]
 
             assert curvar.shape == (11, gb.nLines, gb.nSamps),\
                 "shape not expected, it's %s" % str(curvar.shape)
 
             if varname in ['m_pp', 'rho_snow', 'T_pp']:
-                assert all(abs(np.ravel(curvar[-1])) > 0) and\
-                    all(abs(np.ravel(curvar[-1])) < 1e6)
+                assert all(abs(ravel(curvar[-1])) > 0) and\
+                    all(abs(ravel(curvar[-1])) < 1e6)
 
         # now input shape should have changed with the input of the 16
         # timestep data
-        for varname in group_varnames('Input'):
+        group_varnames = ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n']
 
-            curvar = nc.groups['Input'].variables[varname]
+        for varname in group_varnames:
+
+            curvar = nc.variables[varname]
 
             assert curvar.shape == (11, gb.nLines, gb.nSamps), \
                 "shape is %s should be %s" % \
@@ -190,6 +186,7 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
         new_ipw_basedir = os.path.join(self.full_nc_base_dir, 'ipw_from_nc')
 
+        import ipdb; ipdb.set_trace()
         nc_to_standard_ipw(nc, new_ipw_basedir)
 
         new_ipw_dirlist = os.listdir(new_ipw_basedir)
@@ -204,7 +201,7 @@ class TestIsnobalNetCDF(unittest.TestCase):
         ppt_images = os.listdir(os.path.join(new_ipw_basedir,
                                 'ppt_images_dist'))
 
-        assert len(inputs) == np.shape(nc.groups['Input'].variables['T_a'])[0]
+        assert len(inputs) == shape(nc.variables['T_a'])[0]
 
         assert len(ppt_images) > 0
         # length of the directory with images should match # lines of ppt_desc
@@ -293,101 +290,98 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
 def _validate_nc(test_obj, nc, type_='inputs'):
     # helper for getting varnames within a group
-    group_varnames = lambda g: [var for var in nc.groups[g].variables]
+    group_varnames = lambda g: [var for var in nc.variables]
 
     if type_ == 'inputs':
 
         g = 'Input'
 
-        assert group_varnames(g) == ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n']
+        group_varnames = ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n']
 
-        for varname in group_varnames(g):
+        for varname in group_varnames:
 
-            curvar = nc.groups[g].variables[varname]
+            curvar = nc.variables[varname]
 
             assert curvar.shape == (16, test_obj.nlines, test_obj.nsamps),\
                 "wrong shape: %s should be %s" %\
                 (str(curvar.shape), (16, test_obj.nlines, test_obj.nsamps))
 
             if varname in ['I_lw', 'T_a', 'e_a', 'u']:
-                assert all(abs(np.ravel(curvar)) > 0) and\
-                    all(abs(np.ravel(curvar)) < 1e6)
+                assert all(abs(ravel(curvar)) > 0) and\
+                    all(abs(ravel(curvar)) < 1e6)
 
-        g = 'Initial'
-        assert group_varnames(g) == \
-            ['z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat']
+        # 'Initial'
+        group_varnames = ['z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat']
 
-        for varname in group_varnames(g):
+        for varname in group_varnames:
 
-            curvar = nc.groups[g].variables[varname]
+            curvar = nc.variables[varname]
 
-            assert nc.groups[g].variables[varname].shape ==\
+            assert nc.variables[varname].shape ==\
                 (test_obj.nlines, test_obj.nsamps)
 
             if varname in ['z', 'z_0']:
-                assert all(abs(np.ravel(curvar)) > 0) and\
-                    all(abs(np.ravel(curvar)) < 1e6)
+                assert all(abs(ravel(curvar)) > 0) and\
+                    all(abs(ravel(curvar)) < 1e6)
 
-        g = 'Precipitation'
-        assert group_varnames(g) ==\
-            ['m_pp', 'percent_snow', 'rho_snow', 'T_pp']
+        # 'Precipitation'
+        group_varnames = ['m_pp', 'percent_snow', 'rho_snow', 'T_pp']
 
         ppt_idx = [int(ppt_line.strip().split('\t')[0])
                    for ppt_line in
                    open('wcwave_adaptors/test/data/ppt_desc', 'r').readlines()]
 
-        for idx, varname in enumerate(group_varnames(g)):
+        for idx, varname in enumerate(group_varnames):
 
-            curvar = nc.groups[g].variables[varname]
+            curvar = nc.variables[varname]
 
             assert curvar.shape == (16, test_obj.nlines, test_obj.nsamps)
 
             if idx in ppt_idx:
                 if varname in ['m_pp', 'rho_snow', 'T_pp']:
-                    assert all(abs(np.ravel(curvar[idx])) > 0) and\
-                        all(abs(np.ravel(curvar[idx])) < 1e6)
+                    assert all(abs(ravel(curvar[idx])) > 0) and\
+                        all(abs(ravel(curvar[idx])) < 1e6)
 
             else:
-                assert all(np.ravel(curvar[idx]) > 1e6)
+                assert all(ravel(curvar[idx]) > 1e6)
 
         # check DEM, mask are present as expected
         assert nc.variables['alt'].shape == (test_obj.nlines, test_obj.nsamps)
         assert nc.variables['mask'].shape == (test_obj.nlines, test_obj.nsamps)
 
-        assert np.sum(nc.variables['mask']) == 2575
+        assert sum(nc.variables['mask']) == 2575
 
     elif type_ == 'outputs':
 
-        g = 'em'
-        assert group_varnames(g) == ['R_n', 'H', 'L_v_E', 'G', 'M', 'delta_Q',
-                                     'E_s', 'melt', 'ro_predict', 'cc_s']
+        # 'em'
+        group_varnames = ['R_n', 'H', 'L_v_E', 'G', 'M', 'delta_Q',
+                          'E_s', 'melt', 'ro_predict', 'cc_s']
 
-        for varname in group_varnames(g):
+        for varname in group_varnames:
 
-            curvar = nc.groups[g].variables[varname]
-
-            assert curvar.shape == (16, test_obj.nlines, test_obj.nsamps),\
-                "wrong shape: %s should be %s" %\
-                (str(curvar.shape), (16, test_obj.nlines, test_obj.nsamps))
-
-            assert all(abs(np.ravel(curvar)) >= 0) and\
-                all(abs(np.ravel(curvar)) < 1e6)
-
-        g = 'snow'
-
-        assert group_varnames(g) == ['z_s', 'rho', 'm_s', 'h2o', 'T_s_0',
-                                     'T_s_l', 'T_s', 'z_s_l', 'h2o_sat']
-
-        for varname in group_varnames(g):
-
-            curvar = nc.groups[g].variables[varname]
+            curvar = nc.variables[varname]
 
             assert curvar.shape == (16, test_obj.nlines, test_obj.nsamps),\
                 "wrong shape: %s should be %s" %\
                 (str(curvar.shape), (16, test_obj.nlines, test_obj.nsamps))
 
-            assert all(abs(np.ravel(curvar)) >= 0) and\
-                all(abs(np.ravel(curvar)) < 1e6)
+            assert all(abs(ravel(curvar)) >= 0) and\
+                all(abs(ravel(curvar)) < 1e6)
+
+        # 'snow'
+        group_varnames = ['z_s', 'rho', 'm_s', 'h2o', 'T_s_0',
+                          'T_s_l', 'T_s', 'z_s_l', 'h2o_sat']
+
+        for varname in group_varnames:
+
+            curvar = nc.variables[varname]
+
+            assert curvar.shape == (16, test_obj.nlines, test_obj.nsamps),\
+                "wrong shape: %s should be %s" %\
+                (str(curvar.shape), (16, test_obj.nlines, test_obj.nsamps))
+
+            assert all(abs(ravel(curvar)) >= 0) and\
+                all(abs(ravel(curvar)) < 1e6)
 
     else:
         raise Exception('_validate_nc requires type_ to be \'inputs\' or\
@@ -396,11 +390,11 @@ def _validate_nc(test_obj, nc, type_='inputs'):
     # test easting, northing, lat, lon, and time variables exist at all t
     for varname in ['time', 'easting', 'lat', 'lon']:
         curvar = nc.variables[varname]
-        assert all(abs(np.ravel(curvar[:])) >= 0) and all(abs(np.ravel(curvar[:])) < 1e6), \
+        assert all(abs(ravel(curvar[:])) >= 0) and all(abs(ravel(curvar[:])) < 1e6), \
             'Defaults still present for dimension {}'.format(varname)
 
     # make sure there is no dumb stuff going on like this
-    assert all(np.ravel(nc.variables['lat'][:] - nc.variables['lon'][:]))
+    assert all(ravel(nc.variables['lat'][:] - nc.variables['lon'][:]))
 
     north = nc.variables['northing']
     assert all(abs(north[:]) > 0) and all(abs(north[:]) < 5e7)
