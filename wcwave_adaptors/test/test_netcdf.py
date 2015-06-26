@@ -53,7 +53,7 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
         _validate_nc(self, nc)
 
-        os.remove(self.full_nc_out)
+        # os.remove(self.full_nc_out)
 
     def test_generate_standard_nc_outputs(self):
         "Check that a sample NetCDF is properly built from a series of outputs"
@@ -74,7 +74,7 @@ class TestIsnobalNetCDF(unittest.TestCase):
         # check that the nc read from file is valid
         _validate_nc(self, nc, type_='outputs')
 
-        os.remove(outputs_nc_out)
+        # os.remove(outputs_nc_out)
 
     def test__nc_insert_ipw(self):
         """Private helper function _nc_insert_ipw inserts all IPW file_types.
@@ -186,7 +186,6 @@ class TestIsnobalNetCDF(unittest.TestCase):
 
         new_ipw_basedir = os.path.join(self.full_nc_base_dir, 'ipw_from_nc')
 
-        import ipdb; ipdb.set_trace()
         nc_to_standard_ipw(nc, new_ipw_basedir)
 
         new_ipw_dirlist = os.listdir(new_ipw_basedir)
@@ -243,7 +242,6 @@ class TestIsnobalNetCDF(unittest.TestCase):
         i = 0
         for bname in ppt_images:
 
-            # name change for ppt images because I can
             orig_f = os.path.join(orig_dir, 'ppt4b_' + bname.split('_')[1])
             f = os.path.join(new_dir, bname)
 

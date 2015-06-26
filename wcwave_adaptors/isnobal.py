@@ -30,8 +30,7 @@ from pandas import date_range, DataFrame, Series, Timedelta
 from progressbar import ProgressBar
 from shutil import rmtree
 
-from .watershed import (_get_config, make_fgdc_metadata,
-                        make_watershed_metadata)
+from .watershed import make_fgdc_metadata, make_watershed_metadata
 
 from .netcdf import ncgen_from_template, utm2latlon
 
@@ -80,21 +79,21 @@ def AssertISNOBALInput(nc):
         raise ISNOBALNetcdfError("Variables 'alt', 'mask', 'time', 'easting', \
                 'northing', 'lat' and 'lon' not all present in NetCDF")
 
-
-#: ISNOBAL variable names to be looked up to make dataframes and write metadata
-VARNAME_DICT = \
+#: varnames for loading the NetCDF
+VARNAME_BY_FILETYPE = \
     {
-        'in': ["I_lw", "T_a", "e_a", "u", "T_g", "S_n"],
-        'em': ["R_n", "H", "L_v_E", "G", "M", "delta_Q", "E_s", "melt",
-               "ro_predict", "cc_s"],
-        'snow': ["z_s", "rho", "m_s", "h2o", "T_s_0", "T_s_l", "T_s",
-                 "z_s_l", "h2o_sat"],
-        'init': ["z", "z_0", "z_s", "rho", "T_s_0", "T_s", "h2o_sat"],
-        'precip': ["m_pp", "percent_snow", "rho_snow", "T_pp"],
-        'mask': ["mask"],
-        'dem': ["alt"]
+        'dem': ['alt'],
+        'in': ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n'],
+        'precip': ['m_pp', 'percent_snow', 'rho_snow', 'T_pp'],
+        'mask': ['mask'],
+        'init': ['z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat'],
+        'em': ['R_n', 'H', 'L_v_E', 'G', 'M', 'delta_Q',
+               'E_s', 'melt', 'ro_predict', 'cc_s'],
+        'snow': ['z_s', 'rho', 'm_s', 'h2o', 'T_s_0',
+                 'T_s_l', 'T_s', 'z_s_l', 'h2o_sat']
     }
 
+#: ISNOBAL variable names to be looked up to make dataframes and write metadata
 #: Convert number of bytes to struct package code for unsigned integer type
 PACK_DICT = \
     {
@@ -216,7 +215,7 @@ class IPW(object):
             try:
                 header_dict = \
                     _make_bands(ipw_lines.header_lines,
-                                VARNAME_DICT[file_type])
+                                VARNAME_BY_FILETYPE[file_type])
 
             except (KeyError):
                 raise IPWFileError("Provide explicit file type for file %s" %
@@ -366,8 +365,8 @@ class IPW(object):
             nc_vars = {variable: nc_in.variables[variable]}
 
         else:
-            nc_vars = nc_in.variables  # throw if key `group` dne
-
+            nc_vars = {varname: nc_in.variables[varname]
+                       for varname in VARNAME_BY_FILETYPE[file_type]}
             ipw.file_type = file_type
 
         # read header info from nc and generate/assign to new IPW
@@ -400,10 +399,10 @@ class IPW(object):
         geo_units = distance_units
         coord_sys_ID = coord_sys_ID
 
-        # iterate over each item in VARNAME_DICT for the filetype, creating
+        # iterate over each item in VARNAME_BY_FILETYPE for the filetype, creating
         # a "Band" for each and corresponding entry in the poorly named
         # header_dict
-        varnames = VARNAME_DICT[ipw.file_type]
+        varnames = VARNAME_BY_FILETYPE[ipw.file_type]
         header_dict = dict(zip(varnames,
                                [Band() for i in range(len(varnames) + 1)]))
 
@@ -591,7 +590,6 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
 
                 progress.update(i)
 
-    # import ipdb; ipdb.set_trace()
     # whether inputs or outputs, we need to include the dimensional values
     t = nc.variables['time']
     t[:] = arange(len(t))
@@ -626,20 +624,6 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
     nc.sync()
 
     return nc
-
-#: varnames for loading the NetCDF
-VARNAME_BY_FILETYPE = \
-    {
-        'dem': ['alt'],
-        'in': ['I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n'],
-        'precip': ['m_pp', 'percent_snow', 'rho_snow', 'T_pp'],
-        'mask': ['mask'],
-        'init': ['z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat'],
-        'em': ['R_n', 'H', 'L_v_E', 'G', 'M', 'delta_Q',
-               'E_s', 'melt', 'ro_predict', 'cc_s'],
-        'snow': ['z_s', 'rho', 'm_s', 'h2o', 'T_s_0',
-                 'T_s_l', 'T_s', 'z_s_l', 'h2o_sat']
-    }
 
 
 def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
@@ -798,11 +782,18 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
         mkdir(ppt_images_dir)
 
         # can use just one variable (precip mass) to see which
-        mpp = nc_in.variables['m_pp']
+        mpp = nc_in.variables['m_pp'][:]
+        pctsnow = nc_in.variables['percent_snow'][:]
+        rhosnow = nc_in.variables['rho_snow'][:]
+        precip_temp = nc_in.variables['T_pp'][:]
 
         # if no precip at a tstep, variable type is numpy.ma.core.MaskedArray
         time_indexes = [i for i, el in enumerate(mpp)
-                        if not isinstance(el, MaskedArray)]
+                        if not (
+                            (mpp[i] > 1e6).all() and
+                            (pctsnow[i] > 1e6).all() and
+                            (rhosnow[i] > 1e6).all() and
+                            (precip_temp[i]).all())]
 
         # this should be mostly right except for ppt_desc and ppt data dir
         print "Writing 'Precipitation' Data to IPW files"
@@ -978,7 +969,6 @@ def _make_bands(header_lines, varnames):
     # initialize a list of bands to put parsed information into
     bands = [Band() for i in range(nBands)]
 
-    # bandDict = {'global': globalBand}
     for i, b in enumerate(bands):
         b.varname = varnames[i]
         b.band_idx = i
@@ -1161,19 +1151,24 @@ def _floatdf_to_binstring(bands, df):
             "Bad band: min not really min.\nb.float_min = %s\n \
             df[b.varname].min()  = %2.10f" % (b.float_min, df[b.varname].min())
 
-        # no need to include b.int_min, it's always zero
-        map_fn = lambda x: \
-            floor(npround(
-                ((x - b.float_min) * b.int_max)/(b.float_max - b.float_min)))
+        # # no need to include b.int_min, it's always zero
+        # map_fn = lambda x: \
+            # floor(npround(
+                # ((x - b.float_min) * b.int_max)/(b.float_max - b.float_min)))
 
-        int_df[b.varname] = map_fn(df[b.varname])
+        def _map_fn(x):
+            if b.float_max - b.float_min == 0.0:
+                return 0.0
+            else:
+                return floor(npround(
+                    ((x - b.float_min) * b.int_max)/(b.float_max - b.float_min)
+                    ))
+
+        int_df[b.varname] = _map_fn(df[b.varname])
 
     # use the struct package to pack ints to bytes; use '=' to prevent padding
     # that causes problems with the IPW scheme
     pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
-
-    if int_df.isnull().any().any():
-        import ipdb; ipdb.set_trace()
 
     return b''.join([struct.pack(pack_str, *r[1]) for r in int_df.iterrows()])
 
@@ -1252,6 +1247,7 @@ class IPWLines(object):
 
         last_header_idx = \
             [(i, l) for i, l in enumerate(lines) if "" in l][0][0]
+
         split_idx = last_header_idx + 1
 
         self.header_lines = lines[:split_idx]
