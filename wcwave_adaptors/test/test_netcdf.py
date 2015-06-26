@@ -44,13 +44,13 @@ class TestIsnobalNetCDF(unittest.TestCase):
         # check new file was created
         assert os.path.isfile(self.full_nc_out)
 
-        _validate_input_nc(self, nc)
+        _validate_nc(self, nc)
 
         nc.close()
 
         nc = Dataset(self.full_nc_out, 'r')
 
-        _validate_input_nc(self, nc)
+        _validate_nc(self, nc)
 
         os.remove(self.full_nc_out)
 
@@ -67,18 +67,22 @@ class TestIsnobalNetCDF(unittest.TestCase):
         assert set(nc.groups.keys()) == set(['em', 'snow'])
 
         # check that nc created in memory is valid
-        _validate_input_nc(self, nc, type_='outputs')
+        _validate_nc(self, nc, type_='outputs')
 
         nc.close()
 
         nc = Dataset(outputs_nc_out, 'r')
         # check that the nc read from file is valid
-        _validate_input_nc(self, nc, type_='outputs')
+        _validate_nc(self, nc, type_='outputs')
 
         os.remove(outputs_nc_out)
 
-    def test_nc_insert_ipw(self):
-        "Private helper function _nc_insert_ipw inserts all IPW file_types"
+    def test__nc_insert_ipw(self):
+        """Private helper function _nc_insert_ipw inserts all IPW file_types.
+
+        Can't use the _validate_nc because we are sequentially adding IPW file
+        types: precipitation, init, inputs
+        """
         datadir = "wcwave_adaptors/test/data/"
 
         ipw = IPW(datadir + 'in.0000')
@@ -153,7 +157,6 @@ class TestIsnobalNetCDF(unittest.TestCase):
         assert group_varnames(g) ==\
             ['m_pp', 'percent_snow', 'rho_snow', 'T_pp']
 
-
         for varname in group_varnames(g):
 
             curvar = nc.groups[g].variables[varname]
@@ -174,7 +177,6 @@ class TestIsnobalNetCDF(unittest.TestCase):
             assert curvar.shape == (11, gb.nLines, gb.nSamps), \
                 "shape is %s should be %s" % \
                 (curvar.shape, (11, gb.nLines, gb.nSamps))
-
 
         # dem
         ipw = IPW(datadir + 'tl2p5_dem.ipw', file_type='dem')
@@ -289,7 +291,7 @@ class TestIsnobalNetCDF(unittest.TestCase):
         assert all(df0 - df < 0.01)
 
 
-def _validate_input_nc(test_obj, nc, type_='inputs'):
+def _validate_nc(test_obj, nc, type_='inputs'):
     # helper for getting varnames within a group
     group_varnames = lambda g: [var for var in nc.groups[g].variables]
 
@@ -388,7 +390,7 @@ def _validate_input_nc(test_obj, nc, type_='inputs'):
                 all(abs(np.ravel(curvar)) < 1e6)
 
     else:
-        raise Exception('_validate_input_nc requires type_ to be \'inputs\' or\
+        raise Exception('_validate_nc requires type_ to be \'inputs\' or\
                          \'outputs\'')
 
     # test easting, northing, lat, lon, and time variables exist at all t
