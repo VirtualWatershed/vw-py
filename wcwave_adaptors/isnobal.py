@@ -175,9 +175,10 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
         snow_prefix = osjoin(tmpdir, 'outputs/snow')
 
         # recursively run isnobal with nc_in=None
-        nc_out = isnobal(data_tstep=data_tstep, nsteps=nsteps,
-                         init_img=init_img, precip_file=precip_file,
-                         mask_file=mask_file, input_prefix=input_prefix,
+        nc_out = isnobal(nc_out_fname=nc_out_fname, data_tstep=data_tstep,
+                         nsteps=nsteps, init_img=init_img,
+                         precip_file=precip_file, mask_file=mask_file,
+                         input_prefix=input_prefix,
                          output_frequency=output_frequency,
                          em_prefix=em_prefix, snow_prefix=snow_prefix)
 
@@ -589,6 +590,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                 _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
 
                 progress.update(i)
+
 
     # whether inputs or outputs, we need to include the dimensional values
     t = nc.variables['time']

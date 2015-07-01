@@ -361,7 +361,8 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     if not file_ext:
         file_ext = input_file.split('.')[-1]
 
-    model_set = ("outputs", "inputs")[input_prefix == "in"]
+    if not model_set:
+        model_set = ("outputs", "inputs")[input_prefix == "in"]
 
     start_datetime_str = ""
     end_datetime_str = ""
