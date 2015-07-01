@@ -155,7 +155,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
 
         # these are guaranteed to be present by the above assertion
         data_tstep = nc_in.data_tstep
-        nsteps = nc_in.nsteps
+        nsteps = nc_in.nsteps - 1  # isnobal steps are from one step to another
         output_frequency = nc_in.output_frequency
 
         # create standard IPW data in tmpdir; creates tmpdir
