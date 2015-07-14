@@ -382,6 +382,44 @@ class TestVWClient(unittest.TestCase):
 
         os.remove(outfile)
 
+    def test_swift_upload(self):
+        """ VW Client properly uploads data using the swift client"""
+
+        # now do the same for netcdf
+        nc_file = 'wcwave_adaptors/test/data/flat_sample_for_swift.nc'
+
+        res = VW_CLIENT.swift_upload(self.UUID, nc_file)
+
+        import ipdb; ipdb.set_trace()
+
+        wmd_from_file = metadata_from_file(nc_file, self.UUID, self.UUID,
+            'testing upload/download of netcdf', 'Dry Creek', 'Idaho',
+            model_name='isnobal', model_set_type='grid', model_set='inputs',
+            model_set_taxonomy='grid', taxonomy='geoimage',
+            file_ext='nc', orig_epsg=26911, epsg=4326)
+
+        import ipdb; ipdb.set_trace()
+
+        VW_CLIENT.insert_metadata(wmd_from_file)
+
+        time.sleep(1)
+
+        nc_url = [r['downloads'][0]['nc']
+                  for r in VW_CLIENT.dataset_search(model_run_uuid=self.UUID).records
+                  if r['name'].split('.')[-1] == 'nc'][0]
+
+        outfile = "wcwave_adaptors/test/data/back_in.nc"
+
+        if os.path.isfile(outfile):
+            os.remove(outfile)
+
+        VW_CLIENT.download(nc_url, outfile)
+
+        # check that the file now exists in the file system as expected
+        assert os.path.isfile(outfile)
+
+        os.remove(outfile)
+
     def test_download(self):
         """
         VW Client properly downloads data

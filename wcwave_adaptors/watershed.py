@@ -9,19 +9,15 @@ import configparser
 import json
 import logging
 import gdal
+import pandas as pd
 import os
-import osr
 import requests
 requests.packages.urllib3.disable_warnings()
-
-
+import subprocess
 import urllib
-import pandas as pd
 
 from datetime import datetime, date, timedelta
 from jinja2 import Environment, FileSystemLoader
-from progressbar import ProgressBar
-from string import Template
 
 
 VARNAME_DICT = \
@@ -36,6 +32,7 @@ VARNAME_DICT = \
         'mask': ["mask"],
         'dem': ["alt"]
     }
+
 
 class VWClient:
     """
@@ -75,6 +72,8 @@ class VWClient:
         self.modelrun_delete_url = host_url + "/apps/vwp/deletemodelid"
 
         self.new_run_url = host_url + "/apps/vwp/newmodelrun"
+
+        self.gettoken_url = host_url + "/gettoken"
 
     def initialize_modelrun(self, model_run_name=None, description=None,
                              researcher_name=None, keywords=None):
@@ -209,7 +208,6 @@ class VWClient:
         Raises:
             requests.HTTPError: if the file cannot be successfully uploaded
         """
-
         # currently 'name' is unused
         dataPayload = {'name': os.path.basename(data_file_path),
                        'modelid': model_run_uuid}
@@ -230,6 +228,38 @@ class VWClient:
                 continue
 
         raise requests.HTTPError()
+
+    def swift_upload(self, model_run_uuid, data_file_path):
+        """
+        Use the Swift client from openstack to upload data.
+        (http://docs.openstack.org/cli-reference/content/swiftclient_commands.html)
+        Seems to outperform 'native' watershed uploads via HTTP.
+
+        Returns:
+            None
+
+        Raises:
+            requests.HTTPError if the file cannot be successfully uploaded
+        """
+
+        segmentsize = 1073741824  # 1 Gig
+
+        token_resp = self.sesh.get(self.gettoken_url).text
+
+        import ipdb; ipdb.set_trace()
+        token = json.loads(token_resp)
+
+        preauth_url = token['preauthurl']
+        preauth_token = token['preauthtoken']
+
+        # the container name is model_run_uuid
+        command = ['swift', 'upload', model_run_uuid, '-S', str(segmentsize),
+                   data_file_path, '--os-storage-url=' + preauth_url,
+                   '--os-auth-token=' + preauth_token]
+
+        output = subprocess.check_output(command)
+
+        return output
 
     def delete_modelrun(self, model_run_uuid):
         """
