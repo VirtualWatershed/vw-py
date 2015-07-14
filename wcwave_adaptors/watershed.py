@@ -46,6 +46,8 @@ class VWClient:
     def __init__(self, host_url, uname, passwd):
         """ Initialize a new connection to the virtual watershed """
 
+        self.host_url = host_url
+
         # Check our credentials
         auth_url = host_url + "/apilogin"
         self.sesh = requests.session()
@@ -241,12 +243,12 @@ class VWClient:
         Raises:
             requests.HTTPError if the file cannot be successfully uploaded
         """
+        _swift_upload_url = self.host_url + '/apps/vwp/swiftdata'
 
         segmentsize = 1073741824  # 1 Gig
 
         token_resp = self.sesh.get(self.gettoken_url).text
 
-        import ipdb; ipdb.set_trace()
         token = json.loads(token_resp)
 
         preauth_url = token['preauthurl']
@@ -258,6 +260,17 @@ class VWClient:
                    '--os-auth-token=' + preauth_token]
 
         output = subprocess.check_output(command)
+
+        # after we upload to a swift directory we ask VW to download
+        vw_dl_params = {'modelid': model_run_uuid, 'filename': data_file_path,
+                        'preauthurl': preauth_url,
+                        'preauthtoken': preauth_token}
+
+        res = self.sesh.get(_swift_upload_url, params=vw_dl_params)
+
+        if res.status_code != 200:
+            raise requests.HTTPError(
+                "Swift Upload Failed! Server response:\n" + res.text)
 
         return output
 

@@ -390,15 +390,11 @@ class TestVWClient(unittest.TestCase):
 
         res = VW_CLIENT.swift_upload(self.UUID, nc_file)
 
-        import ipdb; ipdb.set_trace()
-
         wmd_from_file = metadata_from_file(nc_file, self.UUID, self.UUID,
             'testing upload/download of netcdf', 'Dry Creek', 'Idaho',
             model_name='isnobal', model_set_type='grid', model_set='inputs',
             model_set_taxonomy='grid', taxonomy='geoimage',
             file_ext='nc', orig_epsg=26911, epsg=4326)
-
-        import ipdb; ipdb.set_trace()
 
         VW_CLIENT.insert_metadata(wmd_from_file)
 
