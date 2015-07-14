@@ -66,18 +66,20 @@ def AssertISNOBALInput(nc):
                                  "'dline', and 'dsamp' not all in NetCDF")
 
     ncv = nc.variables
-    valid = ('alt' in ncv and 'mask' in ncv and 'time' in ncv
-             and 'easting' in ncv and 'northing' in ncv and 'lat' in ncv
-             and 'lon' in ncv and 'I_lw' in ncv and 'T_a' in ncv
-             and 'e_a' in ncv and 'u' in ncv and 'T_g' in ncv and 'S_n' in ncv
-             and 'z' in ncv and 'z_0' in ncv and 'z_s' in ncv and 'rho' in ncv
-             and 'T_s_0' in ncv and 'T_s' in ncv and 'h2o_sat' in ncv
-             and 'm_pp' in ncv and 'percent_snow' in ncv
-             and 'rho_snow' in ncv)
+    expected_variables = ['alt', 'mask', 'time', 'easting', 'northing', 'lat',
+                          'lon', 'I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n', 'z',
+                          'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat',
+                          'm_pp', 'percent_snow', 'rho_snow']
 
-    if not valid:
-        raise ISNOBALNetcdfError("Variables 'alt', 'mask', 'time', 'easting', \
-                'northing', 'lat' and 'lon' not all present in NetCDF")
+    not_present = []
+    for exp_var in expected_variables:
+        if exp_var not in ncv:
+            not_present += [exp_var]
+
+    if not_present:
+        raise ISNOBALNetcdfError(
+            "Variables " + ', '.join(not_present) +
+            " are missing from input NetCDF")
 
 #: varnames for loading the NetCDF
 VARNAME_BY_FILETYPE = \

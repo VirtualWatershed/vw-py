@@ -23,7 +23,7 @@ from nose.tools import raises
 import sys; import os
 sys.path.insert(0, os.path.abspath('..'))
 
-from ..isnobal import VARNAME_DICT
+from ..watershed import VARNAME_DICT
 
 
 def show_string_diff(s1, s2):
@@ -226,9 +226,11 @@ class TestVWClient(unittest.TestCase):
 
         wmd_from_file = metadata_from_file('wcwave_adaptors/test/data/in.0000',
             self.UUID, self.UUID, 'unittest for download', 'Dry Creek', 'Idaho',
-            start_datetime="2010-10-01 00:00:00", end_datetime="2010-10-01 01:00:00",
+            start_datetime="2010-10-01 00:00:00",
+            end_datetime="2010-10-01 01:00:00",
             fgdc_metadata=fgdc_md, model_set_type='grid', file_ext='bin',
-            taxonomy='geoimage', model_set_taxonomy='grid', model_name='isnobal', epsg=4326, orig_epsg=26911)
+            taxonomy='geoimage', model_set_taxonomy='grid',
+            model_name='isnobal', epsg=4326, orig_epsg=26911)
 
         VW_CLIENT.insert_metadata(wmd_from_file)
 
@@ -254,7 +256,8 @@ class TestVWClient(unittest.TestCase):
     @raises(HTTPError)
     def test_duplicate_error(self):
         """
-        If the user tries to init a new model run with a previously used name, catch HTTPError
+        If the user tries to init a new model run with a previously used name,
+        catch HTTPError
         """
         keywords = 'Snow,iSNOBAL,wind'
         description = 'model run db testing'
@@ -539,9 +542,6 @@ class TestVWClient(unittest.TestCase):
                                        config_file='wcwave_adaptors/test/test.conf',
                                        proc_date='2015-05-12')
 
-        with open('wcwave_adaptors/test/data/expected_ipw_metadata.json', 'w') as f:
-            f.write(generated)
-
         # check equality
         assert generated
         assert expected
@@ -549,31 +549,30 @@ class TestVWClient(unittest.TestCase):
 
     def test_metadata_from_file(self):
         """
-        Test that metadata is properly generated from an IPW or .tif file
+        Test that metadata is properly generated a .tif file
         """
         # some values we're using for testing
         parent_uuid = '373ae181-a0b2-4998-ba32-e27da190f6dd'
         uuid = '09079630-5ef8-11e4-9803-0800200c9a66'
         # .tif
-        generated = metadata_from_file('test/data/em.0134.melt.tif',
+        generated = metadata_from_file(
+            os.path.dirname(__file__) + '/data/in.0008.I_lw.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
-            config_file='wcwave_adaptors/test/test.conf', model_vars='melt',
+            config_file='wcwave_adaptors/test/test.conf', model_vars='I_lw',
             proc_date="2015-05-12")
 
         expected = open('wcwave_adaptors/test/data/expected_tif.json', 'r').read()
-
-        # with open('wcwave_adaptors/test/data/expected_tif.json', 'w') as f:
-            # f.write(generated)
 
         assert generated == expected, \
             show_string_diff(generated, expected)
 
         # now assume we have resampled to 3-day intervals
         dt = pd.Timedelta('3 days')
-        generated = metadata_from_file('test/data/em.100.melt.tif',
+        # em.100.melt.tif is not a real file.. FIXME?
+        generated = metadata_from_file('test/data/in.0008.I_lw.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
-            config_file='wcwave_adaptors/test/test.conf', dt=dt, model_vars='melt',
-            proc_date="2015-05-12")
+            config_file='wcwave_adaptors/test/test.conf', dt=dt,
+            model_vars='melt', proc_date="2015-05-12")
 
         expected = open('wcwave_adaptors/test/data/expected_tif_nonhourdt.json',
                         'r').read()
