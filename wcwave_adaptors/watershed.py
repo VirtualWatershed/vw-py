@@ -400,7 +400,9 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         config = _get_config(
             os.path.join(os.path.dirname(__file__), '../default.conf'))
 
-    input_split = os.path.basename(input_file).split('.')
+    input_basename = os.path.basename(input_file)
+
+    input_split = input_basename.split('.')
 
     input_prefix = input_split[0]
 
@@ -427,11 +429,13 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         kwargs['taxonomy'] = "geoimage"
         kwargs['mimetype'] = "application/x-zip-compressed"
 
-        # extract bounding box from geotiff
-        callfrom_dir = os.path.dirname(__file__)
-        input_file = os.path.join(callfrom_dir, input_file)
+        # make sure the bounding box will be in lat/lon
+        wgs84_file = input_file + ".wgs84.tmp"
 
-        geodata = gdal.Open(input_file)
+        subprocess.call(["gdalwarp", "-t_srs", "EPSG:4326",
+                         input_file, wgs84_file])
+
+        geodata = gdal.Open(wgs84_file)
 
         # extract the full geotransform from
         gt = geodata.GetGeoTransform()
@@ -444,6 +448,9 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         kwargs['west_bound'] = gt[0] + gt[1]*geodata.RasterXSize
         kwargs['south_bound'] = gt[3] + gt[5]*geodata.RasterYSize
 
+        # we don't actually want to keep the file
+        os.remove(wgs84_file)
+
     elif model_name == 'isnobal' and is_ipw:
 
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
@@ -454,7 +461,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         else:
             proc_time = None
 
-        fgdc_metadata = make_fgdc_metadata(input_file, config,
+        fgdc_metadata = make_fgdc_metadata(input_basename, config,
                                            model_run_uuid, start_datetime,
                                            end_datetime, proc_time=proc_time)
 
@@ -484,7 +491,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         raise TypeError('bad start_ and/or end_datetime arguments')
 
     js =  \
-        make_watershed_metadata(input_file,
+        make_watershed_metadata(input_basename,
                                 config,
                                 parent_model_run_uuid,
                                 model_run_uuid,
