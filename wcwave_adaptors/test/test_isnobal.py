@@ -16,7 +16,8 @@ from netCDF4 import Dataset
 from nose.tools import raises
 
 from StringIO import StringIO
-from ..isnobal import (VARNAME_DICT, _make_bands,
+from ..watershed import VARNAME_DICT
+from ..isnobal import (_make_bands,
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,
     _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,
     reaggregate_ipws, _is_consecutive, AssertISNOBALInput, ISNOBALNetcdfError)
@@ -476,7 +477,6 @@ class TestIPW(unittest.TestCase):
         os.remove(outfile)
 
 
-
 class TestResampleIPW(unittest.TestCase):
     """
     Test resampling capabilities of a series of IPW objects
@@ -715,6 +715,7 @@ class TestResampleIPW(unittest.TestCase):
             assert reimported.end_datetime ==\
                datetime.datetime(2010, 10, 1, 2*(i+1), 0), \
                "reimported datetime: %s" % str(reimported.end_datetime)
+
 
 class TestISNOBAL(unittest.TestCase):
     """Tests for particularities of the Python iSNOBAL interface"""

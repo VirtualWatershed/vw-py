@@ -6,11 +6,14 @@ associated metadata.
 """
 
 import configparser
-import logging
 import json
+import logging
+import gdal
 import os
+import osr
 import requests
 requests.packages.urllib3.disable_warnings()
+
 
 import urllib
 import pandas as pd
@@ -375,9 +378,27 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         pass
 
     if file_ext == "tif":
+
         model_set_type = "vis"
         kwargs['taxonomy'] = "geoimage"
         kwargs['mimetype'] = "application/x-zip-compressed"
+
+        # extract bounding box from geotiff
+        callfrom_dir = os.path.dirname(__file__)
+        input_file = os.path.join(callfrom_dir, input_file)
+
+        geodata = gdal.Open(input_file)
+
+        # extract the full geotransform from
+        gt = geodata.GetGeoTransform()
+
+        # bounds are given by the east and north bound in the geotrans
+        # explicitly. Use the step size in conjunction with grid counts in
+        # X and Y to get the west and south bounds.
+        kwargs['east_bound'] = gt[0]
+        kwargs['north_bound'] = gt[3]
+        kwargs['west_bound'] = gt[0] + gt[1]*geodata.RasterXSize
+        kwargs['south_bound'] = gt[3] + gt[5]*geodata.RasterYSize
 
     elif model_name == 'isnobal' and is_ipw:
 
