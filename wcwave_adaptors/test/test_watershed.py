@@ -569,7 +569,8 @@ class TestVWClient(unittest.TestCase):
         # now assume we have resampled to 3-day intervals
         dt = pd.Timedelta('3 days')
         # em.100.melt.tif is not a real file.. FIXME?
-        generated = metadata_from_file('test/data/in.0008.I_lw.tif',
+        generated = metadata_from_file(
+            os.path.dirname(__file__) + '/data/in.0008.I_lw.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
             config_file='wcwave_adaptors/test/test.conf', dt=dt,
             model_vars='melt', proc_date="2015-05-12")
