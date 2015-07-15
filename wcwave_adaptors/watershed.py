@@ -456,14 +456,14 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 #: ISNOBAL variable names to be looked up to make dataframes and write metadata
         model_vars = ','.join(VARNAME_DICT[input_prefix])
 
-        if 'proc_time' in kwargs:
-            proc_time = kwargs['proc_time']
+        if 'proc_date' in kwargs:
+            proc_date = kwargs['proc_date']
         else:
-            proc_time = None
+            proc_date = None
 
         fgdc_metadata = make_fgdc_metadata(input_basename, config,
                                            model_run_uuid, start_datetime,
-                                           end_datetime, proc_time=proc_time)
+                                           end_datetime, proc_date=proc_date)
 
     elif model_name == 'isnobal' and file_ext == 'nc':
 

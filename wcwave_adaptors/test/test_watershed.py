@@ -574,7 +574,7 @@ class TestVWClient(unittest.TestCase):
                                        model_name='isnobal',
                                        file_ext='bin',
                                        config_file='wcwave_adaptors/test/test.conf',
-                                       proc_date='2015-05-12')
+                                       proc_date='2015-07-14')
 
         # check equality
         assert generated
@@ -602,7 +602,7 @@ class TestVWClient(unittest.TestCase):
 
         # now assume we have resampled to 3-day intervals
         dt = pd.Timedelta('3 days')
-        # em.100.melt.tif is not a real file.. FIXME?
+
         generated = metadata_from_file(
             os.path.dirname(__file__) + '/data/in.0008.I_lw.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
