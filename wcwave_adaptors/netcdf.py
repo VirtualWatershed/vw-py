@@ -72,7 +72,11 @@ def _build_cdl(template_path, cdl_output_filename, **kwargs):
             likely have Classes or some other data structure to represent the
             required fields for, say, iSNOBAL input or output, or PRMS in/out
     """
-    template = CDL_TEMPLATE_ENV.get_template(template_path)
+    template_dir = os.path.dirname(os.path.realpath(template_path))
+    cdl_template_env = Environment(loader=FileSystemLoader(template_dir))
+
+    # template = CDL_TEMPLATE_ENV.get_template(template_path)
+    template = cdl_template_env.get_template(os.path.basename(template_path))
 
     rendered = template.render(**kwargs)
 
@@ -86,7 +90,8 @@ def ncgen(cdl_path, output_path, return_nc=True):
     """Wrapper for the NCO tool of the same name. See
         https://www.mankier.com/1/ncgen
     """
-    ncgen_cmd = 'ncgen -o %s %s' % (output_path, cdl_path)
+    # -k3 says create a NetCDF4 (yes it's weird: I double checked)
+    ncgen_cmd = 'ncgen -k3 -o %s %s' % (output_path, cdl_path)
     p = Popen(ncgen_cmd, shell=True)
 
     retvals = p.communicate()
@@ -94,7 +99,7 @@ def ncgen(cdl_path, output_path, return_nc=True):
     if p.returncode != 0:
         raise NCOError(
             "CDL file %s could not be made into a .nc with ncgen" % cdl_path
-            + "\nnco stderr: %s", retvals[1])
+            + "\nnco stderr: {}".format(retvals[0]))
 
     elif return_nc:
         # return dataset in 'append' mode. NC4 all day ery day (default)
