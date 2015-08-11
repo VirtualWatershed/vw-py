@@ -22,7 +22,6 @@ from numpy import (arange, array, zeros, ravel, reshape, fromstring, dtype,
                    floor, log10)
 from numpy import sum as npsum
 from numpy import round as npround
-from numpy.ma.core import MaskedArray
 from os import mkdir, listdir
 from os.path import exists, dirname, basename
 from os.path import join as osjoin
@@ -56,13 +55,13 @@ def AssertISNOBALInput(nc):
        model. Throw a ISNOBALNetcdfError if not
 
     """
-    nca = nc.ncattrs()
+    nca = nc.attrs
     valid = ('data_tstep' in nca and 'nsteps' in nca and
              'output_frequency' in nca)
 
     if not valid:
-        raise ISNOBALNetcdfError("Attributes 'data_tstep', 'nsteps', " +
-                                 "'output_frequency', 'bline', 'bsamp', " +
+        raise ISNOBALNetcdfError("Attributes 'data_tstep', 'nsteps', "
+                                 "'output_frequency', 'bline', 'bsamp', "
                                  "'dline', and 'dsamp' not all in NetCDF")
 
     ncv = nc.variables
