@@ -772,7 +772,8 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
     assert state in valid_states, "state passed was " + state + \
             ". Must be one of " + ", ".join(valid_states)
 
-    valid_watersheds = ['Dry Creek', 'Jemez Caldera', 'Lehman Creek', 'Reynolds Creek']
+    valid_watersheds = ['Dry Creek', 'Valles Caldera', 'Jemez Caldera',
+                        'Lehman Creek', 'Reynolds Creek']
     assert watershed_name in valid_watersheds, "watershed passed was " + \
             watershed_name + ". Must be one of " + ", ".join(valid_watersheds)
 
