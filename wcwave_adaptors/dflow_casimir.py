@@ -4,13 +4,16 @@ watershed.
 """
 import os
 
-from scipy.interpolate import griddata
+from datetime import datetime
 from numpy import fromstring, reshape, meshgrid, array, flipud
 from pandas import Series, read_excel
+from scipy.interpolate import griddata
 from uuid import uuid4
 from xray import open_dataset
 
-from .watershed import default_vw_client
+from .watershed import (default_vw_client, _get_config, make_fgdc_metadata,
+                        metadata_from_file)
+
 
 def vegcode_to_nvalue(asc_path, lookup_path):
     """
@@ -114,11 +117,47 @@ def shear_mesh_to_asc(dflow_out_nc_path, west_easting_val, n_eastings,
     # not sure why, but this makes it align with the original vegetation map
     asc_mat = flipud(asc_mat)
 
-    data = reshape(asc_mat, (n_eastings * n_northings))
+    data = Series(reshape(asc_mat, (n_eastings * n_northings)))
 
     return ESRIAsc(ncols=n_eastings, nrows=n_northings,
                    xllcorner=west_easting_val, yllcorner=south_northing_val,
                    cellsize=cellsize, data=data)
+
+
+def _insert_shear_out(shear_asc, model_run_uuid, config_path=None,
+                      start_datetime='2010-10-01 00:00:00',
+                      end_datetime='2010-10-01 00:00:00'):
+
+    asc_path = 'tmp_' + str(uuid4()) + '.asc'
+
+    shear_asc.write(asc_path)
+
+    # if not config_path, it uses default.conf
+    asc_fgdc_metadata = make_fgdc_metadata(asc_path,
+                                           _get_config(config_path),
+                                           model_run_uuid, start_datetime,
+                                           end_datetime)
+
+    description = 'DFLOW shear output resampled to grid for use in '\
+                  'CASiMiR. Generated {}'.format(datetime.now())
+
+    asc_md = \
+        metadata_from_file(asc_path, model_run_uuid, model_run_uuid,
+                           description, 'Valles Caldera',
+                           'New Mexico', model_name='HydroGeoSphere',
+                           epsg=4326, orig_epsg=26911,
+                           model_set_type='grid'
+                           model_set='outputs',
+                           fgdc_metadata=asc_fgdc_metadata,
+                           start_datetime=start_datetime,
+                           end_datetime=end_datetime)
+
+    vwc = default_vw_client()
+    import ipdb; ipdb.set_trace()
+    uplres = vwc.upload(model_run_uuid, asc_path)
+    import ipdb; ipdb.set_trace()
+    insres = vwc.insert_metadata(asc_md)
+    import ipdb; ipdb.set_trace()
 
 
 class ESRIAsc:
@@ -168,6 +207,9 @@ class ESRIAsc:
         return reshape(self.data, (self.nrows, self.ncols))
 
     def write(self, write_path):
+        # replace nan with NODATA_value
+        self.data = self.data.fillna(self.NODATA_value)
+
         with open(write_path, 'w+') as f:
             f.write("ncols {}\n".format(self.ncols))
             f.write("nrows {}\n".format(self.nrows))
