@@ -11,8 +11,6 @@ import sys
 from wcwave_adaptors.dflow_casimir import get_vw_nvalues
 
 
-print "YOOOO"
-
 uuid = sys.argv[1]
 
 asc_nvals_path = sys.argv[2]
