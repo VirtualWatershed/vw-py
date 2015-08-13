@@ -2,9 +2,13 @@
 Utilities for interacting with dflow and casimir models via the virtual
 watershed.
 """
+import os
+
 from numpy import fromstring, reshape
 from pandas import Series, read_excel
+from uuid import uuid4
 
+from .watershed import default_vw_client
 
 def vegcode_to_nvalue(asc_path, lookup_path):
     """
@@ -44,9 +48,30 @@ def get_vw_nvalues(model_run_uuid):
     vegetation codes, return an ascii file that has the n-values properly
     assigned
     """
+    vwc = default_vw_client()
 
+    records = vwc.dataset_search(model_run_uuid=model_run_uuid).records
 
-    pass
+    downloads = [r['downloads'][0] for r in records]
+
+    asc_url = filter(lambda d: d.keys().pop() == 'ascii',
+                     downloads).pop()['ascii']
+
+    xlsx_url = filter(lambda d: d.keys().pop() == 'xlsx',
+                      downloads).pop()['xlsx']
+
+    asc_path = 'tmp_' + str(uuid4()) + '.asc'
+    vwc.download(asc_url, asc_path)
+
+    xlsx_path = 'tmp_' + str(uuid4()) + '.xlsx'
+    vwc.download(xlsx_url, xlsx_path)
+
+    asc_nvals = vegcode_to_nvalue(asc_path, xlsx_path)
+
+    os.remove(asc_path)
+    os.remove(xlsx_path)
+
+    return asc_nvals
 
 
 class ESRIAsc:
@@ -115,12 +140,3 @@ class ESRIAsc:
             return ret
 
         return NotImplemented
-
-    def __repr__(self):
-        return \
-            "ncols {}\n".format(self.ncols) +\
-            "nrows {}\n".format(self.nrows) +\
-            "xllcorner {}\n".format(self.xllcorner) +\
-            "yllcorner {}\n".format(self.yllcorner) +\
-            "cellsize {}\n".format(self.cellsize) +\
-            "NODATA_value {}\n".format(self.NODATA_value)

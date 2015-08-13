@@ -2,6 +2,7 @@
 Tests for posting/ingetsting dflow and casimir data to each respective model
 to/from the virtual watershed.
 """
+import time
 import unittest
 
 from nose.tools import eq_
@@ -87,13 +88,20 @@ class TestDflow(unittest.TestCase):
 
         self.vwc.insert_metadata(lookup_md)
 
-        import ipdb; ipdb.set_trace()
+        time.sleep(1)
 
         ascii_nvals = get_vw_nvalues(self.model_run_uuid)
 
         eq_(ascii_nvals, self.expected_ascii_nvals)
 
-        assert False
-
     def test_unstruc_mesh_to_ascii(self):
         assert False
+
+    def tearDown(self):
+        modelruns = self.vwc.modelrun_search()
+        unittest_uuids = [r['Model Run UUID'] for r in modelruns.records
+                          if 'unittest' in r['Model Run Name']]
+
+        for u in unittest_uuids:
+            s = self.vwc.delete_modelrun(u)
+            print "pre-test cleanup success on %s: %s" % (u, str(s))
