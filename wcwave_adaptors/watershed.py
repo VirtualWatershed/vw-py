@@ -343,11 +343,15 @@ class QueryResult:
             self.subtotal = len(json['results'])
 
 
-def default_vw_client(config_file="default.conf"):
+def default_vw_client(config_file=None):
     """ Use the credentials in config_file to initialize a new VWClient instance
 
         Returns: VWClient connected to the ip address given in config_file
     """
+    if not config_file:
+        config_file = os.path.join(os.path.dirname(__file__),
+                                   '..', 'default.conf')
+
     config = _get_config(config_file)
     conn = config['Connection']
 
