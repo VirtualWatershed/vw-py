@@ -46,7 +46,6 @@ class TestDflow(unittest.TestCase):
                                          'wcwave_adaptors unittester',
                                          'test,unittest')
 
-
     def test_asc_veg_to_nvals(self):
         "Properly build nvals ESRI .asc from vegetation code .asc and lookup table"
         ascii_nvals = vegcode_to_nvalue(self.ascii_veg, self.excel_veg_to_nval)
@@ -93,9 +92,6 @@ class TestDflow(unittest.TestCase):
         ascii_nvals = get_vw_nvalues(self.model_run_uuid)
 
         eq_(ascii_nvals, self.expected_ascii_nvals)
-
-    def test_unstruc_mesh_to_ascii(self):
-        assert False
 
     def tearDown(self):
         modelruns = self.vwc.modelrun_search()
