@@ -146,18 +146,15 @@ def _insert_shear_out(shear_asc, model_run_uuid, config_path=None,
                            description, 'Valles Caldera',
                            'New Mexico', model_name='HydroGeoSphere',
                            epsg=4326, orig_epsg=26911,
-                           model_set_type='grid'
+                           model_set_type='grid',
                            model_set='outputs',
                            fgdc_metadata=asc_fgdc_metadata,
                            start_datetime=start_datetime,
                            end_datetime=end_datetime)
 
     vwc = default_vw_client()
-    import ipdb; ipdb.set_trace()
-    uplres = vwc.upload(model_run_uuid, asc_path)
-    import ipdb; ipdb.set_trace()
-    insres = vwc.insert_metadata(asc_md)
-    import ipdb; ipdb.set_trace()
+    vwc.upload(model_run_uuid, asc_path)
+    vwc.insert_metadata(asc_md)
 
 
 class ESRIAsc:
