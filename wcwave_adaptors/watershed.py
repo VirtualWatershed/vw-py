@@ -427,7 +427,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     except ValueError:
         pass
 
-    if file_ext == "tif":
+    if file_ext == 'tif':
 
         model_set_type = "vis"
         kwargs['taxonomy'] = "geoimage"
@@ -455,9 +455,19 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         # we don't actually want to keep the file
         os.remove(wgs84_file)
 
-    elif model_name == 'isnobal' and is_ipw:
+    elif file_ext == 'asc':
+        file_ext = 'ascii'
+        model_set_type = 'file'
+        model_set_taxonomy = 'file'
+        kwargs['taxonomy'] = 'file'
 
-#: ISNOBAL variable names to be looked up to make dataframes and write metadata
+    elif file_ext == 'xlsx':
+        model_set_taxonomy = 'file'
+        model_set_type = 'file'
+        kwargs['taxonomy'] = 'file'
+
+    elif model_name == 'isnobal' and is_ipw:
+        #: ISNOBAL variable names to be looked up to make dataframes and write metadata
         model_vars = ','.join(VARNAME_DICT[input_prefix])
 
         if 'proc_date' in kwargs:

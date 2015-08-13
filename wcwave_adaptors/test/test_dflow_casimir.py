@@ -65,9 +65,8 @@ class TestDflow(unittest.TestCase):
         asc_veg_md = metadata_from_file(self.ascii_veg, self.model_run_uuid,
             self.model_run_uuid, 'vegetation ascii for unittest',
             'Valles Caldera', 'New Mexico', model_name='HydroGeoSphere',
-            epsg=4326, orig_epsg=26911, model_set_taxonomy='file',
-            model_set_type='file', file_ext='ascii', fgdc_metadata=veg_fgdc_md,
-            start_datetime='2010-10-01 00:00:00', taxonomy='file',
+            epsg=4326, orig_epsg=26911, fgdc_metadata=veg_fgdc_md,
+            model_set='inputs', start_datetime='2010-10-01 00:00:00',
             end_datetime='2011-09-30 23:00:00')
 
         self.vwc.insert_metadata(asc_veg_md)
@@ -79,9 +78,7 @@ class TestDflow(unittest.TestCase):
         lookup_md = metadata_from_file(self.excel_veg_to_nval, self.model_run_uuid,
             self.model_run_uuid, 'veg/nval lookup Excel sheet for unittest',
             'Valles Caldera', 'New Mexico', model_name='HydroGeoSphere',
-            epsg=4326, orig_epsg=26911, model_set_taxonomy='file',
-            model_set_type='grid', file_ext='xlsx', taxonomy='file',
-            model_set='inputs',
+            epsg=4326, orig_epsg=26911, model_set='inputs',
             fgdc_metadata=lookup_fgdc_md, start_datetime='2010-10-01 00:00:00',
             end_datetime='2011-09-30 23:00:00')
 
