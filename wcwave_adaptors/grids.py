@@ -8,7 +8,8 @@ import gdal
 import glob
 import os.path
 
-from numpy import array, full
+from numpy import array, full, ones
+from numpy.random import randn
 from os import mkdir
 from pandas import to_datetime
 from uuid import uuid4
@@ -16,7 +17,7 @@ from xray import Dataset
 from zipfile import ZipFile
 
 from .isnobal import AssertISNOBALInput, VARNAME_BY_FILETYPE
-
+from .netcdf import utm2latlon
 
 def create_isnobal_dataset(tif_zip, unzip_dir=None):
     """
@@ -91,6 +92,13 @@ def _create_isnobal_nc_from_dir(tif_dir):
     easting_vec = array([easting + d_easting*i for i in range(n_eastings)])
     northing_vec = array([northing + d_northing*i for i in range(n_northings)])
 
+    # get a n_points x 2 array of lat/lon pairs at every point on the grid
+    latlon_arr = utm2latlon(easting, northing, d_easting,
+                            d_northing, n_eastings, n_northings)
+
+    lat_vec = latlon_arr[:, 0].squeeze()
+    lon_vec = latlon_arr[:, 1].squeeze()
+
     # build datetimes array; t_a is present for every input; use that
     all_ta = glob.glob(os.path.join(tif_dir, 'T_a*'))
 
@@ -98,6 +106,7 @@ def _create_isnobal_nc_from_dir(tif_dir):
         lambda tif_path: tif_path.split('_')[-1].replace('.tif', '')
 
     time_index = to_datetime(map(_get_timestamp, all_ta)).order()
+    n_timesteps = len(time_index)
 
     vardict = VARNAME_BY_FILETYPE
 
@@ -106,11 +115,29 @@ def _create_isnobal_nc_from_dir(tif_dir):
 
     dataset = Dataset(coords=coords)
 
+    # add some additional stuff
+    # XXX fake elevation until ISU gives me elevation
+    alt = 1000 + randn(n_eastings, n_northings)*50
+
+    # all points are being used, so all mask values are 1
+    mask = ones((n_eastings, n_northings))
+
+    # insert lon, lat, alt
+    lon = lon_vec.reshape((n_eastings, n_northings))
+    lat = lat_vec.reshape((n_eastings, n_northings))
+    dataset.update(Dataset(
+        {
+            'lon': (['easting', 'northing'], lon),
+            'lat': (['easting', 'northing'], lat),
+            'mask': (['easting', 'northing'], mask),
+            'alt': (['easting', 'northing'], alt)
+        }, coords=coords))
+
     # initialize 3D input and precipitation variables
     for varname in (vardict['in'] + vardict['precip']):
 
         # initialize the variable
-        data = full((len(time_index), n_eastings, n_northings), -9999.)
+        data = full((n_timesteps, n_eastings, n_northings), -9999.)
 
         # glob on that variable name
         glb = glob.glob(os.path.join(tif_dir, varname + '*'))
@@ -136,6 +163,14 @@ def _create_isnobal_nc_from_dir(tif_dir):
             dataset.update(Dataset({varname: (['time', 'easting', 'northing'],
                                               data)},
                            coords=coords))
+
+    # XXX generate fake random wind speeds until ISU provides
+    wind_speed = abs(10*randn(n_timesteps, n_eastings, n_northings))
+
+    dataset.update(Dataset({'u': (['time', 'easting', 'northing'],
+                                  wind_speed)},
+                           coords=coords)
+                   )
 
     # initialize 2D init image
     init_varnames = vardict['init']
@@ -170,6 +205,16 @@ def _create_isnobal_nc_from_dir(tif_dir):
 
         dataset.update(Dataset({varname: (['easting', 'northing'], data)},
                        coords=coords))
+
+    dataset.attrs.update({
+        'nsteps': n_timesteps,
+        'data_tstep': 60,  # time interval between inputs in _minutes_
+        'output_frequency': 1,
+        'bline': northing,
+        'bsamp': easting,
+        'dline': d_northing,
+        'dsamp': d_easting
+    })
 
     AssertISNOBALInput(dataset)
 

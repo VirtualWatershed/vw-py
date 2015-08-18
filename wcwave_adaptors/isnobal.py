@@ -14,6 +14,8 @@ import datetime
 import logging
 import subprocess
 import struct
+import netCDF4
+import xray
 
 from collections import namedtuple, defaultdict
 from copy import deepcopy
@@ -55,7 +57,13 @@ def AssertISNOBALInput(nc):
        model. Throw a ISNOBALNetcdfError if not
 
     """
-    nca = nc.attrs
+    if type(nc) is xray.Dataset:
+        nca = nc.attrs
+    elif type(nc) is netCDF4.Dataset:
+        nca = nc.ncattrs()
+    else:
+        raise Exception('NetCDF is not a valid type')
+
     valid = ('data_tstep' in nca and 'nsteps' in nca and
              'output_frequency' in nca)
 
@@ -169,10 +177,10 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
 
         # nc_to_standard_ipw is well tested, we know these will be present
         init_img = osjoin(tmpdir, 'init.ipw')
-        precip_file = osjoin(tmpdir, 'ppt_desc')
         mask_file = osjoin(tmpdir, 'mask.ipw')
-        input_prefix = osjoin(tmpdir, 'inputs/in')
+        precip_file = osjoin(tmpdir, 'ppt_desc')
         em_prefix = osjoin(tmpdir, 'outputs/em')
+        input_prefix = osjoin(tmpdir, 'inputs/in')
         snow_prefix = osjoin(tmpdir, 'outputs/snow')
 
         # recursively run isnobal with nc_in=None
@@ -412,7 +420,6 @@ class IPW(object):
         df_shape = (ipw.nlines*ipw.nsamps, len(varnames))
         df = DataFrame(zeros(df_shape), columns=varnames)
         for idx, var in enumerate(varnames):
-
             header_dict[var] = Band(varname=var, band_idx=idx, nBytes=bytes_,
                 nBits=bits_, int_max=NC_MAXINT, bline=bline, dline=dline,
                 bsamp=bsamp, dsamp=dsamp, units=geo_units,
@@ -446,6 +453,7 @@ class IPW(object):
 
         # recalculate headers
         ipw.recalculate_header()
+
 
         return ipw
 
@@ -533,7 +541,6 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                                  **template_args)
 
         # first take care of non-precip files
-        print "Inserting 'Input' data"
         with ProgressBar(maxval=len(input_files)) as progress:
             for i, f in enumerate(input_files):
                 ipw = IPW(f)
@@ -554,7 +561,6 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                      for ppt_line in
                      open(osjoin(base_dir, 'ppt_desc'), 'r').readlines()]
 
-        print "Inserting Precip Data"
         with ProgressBar(maxval=len(ppt_pairs)) as progress:
             for i, ppt_pair in enumerate(ppt_pairs):
                 tstep = int(ppt_pair[0])
@@ -583,7 +589,6 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
         nc = ncgen_from_template('ipw_out_template.cdl', nc_out, clobber=True,
                                  **template_args)
 
-        print "Inserting Output Data"
         with ProgressBar(maxval=len(output_files)) as progress:
             for i, f in enumerate(output_files):
                 ipw = IPW(f)
@@ -591,7 +596,6 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                 _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
 
                 progress.update(i)
-
 
     # whether inputs or outputs, we need to include the dimensional values
     t = nc.variables['time']
@@ -698,7 +702,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
     """Convert an iSNOBAL NetCDF file to an iSNOBAL standard directory structure
        in IPW format. This means that for
 
-        input nc: all inputs are all in {ipw_base_dir}/inputs and all precip
+        isnobal input nc: all inputs are all in {ipw_base_dir}/inputs and all precip
             files are in {ipw_base_dir}/ppt_images_dist. There is a precip
             description file {ipw_base_dir}/ppt_desc describing what time index
             each precipitation file corresponsds to and the path to the precip
@@ -706,13 +710,13 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
             and DEM files at {ipw_base_dir}/ tl2p5mask.ipw, tl2p5_dem.ipw, and
             init.ipw
 
-        output nc: files get output to {ipw_base_dir}/outputs to allow for
+        isnobal output nc: files get output to {ipw_base_dir}/outputs to allow for
             building a directory of both inputs and outputs. Files are like
             em.0000 and snow.0000 for energy-mass and snow outputs, respectively.
 
         Arguments:
             nc_in (str) path to input NetCDF file to break out
-            ipw_base_dir
+            ipw_base_dir (str) location to store
 
         Returns:
             None
@@ -723,12 +727,14 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
         assert isinstance(nc_in, Dataset)
 
     present_vars = set(nc_in.variables.keys())
-    expected_vars = set([u'time', u'easting', u'northing', u'lat', u'lon',
+    expected_vars = set([
+        u'time', u'easting', u'northing', u'lat', u'lon',
         u'alt', u'mask', 'I_lw', 'T_a', 'e_a', 'u', 'T_g', 'S_n',
         'm_pp', 'percent_snow', 'rho_snow', 'T_pp',
-        'z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat'])
+        'z', 'z_0', 'z_s', 'rho', 'T_s_0', 'T_s', 'h2o_sat']
+    )
 
-    assert present_vars == expected_vars, \
+    assert not expected_vars.difference(present_vars),  \
         "%s not a valid input iSNOBAL NetCDF; %s are missing" \
         % (nc_in.filepath(), expected_vars.difference(present_vars))
 
@@ -749,7 +755,6 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
 
         zeropad_factor = floor(log10(tsteps))
 
-        print "Writing 'Input' Data to IPW files"
         file_type = 'in'
         with ProgressBar(maxval=time_index[-1]) as progress:
             for i, idx in enumerate(time_index):
@@ -761,7 +766,6 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
                     idxstr = "0"*(zeropad_factor - 2) + str(idx)
                 else:
                     idxstr = str(idx)
-
                 IPW.from_nc(nc_in, tstep=idx, file_type=file_type,
                             ).write(osjoin(inputs_dir, 'in.' + idxstr))
 
@@ -799,7 +803,6 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
                             (precip_temp[i]).all())]
 
         # this should be mostly right except for ppt_desc and ppt data dir
-        print "Writing 'Precipitation' Data to IPW files"
         with open(osjoin(ipw_base_dir, 'ppt_desc'), 'w') as ppt_desc:
 
             with ProgressBar(maxval=len(time_indexes)) as progress:
@@ -1173,7 +1176,8 @@ def _floatdf_to_binstring(bands, df):
     # that causes problems with the IPW scheme
     pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
 
-    return b''.join([struct.pack(pack_str, *r[1]) for r in int_df.iterrows()])
+
+    return b''.join(struct.pack(pack_str, *r[1]) for r in int_df.iterrows())
 
 
 def _recalculate_header(bands, dataframe):
