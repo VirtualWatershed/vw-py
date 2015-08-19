@@ -19,8 +19,9 @@ from StringIO import StringIO
 from ..watershed import VARNAME_DICT
 from ..isnobal import (_make_bands,
     GlobalBand, Band, _calc_float_value, _bands_to_dtype, _build_ipw_dataframe,
-    _bands_to_header_lines, _floatdf_to_binstring, _recalculate_header, IPW,
-    reaggregate_ipws, _is_consecutive, AssertISNOBALInput, ISNOBALNetcdfError)
+    _bands_to_header_lines, _write_floatdf_binstring_to_file,
+    _recalculate_header, IPW, reaggregate_ipws, _is_consecutive,
+    AssertISNOBALInput, ISNOBALNetcdfError)
 
 
 class TestIPW(unittest.TestCase):
@@ -320,7 +321,7 @@ class TestIPW(unittest.TestCase):
         assert headerLines == expectedHeaderLines, \
             "%s != %s" % (headerLines, expectedHeaderLines)
 
-    def test_floatdf_to_binstring(self):
+    def test_write_floatdf_binstring_to_file(self):
         """
         Test that a DF with floats is correctly translated to a binary string
         """
@@ -335,7 +336,7 @@ class TestIPW(unittest.TestCase):
                                       [4915, 238, 212]],
                                      columns=['this', 'that', 'the other'])
 
-        expectedBinStr = \
+        expected_bin_str = \
             "".join([struct.pack('H', expectedIntDf['this'][0]),
                      struct.pack('B', expectedIntDf['that'][0]),
                      struct.pack('B', expectedIntDf['the other'][0]),
@@ -343,9 +344,13 @@ class TestIPW(unittest.TestCase):
                      struct.pack('B', expectedIntDf['that'][1]),
                      struct.pack('B', expectedIntDf['the other'][1])])
 
-        binStr = _floatdf_to_binstring(bands, df)
+        test_write_path = 'write_floatdf_test.tmp'
+        with open(test_write_path, 'w+') as f:
+            bin_str = _write_floatdf_binstring_to_file(bands, df, f)
 
-        assert binStr == expectedBinStr
+        bin_str = open(test_write_path).read()
+
+        assert bin_str == expected_bin_str
 
     @raises(AssertionError)
     def test_floatdf_to_binstring_fail_min(self):
@@ -359,7 +364,8 @@ class TestIPW(unittest.TestCase):
                  Band('that', 1, 1, 8, 0, 255, -5, 10.0),
                  Band('the other', 2, 1, 8, 0, 255, 0, 30.0)]
 
-        _floatdf_to_binstring(bands, df)
+        with open('never_will_be_written_to', 'w') as f:
+            _write_floatdf_binstring_to_file(bands, df, f)
 
     @raises(AssertionError)
     def test_floatdf_to_binstring_fail_max(self):
@@ -372,7 +378,8 @@ class TestIPW(unittest.TestCase):
                  Band('that', 1, 1, 8, 0, 255, -5, 10.0),
                  Band('the other', 2, 1, 8, 0, 255, 0, 30.0)]
 
-        _floatdf_to_binstring(bands, df)
+        with open('never_will_be_written_to', 'w') as f:
+            _write_floatdf_binstring_to_file(bands, df, f)
 
     def test_recalculate_header(self):
         """
