@@ -13,7 +13,6 @@ Tools for working with IPW binary data and running the iSNOBAL model.
 import datetime
 import logging
 import subprocess
-import struct
 import netCDF4
 import xray
 
@@ -30,6 +29,7 @@ from os.path import join as osjoin
 from pandas import date_range, DataFrame, Series, Timedelta
 from progressbar import ProgressBar
 from shutil import rmtree
+from struct import pack
 
 from .watershed import make_fgdc_metadata, make_watershed_metadata
 
@@ -479,8 +479,8 @@ class IPW(object):
 
             f.write(last_line + '\n')
 
-            f.write(
-                _floatdf_to_binstring(self.nonglobal_bands, self._data_frame))
+            _write_floatdf_binstring_to_file(self.nonglobal_bands,
+                self._data_frame, f)
 
         return None
 
@@ -1140,9 +1140,14 @@ def _bands_to_header_lines(bands_dict):
     return firstLines + other_lines
 
 
-def _floatdf_to_binstring(bands, df):
+def _write_floatdf_binstring_to_file(bands, df, write_file):
     """
     Convert the dataframe floating point data to a binary string.
+
+    Arguments:
+        bands: list of Band objects
+        df: dataframe to be written
+        write_file: File object ready for writing to
     """
     # first convert df to an integer dataframe
     int_df = DataFrame(dtype='uint64')
@@ -1156,11 +1161,6 @@ def _floatdf_to_binstring(bands, df):
         assert df[b.varname].ge(b.float_min).all(), \
             "Bad band: min not really min.\nb.float_min = %s\n \
             df[b.varname].min()  = %2.10f" % (b.float_min, df[b.varname].min())
-
-        # # no need to include b.int_min, it's always zero
-        # map_fn = lambda x: \
-            # floor(npround(
-                # ((x - b.float_min) * b.int_max)/(b.float_max - b.float_min)))
 
         def _map_fn(x):
             if b.float_max - b.float_min == 0.0:
@@ -1176,8 +1176,10 @@ def _floatdf_to_binstring(bands, df):
     # that causes problems with the IPW scheme
     pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
 
+    int_mat = int_df.as_matrix()
 
-    return b''.join(struct.pack(pack_str, *r[1]) for r in int_df.iterrows())
+    for row_idx in range(len(int_mat)):
+        write_file.write(pack(pack_str, *int_mat[row_idx]))
 
 
 def _recalculate_header(bands, dataframe):
