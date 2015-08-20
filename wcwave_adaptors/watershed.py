@@ -504,6 +504,10 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     else:
         raise TypeError('bad start_ and/or end_datetime arguments')
 
+    # we pretty much always want to try to set these
+    kwargs['wms'] = 'wms'
+    kwargs['wcs'] = 'wcs'
+
     js =  \
         make_watershed_metadata(input_basename,
                                 config,

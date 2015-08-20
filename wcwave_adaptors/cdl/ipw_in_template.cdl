@@ -22,14 +22,13 @@ netcdf {{ write_filename }} {
 
 
     dimensions: 
-
         time = UNLIMITED ;
         northing = {{ nlines }} ;
         easting = {{ nsamps }} ;
 
     variables:
 
-        float time(time) ;
+        int time(time) ;
             time:long_name = "time";
             time:standard_name = "{{ dt }} since {{ year }}-{{ month }}-{{ day }}";
 
@@ -94,46 +93,57 @@ netcdf {{ write_filename }} {
             m_pp:standard_name = "precipitation_amount";
             m_pp:description = "mass precipitation flux through a 2D surface on its way to ground";
             m_pp:units = "kg m-2";// snow flux
+            m_pp:_DeflateLevel = 1 ;
 
         float percent_snow(time, northing, easting) ;
             percent_snow:ipw_desc = "fraction of precip mass that was snow (0 to 1.0)";
+            percent_snow:_DeflateLevel = 1 ;
             // unitless
 
         float rho_snow(time, northing, easting) ;
             rho_snow:ipw_desc = "density of snowfall";
             rho_snow:units = "kg m-3"; 
+            rho_snow:_DeflateLevel = 1 ;
 
         float T_pp(time, northing, easting) ;
             T_pp:ipw_desc = "average precip temperature";
             T_pp:units = "C"; 
+            T_pp:_DeflateLevel = 1 ;
+
 
         float I_lw(time, northing, easting) ;
             I_lw:ipw_desc = "incoming thermal (long-wave) radiation";
             I_lw:standard_name = "downwelling_longwave_flux_in_air";
             I_lw:units = "W m-2";
+            I_lw:_DeflateLevel = 1 ;
             
         float T_a(time, northing, easting) ;
             T_a:ipw_desc = "air temperature";
             T_a:standard_name = "air_temperature";
             T_a:units = "C";
+            T_a:_DeflateLevel = 1 ;
 
         float e_a(time, northing, easting) ;
             e_a:ipw_desc = "vapor pressure";
             e_a:standard_name = "water_vapor_pressure";
             e_a:units = "Pa";
+            e_a:_DeflateLevel = 1 ;
 
         float u(time, northing, easting) ;
             u:ipw_desc = "wind speed";
             u:standard_name = "wind_speed";
             u:units = "m s-1";
+            u:_DeflateLevel = 1 ;
 
         float T_g(time, northing, easting) ;
             T_g:ipw_desc = "soil temperature at 0.5m depth";
             T_g:standard_name = "soil_temperature";
             T_g:units = "C";
+            T_g:_DeflateLevel = 1 ;
 
         float S_n(time, northing, easting) ;
             S_n:ipw_desc = "net solar radiation";
             S_n:standard_name = "downwelling_shortwave_flux_in_air";
             S_n:units = "W m-2";
+            S_n:_DeflateLevel = 1 ;
 }

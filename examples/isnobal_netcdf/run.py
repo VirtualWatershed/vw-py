@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 """
 File: examples/isnobal_netcdf/run.py
 
@@ -18,6 +20,9 @@ sys.path.append(join(dirname(__file__), '../../'))
 from netCDF4 import Dataset
 from wcwave_adaptors.isnobal import isnobal
 
+# nc_in = get_vw_netcdf(uu, 'vw_isnobal_input.nc')
 nc_in = Dataset(join(dirname(__file__), 'isnobal_inputs.nc'), 'r')
 
 nc_out = isnobal(nc_in)
+
+# visualize outputs
