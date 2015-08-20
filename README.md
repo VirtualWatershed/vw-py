@@ -19,7 +19,22 @@ On Debian/Ubuntu
 sudo apt-get install libnetcdf-dev
 ```
 
-To use some scripts, you'll also need GDAL installed. 
+To use some scripts, you'll also need GDAL installed.
+
+To install GDAL (1.11.2) in debian/ubuntu:
+
+```bash
+sudo apt-get install build-essential python-all-dev
+
+wget http://download.osgeo.org/gdal/1.11.2/gdal-1.11.2.tar.gz
+tar xvfz gdal-1.11.2.tar.gz
+cd gdal-1.11.2
+
+./configure --with-python
+make
+sudo make install
+
+```
 
 
 Then, 
@@ -34,6 +49,13 @@ To install all other dependencies, start up a virtual environment in the
 ```bash
 virtualenv venv && source venv/bin/activate
 ```
+In debian/ubuntu before installing the requirements:
+
+```
+sudo apt-get install libncurses-dev (prerequisite for gnureadline)
+sudo apt-get install libhdf5-serial-dev (prerequisite for netcdf4)
+```
+
 
 and install requirements
 
