@@ -19,7 +19,7 @@ On Debian/Ubuntu
 sudo apt-get install libnetcdf-dev
 ```
 
-To use some scripts, you'll also need GDAL installed. 
+To use some scripts, you'll also need GDAL installed.
 
 
 Then, 
@@ -34,6 +34,13 @@ To install all other dependencies, start up a virtual environment in the
 ```bash
 virtualenv venv && source venv/bin/activate
 ```
+In debian/ubuntu before installing the requirements:
+
+```
+sudo apt-get install libncurses-dev (prerequisite for gnureadline)
+sudo apt-get install libhdf5-serial-dev (prerequisite for netcdf4)
+```
+
 
 and install requirements
 
