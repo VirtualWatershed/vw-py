@@ -23,6 +23,7 @@ from numpy import (arange, array, zeros, ravel, reshape, fromstring, dtype,
                    floor, log10)
 from numpy import sum as npsum
 from numpy import round as npround
+from numpy.ma import masked
 from os import mkdir, listdir
 from os.path import exists, dirname, basename
 from os.path import join as osjoin
@@ -474,13 +475,14 @@ class IPW(object):
         last_line = "!<header> image -1 $Revision: 1.5 $"
 
         with open(fileName, 'wb') as f:
-            for l in _bands_to_header_lines(self.header_dict):
+            header_lines = _bands_to_header_lines(self.header_dict)
+            for l in header_lines:
                 f.write(l + '\n')
 
             f.write(last_line + '\n')
 
-            _write_floatdf_binstring_to_file(self.nonglobal_bands,
-                self._data_frame, f)
+            _write_floatdf_binstring_to_file(
+                self.nonglobal_bands, self._data_frame, f)
 
         return None
 
@@ -797,10 +799,21 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
         # if no precip at a tstep, variable type is numpy.ma.core.MaskedArray
         time_indexes = [i for i, el in enumerate(mpp)
                         if not (
-                            (mpp[i] > 1e6).all() and
-                            (pctsnow[i] > 1e6).all() and
-                            (rhosnow[i] > 1e6).all() and
-                            (precip_temp[i]).all())]
+                            (
+                                (mpp[i].all() is masked) and
+                                (pctsnow[i].all() is masked) and
+                                (rhosnow[i].all() is masked) and
+                                (precip_temp[i].all() is masked)
+                            )
+                            or
+                            (
+                                (mpp[i] > 1e6).all() and
+                                (pctsnow[i] > 1e6).all() and
+                                (rhosnow[i] > 1e6).all() and
+                                (precip_temp[i] > 1e6).all()
+                            )
+                            )
+                        ]
 
         # this should be mostly right except for ppt_desc and ppt data dir
         with open(osjoin(ipw_base_dir, 'ppt_desc'), 'w') as ppt_desc:
@@ -1120,6 +1133,8 @@ def _bands_to_header_lines(bands_dict):
                         "map = {0} {1} ".format(int_min, float_min),
                         "map = {0} {1} ".format(int_max, float_max)]
 
+        # import ipdb; ipdb.set_trace()
+
     # build the geographic header
     for i, b in enumerate(bands):
         bline = b.bline
@@ -1174,12 +1189,15 @@ def _write_floatdf_binstring_to_file(bands, df, write_file):
 
     # use the struct package to pack ints to bytes; use '=' to prevent padding
     # that causes problems with the IPW scheme
-    pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
+    # pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])
 
     int_mat = int_df.as_matrix()
 
-    for row_idx in range(len(int_mat)):
-        write_file.write(pack(pack_str, *int_mat[row_idx]))
+    pack_str = "=" + "".join([PACK_DICT[b.bytes_] for b in bands])*len(int_mat)
+
+    # for row_idx in range(len(int_mat)):
+    flat_mat = int_mat.flatten()
+    write_file.write(pack(pack_str, *flat_mat))
 
 
 def _recalculate_header(bands, dataframe):
