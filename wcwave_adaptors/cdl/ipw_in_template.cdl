@@ -61,89 +61,106 @@ netcdf {{ write_filename }} {
             mask:long_name = "mask for more efficient computation";
             
         float z(northing, easting) ;
-            z:ipw_desc = "elevation";
-            z:units = "m";
+            z:layer_name = "elevation";
+            z:layer_units = "m";
 
         float z_0(northing, easting) ;
-            z_0:ipw_desc = "roughness length";
-            z_0:units = "m";
+            z_0:layer_name = "roughness length";
+            z_0:layer_desc = "per-grid cell parameter expressing the roughness of the surface";
+            z_0:layer_units = "m";
 
         float z_s(northing, easting) ;
-            z_s:ipw_desc = "total snowcover depth";
-            z_s:units = "m";
+            z_s:layer_name = "total snowcover depth";
+            z_s:layer_desc = "initial snowcover depth";
+            z_s:layer_units = "m";
 
         float rho(northing, easting) ;
-            rho:ipw_desc = "roughness length";
-            rho:units = "kg m-3";
+            rho:layer_name = "average snowcover density";
+            rho:layer_desc = "mass per cubic meter of snow";
+            rho:layer_units = "kg m-3";
 
         float T_s_0(northing, easting) ;
-            T_s_0:ipw_desc = "active snow layer temperature";
-            T_s_0:units = "C";
+            T_s_0:layer_name = "active snow layer temperature";
+            T_s_0:layer_desc = "upper snow layer temperature";
+            T_s_0:layer_units = "C";
 
         float T_s(northing, easting) ;
-            T_s:ipw_desc = "average snowcover temperature";
-            T_s:units = "C";
+            T_s:layer_name = "average snowcover temperature";
+            T_s:layer_desc = "average temperature across both iSNOBAL snow layers";
+            T_s:layer_units = "C";
 
         float h2o_sat(northing, easting) ;
-            h2o_sat:ipw_desc = "% of liquid H2O saturation (ratio of water in snowcover to snowcover water-holding potential";
-            h2o_sat:units = "C";
+            h2o_sat:layer_name = "% of liquid H2O saturation";
+            h2o_sat:layer_desc = "ratio of water in snowcover to snowcover water-holding potential";
+            h2o_sat:layer_units = "C";
 
         float m_pp(time, northing, easting) ;
-            m_pp:ipw_desc = "total precipitation mass";
+            m_pp:layer_name = "total precipitation mass";
             m_pp:standard_name = "precipitation_amount";
+            m_pp:layer_desc = "mass precipitation flux through a 2D surface on its way to ground";
             m_pp:description = "mass precipitation flux through a 2D surface on its way to ground";
-            m_pp:units = "kg m-2";// snow flux
+            m_pp:layer_units = "kg m-2";// snow flux
             m_pp:_DeflateLevel = 1 ;
 
         float percent_snow(time, northing, easting) ;
-            percent_snow:ipw_desc = "fraction of precip mass that was snow (0 to 1.0)";
+            percent_snow:layer_name = "percent snow";
+            percent_snow:layer_desc = "snow-to-rain mass ratio";
+            percent_snow:layer_units = "percent";
             percent_snow:_DeflateLevel = 1 ;
             // unitless
 
         float rho_snow(time, northing, easting) ;
-            rho_snow:ipw_desc = "density of snowfall";
-            rho_snow:units = "kg m-3"; 
+            rho_snow:layer_name = "density of snowfall";
+            rho_snow:layer_desc = "density in kg m-3 of whatever snowfall is present";
+            rho_snow:layer_units = "kg m-3"; 
             rho_snow:_DeflateLevel = 1 ;
 
         float T_pp(time, northing, easting) ;
-            T_pp:ipw_desc = "average precip temperature";
-            T_pp:units = "C"; 
+            T_pp:layer_name = "average precip temperature";
+            T_pp:layer_desc = "from dew point temperature if available, or can be estimated during storm, or minimum daily temperature";
+            T_pp:layer_units = "C"; 
             T_pp:_DeflateLevel = 1 ;
 
-
+        // non-precip inputs
         float I_lw(time, northing, easting) ;
-            I_lw:ipw_desc = "incoming thermal (long-wave) radiation";
+            I_lw:layer_name = "incoming thermal (long-wave) radiation";
             I_lw:standard_name = "downwelling_longwave_flux_in_air";
-            I_lw:units = "W m-2";
+            I_lw:layer_desc = "long-wave radiation not necessarily from the sun";
+            I_lw:layer_units = "W m-2";
             I_lw:_DeflateLevel = 1 ;
             
         float T_a(time, northing, easting) ;
-            T_a:ipw_desc = "air temperature";
+            T_a:layer_name = "air temperature";
             T_a:standard_name = "air_temperature";
-            T_a:units = "C";
+            T_a:layer_desc = "air temperature as measured 5m above the ground";
+            T_a:layer_units = "C";
             T_a:_DeflateLevel = 1 ;
 
         float e_a(time, northing, easting) ;
-            e_a:ipw_desc = "vapor pressure";
+            e_a:layer_name = "vapor pressure";
             e_a:standard_name = "water_vapor_pressure";
-            e_a:units = "Pa";
+            e_a:layer_desc = "equilibrium vapor pressure is an indication of a liquid's evaporation rate";
+            e_a:layer_units = "Pa";
             e_a:_DeflateLevel = 1 ;
 
         float u(time, northing, easting) ;
-            u:ipw_desc = "wind speed";
+            u:layer_name = "wind speed";
             u:standard_name = "wind_speed";
-            u:units = "m s-1";
+            u:layer_desc = "wind speed as measured 5m above the ground";
+            u:layer_units = "m s-1";
             u:_DeflateLevel = 1 ;
 
         float T_g(time, northing, easting) ;
-            T_g:ipw_desc = "soil temperature at 0.5m depth";
+            T_g:layer_name = "soil temperature at 0.5m depth";
             T_g:standard_name = "soil_temperature";
-            T_g:units = "C";
+            T_g:layer_desc = "soil temperature at a half-meter underground";
+            T_g:layer_units = "C";
             T_g:_DeflateLevel = 1 ;
 
         float S_n(time, northing, easting) ;
-            S_n:ipw_desc = "net solar radiation";
+            S_n:layer_name = "net solar radiation";
             S_n:standard_name = "downwelling_shortwave_flux_in_air";
-            S_n:units = "W m-2";
+            S_n:layer_desc = "radiation coming from the sun. in IPW these bands may be omitted if the sun is down";
+            S_n:layer_units = "W m-2";
             S_n:_DeflateLevel = 1 ;
 }
