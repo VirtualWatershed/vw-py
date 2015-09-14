@@ -20,6 +20,10 @@ netcdf {{ write_filename }} {
     :documentation_link = "cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html";
     :description = "auto-generated NetCDF-4 Dataset that encapsulates full inputs for iSNOBAL model run";
 
+    // virtual watershed metadata
+    :bands_name = "nsteps";
+    :bands_desc = "band index represents {{ dt }} since {{ year }}-{{ month }}-{{ day }}T00:00:00";
+    :exclude_layers = "mask,alt,time,northing,easting,lat,lon,z_0,z_s,rho,T_s_0,T_s,h2o_sat";
 
     dimensions: 
         time = UNLIMITED ;
@@ -62,6 +66,7 @@ netcdf {{ write_filename }} {
             
         float z(northing, easting) ;
             z:layer_name = "elevation";
+            z:layer_desc = "meters above sea level";
             z:layer_units = "m";
 
         float z_0(northing, easting) ;
