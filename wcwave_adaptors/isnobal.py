@@ -130,6 +130,9 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
 
             For explanations the rest, see the link above.
 
+            ** Addition: It expects a pyee event emitter in order to emit messages for progress. if not provided it should just work fine
+
+
         Returns:
             (netCDF4.Dataset) NetCDF Dataset object of the outputs
     """
