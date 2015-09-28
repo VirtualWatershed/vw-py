@@ -897,5 +897,5 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                              input_file_path=input_file_path,
                              fgdc_metadata=fgdc_metadata,
                              file_ext=file_ext,
-                             **kwargs)
+                             **kwargs) + '\n'
     return output
