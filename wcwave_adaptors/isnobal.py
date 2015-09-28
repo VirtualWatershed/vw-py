@@ -118,7 +118,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
             mask_file="data/tl2p5mask.ipw", input_prefix="data/inputs/in",
             output_frequency=1, em_prefix="data/outputs/em",
             snow_prefix="data/outputs/snow", dt='hours', year=2010,
-            month=10, day='01'):
+            month=10, day='01',event_emitter=None,**kwargs):
     """ Wrapper for running the ISNOBAL
         (http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html)
         model.
@@ -147,15 +147,27 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
                                "-s " + snow_prefix])
 
         # TODO sanitize this isnobalcmd or better yet, avoid shell=True
+        print 'running isnobal'
+        kwargs['event_name'] = 'running_isonbal'
+        kwargs['event_description'] = 'Running the actual model'
+        kwargs['progress_value'] = 50
+        if event_emitter:
+            event_emitter.emit('progress',**kwargs)
         output = subprocess.check_output(isnobalcmd, shell=True)
         logging.debug("ISNOBAL process output: " + output)
-
+        print 'done runinig isnobal'
+        kwargs['event_name'] = 'running_isonbal'
+        kwargs['event_description'] = 'Done Running model'
+        kwargs['progress_value'] = 100
+        if event_emitter:
+            event_emitter.emit('progress',**kwargs)        
         # create a NetCDF of the outputs and return it
+
         nc_out = \
             generate_standard_nc(dirname(em_prefix), nc_out_fname,
                                  data_tstep=data_tstep,
                                  output_frequency=output_frequency, dt=dt,
-                                 year=year, month=month, day=day)
+                                 year=year, month=month, day=day,event_emitter=event_emitter,**kwargs)
 
         return nc_out
 
@@ -172,7 +184,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
         tmpdir = '/tmp/isnobalrun' + \
             str(datetime.datetime.now()).replace(' ', '')
 
-        nc_to_standard_ipw(nc_in, tmpdir)
+        nc_to_standard_ipw(nc_in, tmpdir,event_emitter=event_emitter,**kwargs)
 
         mkdir(osjoin(tmpdir, 'outputs'))
 
@@ -190,7 +202,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
                          precip_file=precip_file, mask_file=mask_file,
                          input_prefix=input_prefix,
                          output_frequency=output_frequency,
-                         em_prefix=em_prefix, snow_prefix=snow_prefix)
+                         em_prefix=em_prefix, snow_prefix=snow_prefix,event_emitter=event_emitter,**kwargs)
 
         rmtree(tmpdir)
 
@@ -489,7 +501,7 @@ class IPW(object):
 
 def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                          output_frequency=1, dt='hours', year=2010, month=10,
-                         day='01'):
+                         day='01',event_emitter=None,**kwargs):
     """Use the utilities from netcdf.py to convert standard set of either input
        or output files to a NetCDF4 file. A standard set of files means
 
@@ -543,6 +555,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                                  **template_args)
 
         # first take care of non-precip files
+        print 'updating 3'
         with ProgressBar(maxval=len(input_files)) as progress:
             for i, f in enumerate(input_files):
                 ipw = IPW(f)
@@ -550,6 +563,12 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                 _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
 
                 progress.update(i)
+                
+                kwargs['event_name'] = 'input_ipw_to_nc'
+                kwargs['event_description'] = 'creating nc form iw files'
+                kwargs['progress_value'] = format((float(i)/len(input_files)) * 100,'.2f')
+                if event_emitter:
+                    event_emitter.emit('progress',**kwargs)
 
         dem = IPW(osjoin(base_dir, 'tl2p5_dem.ipw'), file_type='dem')
         mask = IPW(osjoin(base_dir, 'tl2p5mask.ipw'), file_type='mask')
@@ -571,7 +590,17 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                 _nc_insert_ipw(nc, el, tstep, gb.nLines, gb.nSamps)
 
                 progress.update(i)
+                kwargs['event_name'] = 'input_ipw_to_nc2'
+                kwargs['event_description'] = 'creating nc form iw files 2'
+                kwargs['progress_value'] = format((float(i)/len(ppt_pairs)) * 100,'.2f')
+                if event_emitter:
+                    event_emitter.emit('progress',**kwargs)
 
+            kwargs['event_name'] = 'input_ipw_to_nc2'
+            kwargs['event_description'] = 'creating nc form iw files 2'
+            kwargs['progress_value'] = 100
+            if event_emitter:
+                event_emitter.emit('progress',**kwargs)
     else:
 
         output_files = [osjoin(base_dir, el) for el in listdir(base_dir)]
@@ -590,15 +619,26 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
         # initialize nc file
         nc = ncgen_from_template('ipw_out_template.cdl', nc_out, clobber=True,
                                  **template_args)
-
+        print 'creating output file'
         with ProgressBar(maxval=len(output_files)) as progress:
+            #print 'inside 4'
             for i, f in enumerate(output_files):
                 ipw = IPW(f)
                 tstep = int(basename(ipw.input_file).split('.')[-1])
                 _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
-
+                #print 'inside 4 2'
                 progress.update(i)
-
+                #print event_emitter
+                kwargs['event_name'] = 'ouptut_ipw_to_nc'
+                kwargs['event_description'] = 'creating output nc file fro moutput ipw'
+                kwargs['progress_value'] =  format((float(i)/len(output_files)) * 100,'.2f')
+                if event_emitter:
+                    event_emitter.emit('progress',**kwargs)
+            kwargs['event_name'] = 'ouptut_ipw_to_nc'
+            kwargs['event_description'] = 'creating output nc file fro moutput ipw'
+            kwargs['progress_value'] =  100
+            if event_emitter:
+                event_emitter.emit('progress',**kwargs)
     # whether inputs or outputs, we need to include the dimensional values
     t = nc.variables['time']
     t[:] = arange(len(t))
@@ -700,7 +740,7 @@ def _nc_insert_ipw(dataset, ipw, tstep, nlines, nsamps):
         raise Exception('File type %s not recognized!' % file_type)
 
 
-def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
+def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',event_emitter=None,**kwargs):
     """Convert an iSNOBAL NetCDF file to an iSNOBAL standard directory structure
        in IPW format. This means that for
 
@@ -758,6 +798,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
         zeropad_factor = floor(log10(tsteps))
 
         file_type = 'in'
+        print 'creating input ipw for each timestep form nc '
         with ProgressBar(maxval=time_index[-1]) as progress:
             for i, idx in enumerate(time_index):
                 if idx < 10:
@@ -772,7 +813,18 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
                             ).write(osjoin(inputs_dir, 'in.' + idxstr))
 
                 progress.update(i)
+                kwargs['event_name'] = 'processing_input'
+                kwargs['event_description'] = 'creating input ipw for each timestep form nc'
+                kwargs['progress_value'] = format((float(i)/time_index[-1]) * 100, '.2f')
 
+                if event_emitter:
+                    event_emitter.emit('progress',**kwargs)
+            kwargs['event_name'] = 'processing_input'
+            kwargs['event_description'] = 'creating input ipw for each timestep form nc'
+            kwargs['progress_value'] = 100
+            if event_emitter:
+                event_emitter.emit('progress',**kwargs)
+        
         file_type = 'init'
         IPW.from_nc(nc_in, file_type=file_type
                     ).write(osjoin(ipw_base_dir, 'init.ipw'))
@@ -817,7 +869,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
 
         # this should be mostly right except for ppt_desc and ppt data dir
         with open(osjoin(ipw_base_dir, 'ppt_desc'), 'w') as ppt_desc:
-
+            print 'updating 2'
             with ProgressBar(maxval=len(time_indexes)) as progress:
 
                 for i, idx in enumerate(time_indexes):
@@ -831,7 +883,17 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
                                      'ppt_' + str(idx) + '.ipw'))
 
                     progress.update(i)
+                    kwargs['event_name'] = 'processing_input2'
+                    kwargs['event_description'] = 'creating input ipw for each timestep form nc 2'
+                    kwargs['progress_value'] = format((float(i)/len(time_indexes)) * 100, '.2f')
+                    if event_emitter:
+                        event_emitter.emit('progress',**kwargs)
 
+                kwargs['event_name'] = 'processing_input2'
+                kwargs['event_description'] = 'creating input ipw for each timestep form nc 2'
+                kwargs['progress_value'] = 100
+                if event_emitter:
+                    event_emitter.emit('progress',**kwargs)                        
     else:
         raise Exception("NetCDF to IPW converter not implemented for type %s" %
                         type_)
