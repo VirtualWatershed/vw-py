@@ -786,8 +786,9 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
 
         Returns: JSON metadata string
     """
-    assert model_set in ["inputs", "outputs"], "parameter model_set must be \
-            either 'inputs' or 'outputs', not %s" % model_set
+    assert model_set in ["inputs", "outputs", "reference"], \
+        "parameter model_set must be either 'inputs' or 'outputs', not %s" \
+        % model_set
 
     # TODO get valid_states and valid_watersheds from VW w/ TODO VWClient method
     valid_states = ['Idaho', 'Nevada', 'New Mexico']
