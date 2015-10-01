@@ -424,7 +424,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         # the number on the end of an isnobal file is the time index
         dt_multiplier = int(input_split[1])
         is_ipw = True
-    except ValueError:
+    except (ValueError, IndexError):
         pass
 
     if file_ext == 'tif':

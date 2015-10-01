@@ -21,7 +21,7 @@ from .isnobal import AssertISNOBALInput, ncgen_from_template
 from .netcdf import utm2latlon
 
 
-def create_isnobal_dataset(tif_zip, unzip_dir=None):
+def create_isnobal_dataset(tif_zip, unzip_dir=None, nc_out=None):
     """
     Public function to create an isnobal dataset from a tif zip file returned
     by the ISU Gridding Tool.
@@ -43,10 +43,10 @@ def create_isnobal_dataset(tif_zip, unzip_dir=None):
 
     _unzip_geotiffs(tif_zip, unzip_dir)
 
-    return _create_isnobal_nc_from_dir(unzip_dir)
+    return _create_isnobal_nc_from_dir(unzip_dir, nc_out=nc_out)
 
 
-def _unzip_geotiffs(tif_zip, unzip_dir, nc_out=None):
+def _unzip_geotiffs(tif_zip, unzip_dir):
     """Private function to unzip all '*.tif' in tif_zip to unzip_dir
     """
     zf = ZipFile(tif_zip)
