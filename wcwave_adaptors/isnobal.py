@@ -165,7 +165,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
 
         # these are guaranteed to be present by the above assertion
         data_tstep = nc_in.data_tstep
-        nsteps = nc_in.nsteps - 1  # isnobal steps are from one step to another
+        nsteps = nc_in.nsteps  # - 1  # isnobal steps are from one step to another
         output_frequency = nc_in.output_frequency
 
         # create standard IPW data in tmpdir; creates tmpdir
@@ -454,7 +454,6 @@ class IPW(object):
 
         # recalculate headers
         ipw.recalculate_header()
-
 
         return ipw
 
@@ -762,19 +761,23 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
 
         file_type = 'in'
         with ProgressBar(maxval=time_index[-1]) as progress:
-            for i, idx in enumerate(time_index):
-                if idx < 10:
-                    idxstr = "0"*zeropad_factor + str(idx)
-                elif idx < 100:
-                    idxstr = "0"*(zeropad_factor - 1) + str(idx)
-                elif idx < 1000:
-                    idxstr = "0"*(zeropad_factor - 2) + str(idx)
-                else:
-                    idxstr = str(idx)
-                IPW.from_nc(nc_in, tstep=idx, file_type=file_type,
-                            ).write(osjoin(inputs_dir, 'in.' + idxstr))
+            if len(time_index) > 1:
+                for i, idx in enumerate(time_index):
+                    if idx < 10:
+                        idxstr = "0"*zeropad_factor + str(idx)
+                    elif idx < 100:
+                        idxstr = "0"*(zeropad_factor - 1) + str(idx)
+                    elif idx < 1000:
+                        idxstr = "0"*(zeropad_factor - 2) + str(idx)
+                    else:
+                        idxstr = str(idx)
+                    IPW.from_nc(nc_in, tstep=idx, file_type=file_type,
+                                ).write(osjoin(inputs_dir, 'in.' + idxstr))
 
-                progress.update(i)
+                    progress.update(i)
+            else:
+                IPW.from_nc(nc_in, tstep=time_index[0], file_type=file_type,
+                            ).write(osjoin(inputs_dir, 'in'))
 
         file_type = 'init'
         IPW.from_nc(nc_in, file_type=file_type

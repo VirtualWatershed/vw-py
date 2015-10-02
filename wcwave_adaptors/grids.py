@@ -130,6 +130,8 @@ def _create_isnobal_nc_from_dir(tif_dir, data_tstep=60, output_frequency=1,
     n_timesteps = len(time_index)
     earliest_time = time_index[0]
 
+    print n_timesteps
+
     # initialize netCDF
     template_args = dict(bline=easting, bsamp=northing, dline=d_easting,
                          dsamp=d_northing, nsamps=n_eastings,
