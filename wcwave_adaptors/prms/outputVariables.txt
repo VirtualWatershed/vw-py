@@ -1,0 +1,170 @@
+Name: basin_lakeprecip 
+Description: Basin area-weighted average precipitation on lake HRUs 
+Units: inches 
+Data type: double 
+
+Name: basin_lapse_max 
+Description: Basin area-weighted average maximum air temperature lapse rate per 1,000 feet
+Units: temp_units/feet
+Data type: real
+
+Name: basin_lapse_min
+Description: Basin area-weighted average minimum air temperature lapse rate per 1,000 feet
+Units: temp_units/feet
+Data type: real
+
+Name: basin_max_temp_mo
+Description: Monthly area-weighted average maximum air temperature
+Units: temp_units
+Data type: double
+
+Name: basin_min_temp_mo
+Description: Monthly area-weighted average minimum air temperature
+Units: temp_units
+Data type: double
+
+Name: basin_net_ppt
+Description: Basin area-weighted average throughfall
+Units: inches
+Data type: double
+
+Name: basin_net_ppt_mo
+Description: Monthly area-weighted average net precipitation
+Units: inches
+Data type: double
+
+Name: basin_obs_ppt
+Description: Basin area-weighted measured average precipitation
+Units: inches
+Data type: double
+
+Name: basin_ppt
+Description: Basin area-weighted average precipitation
+Units: inches
+Data type: double
+
+Name: basin_ppt_mo
+Description: Monthly area-weighted average precipitation
+Units: inches
+Data type: double
+
+Name: basin_rain
+Description: Basin area-weighted average rainfall
+Units: inches
+Data type: double
+
+Name: basin_snow
+Description: Basin area-weighted average snowfall
+Units: inches
+Data type: double
+
+Name: basin_temp
+Description: Basin area-weighted average air temperature
+Units: temp_units
+Data type: double
+
+Name: basin_tmax
+Description: Basin area-weighted maximum air temperature
+Units: temp_units
+Data type: double
+
+Name: basin_tmin
+Description: Basin area-weighted minimum air temperature
+Units: temp_units
+Data type: double
+
+Name: hru_ppt
+Description: Precipitation distributed to each HRU
+Units: inches
+Data type: real
+
+Name: hru_rain
+Description: Rain distributed to each HRU
+Units: inches
+Data type: real
+
+Name: hru_snow
+Description: Snow distributed to each HRU
+Units: inches
+Data type: real
+
+Name: humidity
+Description: Relative humidity at each measurement station
+Units: decimal fraction
+Data type: real
+
+Name: humidity_hru
+Description: Relative humidity for each HRU
+Units: decimal fraction
+Data type: real
+
+Name: is_rain_day
+Description: Flag to indicate if it is raining anywhere in the basin
+Units: none
+Data type: integer
+
+Name: newsnow
+Description: Flag to indicate if new snow fell on each HRU (0=no; 1=yes)
+Units: none
+Data type: integer
+
+Name: pptmix
+Description: Flag to indicate if precipitation is a mixture of rain and snow for each HRU (0=no; 1=yes)
+Units: none
+Data type: integer
+
+Name: precip
+Description: Precipitation at each measurement station
+Units: precip_units
+Data type: real
+
+Name: prmx
+Description: Fraction of rain in a mixed precipitation event for each HRU
+Units: decimal fraction
+Data type: real
+
+Name: tmaxf
+Description: Maximum air temperature distributed to each HRU
+Units: degrees Fahrenheit
+Data type: real
+
+Name: tminf
+Description: Minimum air temperature distributed to each HRU
+Units: degrees Fahrenheit
+Data type: real
+
+Name: pkwater_equiv
+Description: Snowpack water equivalent on each HRU
+Units: inches
+Data type: real
+
+Name: pk_depth
+Description: Depth of snowpack on each HRU
+Units: inches
+Data type: real
+
+Name: swrad
+Description: Shortwave radiation distributed to each HRU
+Units: Langleys
+Data type: real
+
+Name: potet
+Description: Potential ET for each HRU
+Units: inches
+Data type: real
+
+Name: basin_actet
+Description: Basin area-weighted average actual ET
+Units: inches
+Data type: double
+
+Name: basin_cfs
+Description: Streamflow leaving the basin through the stream network
+Units: cfs
+Data type: double
+
+Name: runoff
+Description: Streamflow at each measurement station
+Units: runoff_units
+Data type: real
+

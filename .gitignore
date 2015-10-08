@@ -37,6 +37,10 @@ examples/data*
 *.csv
 *.tif
 *.txt
+!wcwave_adaptors/prms/dataVariableDetails.txt
+!wcwave_adaptors/prms/outputVariables.txt
+!wcwave_adaptors/prms/parameterDetails.txt
+!wcwave_adaptors/prms/prmsoutvariables.txt
 tdata
 
 *.coverage

@@ -1,0 +1,14 @@
+Name: Precip
+Description: Precipitation
+
+Name: ET
+Description: Evapotranspiration
+
+Name: Storage
+Description: Water storage
+
+Name: S-Runoff
+Description: Simulated runoff
+
+Name: M-Runoff
+Description: Measured runoff

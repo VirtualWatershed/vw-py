@@ -1,0 +1,48 @@
+Name: gate_ht
+Description: Height of the gate opening at each dam with a gate
+Units: inches
+
+Name: humidity
+Description: Relative humidity at each measurement station
+Units: decimal fraction
+
+Name: lake_elev
+Description: Elevation of each simulated lake surface
+Units: feet
+
+Name: pan_evap
+Description: Pan evaporation at each measurement station
+Units: inches
+
+Name: precip
+Description: Precipitation at each measurement station
+Units: precip_units
+
+Name: rain_day
+Description: Flag to set the form of any precipitation to rain (0=determine form; 1=rain)
+Units: none
+
+Name: runoff
+Description: Streamflow at each measurement station
+Units: runoff_units
+
+Name: snowdepth
+Description: Snow depth at each measurement station
+Units: inches
+
+Name: solrad
+Description: Solar radiation at each measurement station
+Units: Langleys
+
+Name: tmax
+Description: Maximum air temperature at each measurement station
+Units: temp_units
+
+Name: tmin
+Description: Minimum air temperature at each measurement station
+Units: temp_units
+
+Name: wind_speed
+Description: Wind speed at each measurement station
+Units: miles per hour
+

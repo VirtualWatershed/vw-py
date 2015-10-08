@@ -1,0 +1,452 @@
+Name: tmax_allrain
+Description: Precipitation is rain if HRU max temperature >= this value
+Units: temp_units 
+
+Name: soil_type
+Description: HRU soil type
+Units: none 
+
+Name: radj_wppt
+Description: Adjustment to solar radiation on precipitation day - winter
+Units: decimal fraction
+
+Name: adjmix_rain
+Description: Adjustment factor for rain in a rain/snow mix
+Units: decimal fraction
+
+Name: carea_max
+Description: Maximum contributing area
+Units: decimal fraction
+
+Name: transp_beg
+Description: Month to begin testing for transpiration
+Units: month
+
+Name: hru_lat
+Description: HRU latitude
+Units: degrees
+
+Name: rain_adj
+Description: Monthly factor to adjust measured precipitation on each HRU to account for differences in elevation
+Units: decimal fraction
+
+Name: circle_switch
+Description: Switch to check for circles
+Units: none
+
+Name: carea_min
+Description: Minimum contributing area
+Units: decimal fraction
+
+Name: rad_trncf
+Description: Solar radiation transmission coefficient
+Units: decimal fraction
+
+Name: snow_adj
+Description: Monthly factor to adjust measured precipitation on each HRU to account for differences in elevation
+Units: decimal fraction
+
+Name: hru_area
+Description: HRU area
+Units: acres
+
+Name: smidx_exp
+Description: Exponent in contributing area computations
+Units: 1.0/inch
+
+Name: covden_win
+Description: Winter vegetation cover density for major vegetation type
+Units: decimal fraction
+
+Name: hru_psta
+Description: index of base precipitation station for HRU
+Units: none
+
+Name: srain_intcp
+Description: Summer rain interception storage capacity
+Units: inches
+
+Name: snowinfil_max
+Description: Maximum snow infiltration per day
+Units: inches/day
+
+Name: melt_force
+Description: Julian date to force snowpack to spring snowmelt stage
+Units: Julian day
+
+Name: epan_coef
+Description: Evaporation pan coefficient
+Units: none
+
+Name: gwflow_coef
+Description: Groundwater routing coefficient
+Units: 1.0/day
+
+Name: den_max
+Description: Average maximum snowpack density
+Units: gm/cm3
+
+Name: temp_units
+Description: Units flag for measured temperature
+Units: none
+
+Name: hru_strmseg_down_id
+Description: Stream segment index that cascade area contributes flow
+Units: none
+
+Name: gw_strmseg_down_id
+Description: Stream segment index that cascade area contributes flow
+Units: none
+
+Name: hru_percent_imperv
+Description: HRU percent impervious
+Units: decimal fraction
+
+Name: runoff_units
+Description: Measured runoff units
+Units: none
+
+Name: jh_coef_hru
+Description: HRU air temperature coefficient - Jensen-Haise
+Units: degrees F
+
+Name: dday_intcp
+Description: Intercept in temperature degree-day relationship
+Units: dday
+
+Name: snow_intcp
+Description: Snow interception storage capacity
+Units: inches
+
+Name: jh_coef
+Description: Monthly air temperature coefficient - Jensen-Haise
+Units: per degrees F
+
+Name: potet_sublim
+Description: Fraction of potential ET that is sublimated from snow surface
+Units: decimal fraction
+
+Name: pmo
+Description: Month to print HRU summary
+Units: none
+
+Name: hru_pct_up
+Description: Fraction of HRU area associated with cascade area
+Units: decimal fraction
+
+Name: ssr2gw_exp
+Description: Coefficient to route water from subsurface to groundwater 
+Units: none
+
+Name: ssstor_init
+Description: Initial storage in each GVR and PFR
+Units: inches
+
+Name: subbasin_down
+Description: Downstream subbasin for each subbasin
+Units: none
+
+Name: gw_pct_up
+Description: Fraction of GWR area associated with cascade area
+Units: decimal fraction
+
+Name: soil2gw_max
+Description: Maximum value for capillary reservoir excess to GWR
+Units: inches
+
+Name: hru_subbasin
+Description: Index of subbasin assigned to each HRU
+Units: none
+
+Name: elev_units
+Description: Elevation units flag
+Units: none
+
+Name: sat_threshold
+Description: Soil saturation threshold, above field-capacity threshold
+Units: inches
+
+Name: tsta_elev
+Description: Temperature station elevation
+Units: elev_units
+
+Name: gvr_hru_pct
+Description: Proportion of the HRU associated with each gravity reservoir
+Units: decimal fraction
+
+Name: soil_rechr_init
+Description: Initial storage of water for soil recharge zone
+Units: inches
+
+Name: covden_sum
+Description: Summer vegetation cover density for major vegetation type
+Units: decimal fraction
+
+Name: tmax_lapse
+Description: Monthly maximum temperature lapse rate
+Units: degrees
+
+Name: tmax_allsnow
+Description: Maximum temperature when precipitation is all snow
+Units: temp_units
+
+Name: pref_flow_den
+Description: Preferential-flow pore density
+Units: decimal fraction
+
+Name: gwsink_coef
+Description: Groundwater sink coefficient
+Units: 1.0/day
+
+Name: gwstor_min
+Description: Minimum storage in each GWR
+Units: inches
+
+Name: wrain_intcp
+Description: Winter rain interception storage capacity
+Units: inches
+
+Name: tstorm_mo
+Description: Set to 1 if thunderstorms prevalent during month
+Units: none
+
+Name: gvr_hru_id
+Description: Index of the HRU associated with each gravity reservoir
+Units: none
+
+Name: tmin_lapse
+Description: Monthly minimum temperature lapse rate
+Units: degrees
+
+Name: print_freq
+Description: Frequency for the output frequency
+Units: none
+
+Name: cascade_tol
+Description: Cascade area below which a cascade link is ignored
+Units: acres
+
+Name: smidx_coef
+Description: Coefficient in contributing area computations
+Units: decimal fraction
+
+Name: transp_end
+Description: Month to stop transpiration period
+Units: month
+
+Name: radadj_intcp
+Description: Intercept in air temperature range adjustment to solar radiation equation
+Units: dday
+
+Name: snarea_curve
+Description: Snow area depletion curve values
+Units: decimal fraction
+
+Name: albset_snm
+Description: Albedo reset - snow, melt stage
+Units: inches
+
+Name: basin_tsta
+Description: Index of main temperature station
+Units: none
+
+Name: albset_rna
+Description: Albedo reset - rain, accumulation stage
+Units: decimal fraction
+
+Name: cov_type
+Description: Cover type designation for HRU
+Units: none
+
+Name: dday_slope
+Description: Slope in temperature degree-day relationship
+Units: dday/temp_units
+
+Name: radadj_slope
+Description: Slope in air temperature range adjustment to solar radiation equation
+Units: dday/temp_units
+
+Name: cascade_flg
+Description: Flag to indicate cascade type (0=allow many to many; 1=force one to one)
+Units: none
+
+Name: albset_sna
+Description: Albedo reset - snow, accumulation stage
+Units: inches
+
+Name: basin_area
+Description: Area of basin
+Units: acres
+
+Name: fastcoef_lin
+Description: Linear preferential-flow routing coefficient
+Units: 1/day
+
+Name: hru_deplcrv
+Description: Index number for snowpack areal depletion curve
+Units: none
+
+Name: albset_rnm
+Description: Albedo reset - rain, melt stage
+Units: decimal fraction
+
+Name: hru_elev
+Description: HRU mean elevation
+Units: elev_units
+
+Name: emis_noppt
+Description: Emissivity of air on days without precipitation
+Units: decimal fraction
+
+Name: fastcoef_sq
+Description: Non-linear preferential-flow routing coefficient
+Units: none
+
+Name: outlet_sta
+Description: Index of measurement station to use for basin outlet
+Units: none
+
+Name: moyrsum
+Description: Switch for HRU monthly and yearly summary (0=off; 1=on)
+Units: none
+
+Name: gwstor_init
+Description: Initial storage in each GWR
+Units: inches
+
+Name: soil_rechr_max
+Description: Maximum storage for soil recharge zone
+Units: inches
+
+Name: slowcoef_sq
+Description: Non-linear gravity-flow reservoir routing coefficient 
+Units: none
+
+Name: den_init
+Description: Initial density of new-fallen snow
+Units: gm/cm3
+
+Name: ssrmax_coef
+Description: Coefficient in equation used to route water from the subsurface reservoirs to the groundwater reservoirs
+Units: inches
+
+Name: hru_down_id
+Description: HRU index of down slope HRU
+Units: none
+
+Name: hru_slope
+Description: HRU slope
+Units: decimal fraction
+
+Name: tmin_adj
+Description: HRU minimum temperature adjustment
+Units: temp_units
+
+Name: basin_lat
+Description: Latitude of basin
+Units: angular degrees
+
+Name: melt_look
+Description: Julian date to start looking for spring snowmelt
+Units: Julian day
+
+Name: radj_sppt
+Description: Adjustment to solar radiation on precipitation day - summer
+Units: decimal fraction
+
+Name: soil_moist_init
+Description: Initial value of available water in capillary reservoir
+Units: inches
+
+Name: max_missing
+Description: Maximum number of consecutive missing values allowed for any measured air temperature station; 0=unlimited
+Units: none
+
+Name: print_type
+Description: Type of output written to output file
+Units: none
+
+Name: imperv_stor_max
+Description: HRU maximum impervious area retention storage
+Units: inches
+
+Name: settle_const
+Description: Snowpack settlement time constant
+Units: decimal fraction
+
+Name: freeh2o_cap
+Description: Free-water holding capacity of snowpack
+Units: decimal fraction
+
+Name: gw_down_id
+Description: GWR index of down slope GWR
+Units: none
+
+Name: ssr2gw_rate
+Description: Coefficient to route water from gravity reservoir to GWR
+Units: 1/day
+
+Name: basin_tsta_hru
+Description: Index of temperature station used to compute basin temperature values for each hru
+Units: none
+
+Name: hru_up_id
+Description: Index of HRU containing cascade area
+Units: none
+
+Name: ppt_rad_adj
+Description: Radiation reduced if basin precipitation above this value
+Units: inches
+
+Name: hru_aspect
+Description: HRU aspect
+Units: degrees
+
+Name: slowcoef_lin
+Description: Linear gravity-flow reservoir routing coefficient
+Units: 1.0/day
+
+Name: cecn_coef
+Description: Convection condensation energy coefficient
+Units: calories per degree C above 0
+
+Name: soil_moist_max
+Description: Maximum value of water for soil zone
+Units: inches
+
+Name: transp_tmax
+Description: Tmax index to determine start of transpiration
+Units: degrees
+
+Name: snarea_thresh
+Description: Maximum threshold water equivalent for snow depletion
+Units: inches
+
+Name: radmax
+Description: Maximum fraction of potential solar radiation (decimal) 
+Units: decimal fraction
+
+Name: tmax_adj
+Description: HRU maximum temperature adjustment
+Units: temp_units
+
+Name: gw_up_id
+Description: Index of GWR containing cascade area
+Units: none
+
+Name: precip_units
+Description: Units for measured precipitation
+Units: none
+
+Name: hru_type
+Description: HRU type
+Units: none
+
+Name: hru_tsta
+Description: Index of base temperature station for HRU
+Units: none
+
+Name: tmax_index
+Description: Monthly index temperature
+Units: temp_units
+
