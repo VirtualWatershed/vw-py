@@ -184,8 +184,8 @@ class ESRIAsc:
             self.nrows = int(getnextval(f))
             self.xllcorner = float(getnextval(f))
             self.yllcorner = float(getnextval(f))
-            self.cellsize = float(getnextval(f))
-            self.NODATA_value = float(getnextval(f))
+            self.cellsize = int(getnextval(f))
+            self.NODATA_value = int(getnextval(f))
 
             # should not be necessary for well-formed ESRI files, but
             # seems to be for CASiMiR

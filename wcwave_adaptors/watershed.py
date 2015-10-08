@@ -424,7 +424,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         # the number on the end of an isnobal file is the time index
         dt_multiplier = int(input_split[1])
         is_ipw = True
-    except ValueError:
+    except (ValueError, IndexError):
         pass
 
     if file_ext == 'tif':
@@ -467,7 +467,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         kwargs['taxonomy'] = 'file'
 
     elif model_name == 'isnobal' and is_ipw:
-        #: ISNOBAL variable names to be looked up to make dataframes and write metadata
+        #: ISNOBAL variable names to be looked up to make dataframes + metadata
         model_vars = ','.join(VARNAME_DICT[input_prefix])
 
         if 'proc_date' in kwargs:
@@ -495,7 +495,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
         end_datetime = start_datetime + dt
         end_datetime_str = datetime.strftime(start_datetime + dt,
-                                         '%Y-%m-%d %H:%M:%S')
+                                             '%Y-%m-%d %H:%M:%S')
 
     elif type(start_datetime) is str and type(end_datetime) is str:
         start_datetime_str = start_datetime
@@ -507,6 +507,10 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     # we pretty much always want to try to set these
     kwargs['wms'] = 'wms'
     kwargs['wcs'] = 'wcs'
+
+    if file_ext == 'nc':
+        kwargs['taxonomy'] = 'netcdf_isnobal'
+        # kwargs['taxonomy'] = 'netcdf'
 
     js =  \
         make_watershed_metadata(input_basename,
@@ -782,8 +786,9 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
 
         Returns: JSON metadata string
     """
-    assert model_set in ["inputs", "outputs"], "parameter model_set must be \
-            either 'inputs' or 'outputs', not %s" % model_set
+    assert model_set in ["inputs", "outputs", "reference"], \
+        "parameter model_set must be either 'inputs' or 'outputs', not %s" \
+        % model_set
 
     # TODO get valid_states and valid_watersheds from VW w/ TODO VWClient method
     valid_states = ['Idaho', 'Nevada', 'New Mexico']
@@ -893,5 +898,5 @@ def make_watershed_metadata(file_name, config, parent_model_run_uuid,
                              input_file_path=input_file_path,
                              fgdc_metadata=fgdc_metadata,
                              file_ext=file_ext,
-                             **kwargs)
+                             **kwargs) + '\n'
     return output
