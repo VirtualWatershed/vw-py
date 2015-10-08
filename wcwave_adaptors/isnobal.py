@@ -165,7 +165,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
 
         # these are guaranteed to be present by the above assertion
         data_tstep = nc_in.data_tstep
-        nsteps = nc_in.nsteps  # - 1  # isnobal steps are from one step to another
+        nsteps = nc_in.nsteps - 1  # isnobal steps are from one step to another
         output_frequency = nc_in.output_frequency
 
         # create standard IPW data in tmpdir; creates tmpdir
@@ -607,17 +607,17 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
 
     e = nc.variables['easting']
     # eastings are "samples" in IPW
-    nsamps = len(e)
-    e[:] = array([nc.bsamp + nc.dsamp*i for i in range(nsamps)])
+    nlines = len(e)
+    e[:] = array([nc.bline + nc.dline*i for i in range(nlines)])
 
     n = nc.variables['northing']
     # northings are "lines" in IPW
-    nlines = len(n)
-    n[:] = array([nc.bline + nc.dline*i for i in range(nlines)])
+    nsamps = len(n)
+    n[:] = array([nc.bsamp + nc.dsamp*i for i in range(nsamps)])
 
     # get a n_points x 2 array of lat/lon pairs at every point on the grid
-    latlon_arr = utm2latlon(nc.bsamp, nc.bline, nc.dsamp,
-                            nc.dline, nsamps, nlines)
+    latlon_arr = utm2latlon(nc.bline, nc.bsamp, nc.dline,
+                            nc.dsamp, nlines, nsamps)
 
     # break this out into lat and lon separately at each point on the grid
     lat = nc.variables['lat']

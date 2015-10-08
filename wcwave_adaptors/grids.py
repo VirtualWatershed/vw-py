@@ -8,6 +8,7 @@ import gdal
 import glob
 import os.path
 import re
+import warnings
 
 from datetime import datetime
 from numpy import array
@@ -160,7 +161,11 @@ def _create_isnobal_nc_from_dir(tif_dir, data_tstep=60, output_frequency=1,
     for k, v in INIT_LOOKUP.iteritems():
 
         f = glob.glob(tif_dir + '/*' + v + '*')
-        assert len(f) == 1, "there should be only one timestep of init vars"
+        # assert len(f) == 1, "there should be only one timestep of init vars" +\
+        if len(f) != 1:
+            warnings.warn("there should be only one timestep of init vars" +
+                          "there are {} for variable {}".format(len(f), k))
+
         gdl_tif = gdal.Open(f.pop())
         rb = gdl_tif.GetRasterBand(1)
         arr = rb.ReadAsArray()
