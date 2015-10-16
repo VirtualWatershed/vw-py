@@ -165,7 +165,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
 
         # these are guaranteed to be present by the above assertion
         data_tstep = nc_in.data_tstep
-        nsteps = nc_in.nsteps - 1  # isnobal steps are from one step to another
+        nsteps = nc_in.nsteps  # - 1  # isnobal steps are from one step to another
         output_frequency = nc_in.output_frequency
 
         # create standard IPW data in tmpdir; creates tmpdir
@@ -455,7 +455,6 @@ class IPW(object):
         # recalculate headers
         ipw.recalculate_header()
 
-
         return ipw
 
     def data_frame(self):
@@ -489,7 +488,7 @@ class IPW(object):
 
 def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                          output_frequency=1, dt='hours', year=2010, month=10,
-                         day='01'):
+                         day='01', hour='00'):
     """Use the utilities from netcdf.py to convert standard set of either input
        or output files to a NetCDF4 file. A standard set of files means
 
@@ -521,6 +520,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
         raise IPWFileError("%s does not meet standards" % base_dir)
 
     if ipw_type == 'inputs':
+
         input_files = [osjoin(base_dir, 'inputs', el) for el in
                        listdir(osjoin(base_dir, 'inputs'))]
 
@@ -536,7 +536,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                              dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
                              data_tstep=data_tstep, nsteps=nsteps,
                              output_frequency=output_frequency, dt=dt,
-                             year=year, month=month, day=day)
+                             year=year, month=month, day=day, hour=hour)
 
         # initialize the nc file
         nc = ncgen_from_template('ipw_in_template.cdl', nc_out, clobber=True,
@@ -558,7 +558,9 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
         for el in [mask, dem, init]:
             _nc_insert_ipw(nc, el, None, gb.nLines, gb.nSamps)
 
+        # precipitation files
         # read ppt_desc file and insert to nc with appropriate time step
+        # we do not explicitly set any value for zero-precip time steps
         ppt_pairs = [ppt_line.strip().split('\t')
                      for ppt_line in
                      open(osjoin(base_dir, 'ppt_desc'), 'r').readlines()]
@@ -759,19 +761,23 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs'):
 
         file_type = 'in'
         with ProgressBar(maxval=time_index[-1]) as progress:
-            for i, idx in enumerate(time_index):
-                if idx < 10:
-                    idxstr = "0"*zeropad_factor + str(idx)
-                elif idx < 100:
-                    idxstr = "0"*(zeropad_factor - 1) + str(idx)
-                elif idx < 1000:
-                    idxstr = "0"*(zeropad_factor - 2) + str(idx)
-                else:
-                    idxstr = str(idx)
-                IPW.from_nc(nc_in, tstep=idx, file_type=file_type,
-                            ).write(osjoin(inputs_dir, 'in.' + idxstr))
+            if len(time_index) > 1:
+                for i, idx in enumerate(time_index):
+                    if idx < 10:
+                        idxstr = "0"*zeropad_factor + str(idx)
+                    elif idx < 100:
+                        idxstr = "0"*(zeropad_factor - 1) + str(idx)
+                    elif idx < 1000:
+                        idxstr = "0"*(zeropad_factor - 2) + str(idx)
+                    else:
+                        idxstr = str(idx)
+                    IPW.from_nc(nc_in, tstep=idx, file_type=file_type,
+                                ).write(osjoin(inputs_dir, 'in.' + idxstr))
 
-                progress.update(i)
+                    progress.update(i)
+            else:
+                IPW.from_nc(nc_in, tstep=time_index[0], file_type=file_type,
+                            ).write(osjoin(inputs_dir, 'in'))
 
         file_type = 'init'
         IPW.from_nc(nc_in, file_type=file_type
