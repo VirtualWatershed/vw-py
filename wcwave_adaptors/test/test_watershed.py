@@ -178,7 +178,7 @@ class TestFGDCMetadata(unittest.TestCase):
         expected = open('wcwave_adaptors/test/data/expected_minimal_fgdc.xml',
                         'r').read()
 
-        assert generated == expected, \
+        assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
         generated = \
@@ -193,7 +193,7 @@ class TestFGDCMetadata(unittest.TestCase):
         expected = open('wcwave_adaptors/test/data/expected_full_fgdc.xml',
                         'r').read()
 
-        assert generated == expected, \
+        assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
 
@@ -580,7 +580,7 @@ class TestVWClient(unittest.TestCase):
         # check equality
         assert generated
         assert expected
-        assert generated == expected, show_string_diff(generated, expected)
+        assert generated.strip() == expected.strip(), show_string_diff(generated, expected)
 
     def test_metadata_from_file(self):
         """
@@ -598,7 +598,7 @@ class TestVWClient(unittest.TestCase):
 
         expected = open('wcwave_adaptors/test/data/expected_tif.json', 'r').read()
 
-        assert generated == expected, \
+        assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
         # now assume we have resampled to 3-day intervals
@@ -613,7 +613,7 @@ class TestVWClient(unittest.TestCase):
         expected = open('wcwave_adaptors/test/data/expected_tif_nonhourdt.json',
                         'r').read()
 
-        assert generated == expected, \
+        assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
     def tearDown(self):

@@ -23,8 +23,8 @@
     "records": "1",
     "active": "True",
     "services": [
-    "None",
-    "None"
+    "wms",
+    "wcs"
     ],
     "categories": [{
             "location": "Dry Creek",
