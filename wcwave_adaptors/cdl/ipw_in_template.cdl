@@ -46,15 +46,15 @@ netcdf {{ write_filename }} {
             northing:standard_name = "projection_y_coordinate";
             northing:units = "m";
 
-        float lat(easting, northing) ;
+        float lat(northing, easting) ;
             lat:long_name = "latitude";
             lat:units = "degrees_north";
 
-        float lon(easting, northing) ;
+        float lon(northing, easting) ;
             lon:long_name = "longitude";
             lon:units = "degrees_east";
 
-        float alt(easting, northing) ;
+        float alt(northing, easting) ;
             alt:long_name = "vertical distance above the surface";
             alt:standard_name = "height";
             alt:units = "m";
@@ -62,47 +62,47 @@ netcdf {{ write_filename }} {
             alt:axis = "Z";
             alt:_FillValue = 0.0;
 
-        byte mask(easting, northing) ;
+        byte mask(northing, easting) ;
             mask:long_name = "mask for more efficient computation";
             mask:_FillValue = 0;
             
-        float z(easting, northing) ;
+        float z(northing, easting) ;
             z:layer_name = "elevation";
             z:layer_desc = "meters above sea level";
             z:layer_units = "m";
             z:_FillValue = 0.0;
 
-        float z_0(easting, northing) ;
+        float z_0(northing, easting) ;
             z_0:layer_name = "roughness length";
             z_0:layer_desc = "per-grid cell parameter expressing the roughness of the surface";
             z_0:layer_units = "m";
 
-        float z_s(easting, northing) ;
+        float z_s(northing, easting) ;
             z_s:layer_name = "total snowcover depth";
             z_s:layer_desc = "initial snowcover depth";
             z_s:layer_units = "m";
 
-        float rho(easting, northing) ;
+        float rho(northing, easting) ;
             rho:layer_name = "average snowcover density";
             rho:layer_desc = "mass per cubic meter of snow";
             rho:layer_units = "kg m-3";
 
-        float T_s_0(easting, northing) ;
+        float T_s_0(northing, easting) ;
             T_s_0:layer_name = "active snow layer temperature";
             T_s_0:layer_desc = "upper snow layer temperature";
             T_s_0:layer_units = "C";
 
-        float T_s(easting, northing) ;
+        float T_s(northing, easting) ;
             T_s:layer_name = "average snowcover temperature";
             T_s:layer_desc = "average temperature across both iSNOBAL snow layers";
             T_s:layer_units = "C";
 
-        float h2o_sat(easting, northing) ;
+        float h2o_sat(northing, easting) ;
             h2o_sat:layer_name = "% of liquid H2O saturation";
             h2o_sat:layer_desc = "ratio of water in snowcover to snowcover water-holding potential";
             h2o_sat:layer_units = "C";
 
-        float m_pp(time, easting, northing) ;
+        float m_pp(time, northing, easting) ;
             m_pp:layer_name = "total precipitation mass";
             m_pp:standard_name = "precipitation_amount";
             m_pp:layer_desc = "mass precipitation flux through a 2D surface on its way to ground";
@@ -111,7 +111,7 @@ netcdf {{ write_filename }} {
             m_pp:_DeflateLevel = 1 ;
             m_pp:_FillValue = 0.0;
 
-        float percent_snow(time, easting, northing) ;
+        float percent_snow(time, northing, easting) ;
             percent_snow:layer_name = "percent snow";
             percent_snow:layer_desc = "snow-to-rain mass ratio";
             percent_snow:layer_units = "percent";
@@ -119,14 +119,14 @@ netcdf {{ write_filename }} {
             percent_snow:_FillValue = 0.0;
             // unitless
 
-        float rho_snow(time, easting, northing) ;
+        float rho_snow(time, northing, easting) ;
             rho_snow:layer_name = "density of snowfall";
             rho_snow:layer_desc = "density in kg m-3 of whatever snowfall is present";
             rho_snow:layer_units = "kg m-3"; 
             rho_snow:_DeflateLevel = 1 ;
             rho_snow:_FillValue = 0.0;
 
-        float T_pp(time, easting, northing) ;
+        float T_pp(time, northing, easting) ;
             T_pp:layer_name = "average precip temperature";
             T_pp:layer_desc = "from dew point temperature if available, or can be estimated during storm, or minimum daily temperature";
             T_pp:layer_units = "C"; 
@@ -134,7 +134,7 @@ netcdf {{ write_filename }} {
             T_pp:_FillValue = 0.0;
 
         // non-precip inputs
-        float I_lw(time, easting, northing) ;
+        float I_lw(time, northing, easting) ;
             I_lw:layer_name = "incoming thermal (long-wave) radiation";
             I_lw:standard_name = "downwelling_longwave_flux_in_air";
             I_lw:layer_desc = "long-wave radiation not necessarily from the sun";
@@ -142,7 +142,7 @@ netcdf {{ write_filename }} {
             I_lw:_DeflateLevel = 1 ;
             I_lw:_FillValue = 0.0;
             
-        float T_a(time, easting, northing) ;
+        float T_a(time, northing, easting) ;
             T_a:layer_name = "air temperature";
             T_a:standard_name = "air_temperature";
             T_a:layer_desc = "air temperature as measured 5m above the ground";
@@ -150,7 +150,7 @@ netcdf {{ write_filename }} {
             T_a:_DeflateLevel = 1 ;
             T_a:_FillValue = 0.0;
 
-        float e_a(time, easting, northing) ;
+        float e_a(time, northing, easting) ;
             e_a:layer_name = "vapor pressure";
             e_a:standard_name = "water_vapor_pressure";
             e_a:layer_desc = "equilibrium vapor pressure is an indication of a liquid's evaporation rate";
@@ -158,7 +158,7 @@ netcdf {{ write_filename }} {
             e_a:_DeflateLevel = 1 ;
             e_a:_FillValue = 0.0;
 
-        float u(time, easting, northing) ;
+        float u(time, northing, easting) ;
             u:layer_name = "wind speed";
             u:standard_name = "wind_speed";
             u:layer_desc = "wind speed as measured 5m above the ground";
@@ -166,7 +166,7 @@ netcdf {{ write_filename }} {
             u:_DeflateLevel = 1 ;
             u:_FillValue = 0.0;
 
-        float T_g(time, easting, northing) ;
+        float T_g(time, northing, easting) ;
             T_g:layer_name = "soil temperature at 0.5m depth";
             T_g:standard_name = "soil_temperature";
             T_g:layer_desc = "soil temperature at a half-meter underground";
@@ -174,7 +174,7 @@ netcdf {{ write_filename }} {
             T_g:_DeflateLevel = 1 ;
             T_g:_FillValue = 0.0;
 
-        float S_n(time, easting, northing) ;
+        float S_n(time, northing, easting) ;
             S_n:layer_name = "net solar radiation";
             S_n:standard_name = "downwelling_shortwave_flux_in_air";
             S_n:layer_desc = "radiation coming from the sun. in IPW these bands may be omitted if the sun is down";

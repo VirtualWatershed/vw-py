@@ -14,6 +14,8 @@ import datetime
 import logging
 import subprocess
 import netCDF4
+import re
+import warnings
 import xray
 
 from collections import namedtuple, defaultdict
@@ -486,7 +488,10 @@ class IPW(object):
         return None
 
 
-def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
+def generate_standard_nc(base_dir, nc_out=None, inputs_dir='inputs',
+                         dem_file='tl2p5_dem.ipw', mask_file='tl2p5mask.ipw',
+                         init_file='init.ipw', ppt_desc_path='ppt_desc',
+                         data_tstep=60,
                          output_frequency=1, dt='hours', year=2010, month=10,
                          day='01', hour='00'):
     """Use the utilities from netcdf.py to convert standard set of either input
@@ -513,7 +518,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
     if 'outputs' in base_dir.split('/')[-1]:
         ipw_type = 'outputs'
 
-    elif 'inputs' in listdir(base_dir):
+    elif inputs_dir in listdir(base_dir):
         ipw_type = 'inputs'
 
     else:
@@ -521,8 +526,8 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
 
     if ipw_type == 'inputs':
 
-        input_files = [osjoin(base_dir, 'inputs', el) for el in
-                       listdir(osjoin(base_dir, 'inputs'))]
+        input_files = [osjoin(base_dir, inputs_dir, el) for el in
+                       listdir(osjoin(base_dir, inputs_dir))]
 
         ipw0 = IPW(input_files[0])
         gt = ipw0.geotransform
@@ -551,19 +556,36 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
 
                 progress.update(i)
 
-        dem = IPW(osjoin(base_dir, 'tl2p5_dem.ipw'), file_type='dem')
-        mask = IPW(osjoin(base_dir, 'tl2p5mask.ipw'), file_type='mask')
-        init = IPW(osjoin(base_dir, 'init.ipw'))
+        # dem, mask may not exist
+        dem_mask_init_list = []
+        try:
+            dem = IPW(osjoin(base_dir, dem_file), file_type='dem')
+            dem_mask_init_list.append(dem)
+        except:
+            warnings.warn("No dem file found in " + base_dir)
+            pass
 
-        for el in [mask, dem, init]:
+        try:
+            mask = IPW(osjoin(base_dir, mask_file), file_type='mask')
+            dem_mask_init_list.append(mask)
+        except:
+            warnings.warn("No mask file found in " + base_dir)
+            pass
+
+        init = IPW(osjoin(base_dir, init_file))
+        dem_mask_init_list.append(init)
+
+        for el in dem_mask_init_list:
             _nc_insert_ipw(nc, el, None, gb.nLines, gb.nSamps)
 
         # precipitation files
         # read ppt_desc file and insert to nc with appropriate time step
         # we do not explicitly set any value for zero-precip time steps
-        ppt_pairs = [ppt_line.strip().split('\t')
+
+        space_regex = re.compile('\s+')
+        ppt_pairs = [space_regex.split(ppt_line.strip())  # ppt_line.strip().split('\t')
                      for ppt_line in
-                     open(osjoin(base_dir, 'ppt_desc'), 'r').readlines()]
+                     open(osjoin(base_dir, ppt_desc_path), 'r').readlines()]
 
         with ProgressBar(maxval=len(ppt_pairs)) as progress:
             for i, ppt_pair in enumerate(ppt_pairs):
