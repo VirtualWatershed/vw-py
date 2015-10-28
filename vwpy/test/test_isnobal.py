@@ -34,7 +34,7 @@ class TestIPW(unittest.TestCase):
         # mirrors what is done in class IPWLines
         # there are five bands in this one, so we'll get to test handling of
         # the "sun-down" number of bands. There is one more in daylight hours
-        test_file = 'wcwave_adaptors/test/data/in.0000'
+        test_file = 'vwpy/test/data/in.0000'
 
         with open(test_file, 'rb') as f:
             lines = f.readlines()
@@ -62,7 +62,7 @@ class TestIPW(unittest.TestCase):
 
     def test_read_precip(self):
         "Precip files read into precip_tuple_list"
-        pptfile = 'wcwave_adaptors/test/data/ppt_desc'
+        pptfile = 'vwpy/test/data/ppt_desc'
         pptlines = open(pptfile, 'r').readlines()
 
         ipw_tups = IPW.precip_tuple(pptfile)
@@ -83,7 +83,7 @@ class TestIPW(unittest.TestCase):
 
     def test_read_init(self):
         "Read init IPW file"
-        ipw = IPW('wcwave_adaptors/test/data/init.ipw')
+        ipw = IPW('vwpy/test/data/init.ipw')
         df = ipw.data_frame()
 
         assert all(df[['z', 'z_0']].sum().abs() > 0)
@@ -94,7 +94,7 @@ class TestIPW(unittest.TestCase):
 
     def test_read_mask(self):
         "Read mask IPW file"
-        ipw = IPW('wcwave_adaptors/test/data/tl2p5mask.ipw', file_type='mask')
+        ipw = IPW('vwpy/test/data/tl2p5mask.ipw', file_type='mask')
         df = ipw.data_frame()
 
         assert df.sum()['mask'] > 0
@@ -104,7 +104,7 @@ class TestIPW(unittest.TestCase):
 
     def test_read_dem(self):
         "Read DEM IPW file"
-        ipw = IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw', file_type='dem')
+        ipw = IPW('vwpy/test/data/tl2p5_dem.ipw', file_type='dem')
         df = ipw.data_frame()
 
         assert df.sum()['alt'] > 0
@@ -116,9 +116,9 @@ class TestIPW(unittest.TestCase):
     def test_bad_filetype(self):
         "When reading mask, dem, or ppt_desc, IPWFileError is thrown instead of KeyError when file_type is not given"
 
-        IPW('wcwave_adaptors/test/data/tl2p5mask.ipw')
-        IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw')
-        IPW('wcwave_adaptors/test/data/tl2p5_dem.ipw')
+        IPW('vwpy/test/data/tl2p5mask.ipw')
+        IPW('vwpy/test/data/tl2p5_dem.ipw')
+        IPW('vwpy/test/data/tl2p5_dem.ipw')
 
     def test_header_dict(self):
         """
@@ -229,7 +229,7 @@ class TestIPW(unittest.TestCase):
 
         # fetch the floating point data using the IPW tool primg
         # <http://cgiss.boisestate.edu/~hpm/software/IPW/man1/primg.html>
-        ipw_cmd = "primg -a -i wcwave_adaptors/test/data/in.0000"
+        ipw_cmd = "primg -a -i vwpy/test/data/in.0000"
         text_array = subprocess.check_output(ipw_cmd, shell=True)
         expectedDf = \
             pd.DataFrame(np.genfromtxt(StringIO(text_array), delimiter=" "),
@@ -435,7 +435,7 @@ class TestIPW(unittest.TestCase):
 
             os.remove(outfile)
 
-        test_data = ["wcwave_adaptors/test/data/" + f for f in
+        test_data = ["vwpy/test/data/" + f for f in
                      ("in.0000", "in.0010", "em.0134", "snow.1345")]
 
         i = 0
@@ -449,7 +449,7 @@ class TestIPW(unittest.TestCase):
         """
         Test start-to-finish steps of load, modify, and save an IPW file using the IPW class
         """
-        ipw = IPW("wcwave_adaptors/test/data/in.0000")
+        ipw = IPW("vwpy/test/data/in.0000")
         data_frame = ipw.data_frame()
         data_frame.T_a = data_frame.T_a + 2.0
         print data_frame.head()
@@ -457,10 +457,10 @@ class TestIPW(unittest.TestCase):
 
         ipw.recalculate_header()
 
-        outfile = "wcwave_adaptors/test/data/in.0000.modified"
+        outfile = "vwpy/test/data/in.0000.modified"
         ipw.write(outfile)
         # read in the float data array from the modified IPW file we just wrote
-        ipw_cmd = "primg -a -i wcwave_adaptors/test/data/in.0000"
+        ipw_cmd = "primg -a -i vwpy/test/data/in.0000"
         origTextArray = subprocess.check_output(ipw_cmd, shell=True)
 
         ipw_cmd = "primg -a -i " + outfile
@@ -656,7 +656,7 @@ class TestResampleIPW(unittest.TestCase):
                     assert band.varname == expected.varname
 
             # make sure file can be written-implicitly checks bands are correct
-            write_file = "wcwave_adaptors/test/data/tmp_write_reagg"
+            write_file = "vwpy/test/data/tmp_write_reagg"
             if os.path.isfile(write_file):
                 os.remove(write_file)
 
@@ -670,7 +670,7 @@ class TestResampleIPW(unittest.TestCase):
         # for this part, we'll use one real file so that the sum is just a prod
 
         # create ipws
-        test_file = "wcwave_adaptors/test/data/in.0000"
+        test_file = "vwpy/test/data/in.0000"
         ipws = [IPW(test_file) for i in range(4)]
 
         # artificially modify the start and end times
@@ -699,8 +699,8 @@ class TestResampleIPW(unittest.TestCase):
         assert t == 2
 
         # now save and re-load to check that all is well with headers
-        rtest0 = "wcwave_adaptors/test/data/in.tmp_reagg.0"
-        rtest1 = "wcwave_adaptors/test/data/in.tmp_reagg.1"
+        rtest0 = "vwpy/test/data/in.tmp_reagg.0"
+        rtest1 = "vwpy/test/data/in.tmp_reagg.1"
         rtest_files = [rtest0, rtest1]
 
         dt = pd.Timedelta('2 hours')
@@ -727,9 +727,9 @@ class TestResampleIPW(unittest.TestCase):
 class TestISNOBAL(unittest.TestCase):
     """Tests for particularities of the Python iSNOBAL interface"""
     def setUp(self):
-        nc_in_fname = 'wcwave_adaptors/test/data/ref_in.nc'
+        nc_in_fname = 'vwpy/test/data/ref_in.nc'
         self.nc_in = Dataset(nc_in_fname)
-        nc_out_fname = 'wcwave_adaptors/test/data/ref_out.nc'
+        nc_out_fname = 'vwpy/test/data/ref_out.nc'
         self.nc_out = Dataset(nc_out_fname)
 
     def test_is_isnobal(self):

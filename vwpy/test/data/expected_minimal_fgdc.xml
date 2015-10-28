@@ -6,7 +6,7 @@
 			<citeinfo>
 				<origin>Tri-State EPSCoR WC-WAVE</origin>
 				<pubdate>2015-05-07</pubdate>
-				<title>wcwave_adaptors/test/data/in.0010.I_lw.tif</title>
+				<title>vwpy/test/data/in.0000</title>
 			</citeinfo>
 		</citation>
 		<timeperd>
@@ -32,12 +32,6 @@
 		</spdom>
                 
 		<keywords>
-                    
-			<theme>
-			    <themekt>CF</themekt>
-			    <themekey>watershed</themekey>
-			</theme>		
-                        
                     
 			<place>
 				<placekt>None</placekt>
@@ -68,16 +62,6 @@
                 
 	</spdoinfo>
         
-	<spref>
-		<horizsys>
-			<geograph>
-				<latres>2.5</latres>
-				<longres>2.5</longres>
-				<geogunit>m</geogunit>
-			</geograph>
-		</horizsys>
-	</spref>
-        
 	<distinfo>
 		<distrib>
 			<cntinfo>
@@ -106,7 +90,7 @@
 		<stdorder>
 			<digform>
 				<digtinfo>
-                                        <formname>tif</formname>
+                                        <formname>ipw</formname>
 					<transize>0</transize>
 				</digtinfo>
 				<digtopt>

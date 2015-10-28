@@ -31,11 +31,11 @@ class TestIsnobalNetCDF(unittest.TestCase):
         self.nlines = 148
         self.nsamps = 170
 
-        self.base_data_dir = 'wcwave_adaptors/test/data'
+        self.base_data_dir = 'vwpy/test/data'
         self.full_nc_base_dir = os.path.join(self.base_data_dir,
                                              'full_nc_example')
 
-        self.full_nc_out = 'wcwave_adaptors/test/data/full_nc_example/nc.tmp'
+        self.full_nc_out = 'vwpy/test/data/full_nc_example/nc.tmp'
 
     def test_generate_standard_nc_inputs(self):
         "Check that a sample NetCDF is properly built from a series of inputs"
@@ -82,7 +82,7 @@ class TestIsnobalNetCDF(unittest.TestCase):
         Can't use the _validate_nc because we are sequentially adding IPW file
         types: precipitation, init, inputs
         """
-        datadir = "wcwave_adaptors/test/data/"
+        datadir = "vwpy/test/data/"
 
         ipw = IPW(datadir + 'in.0000')
 
@@ -327,7 +327,7 @@ def _validate_nc(test_obj, nc, type_='inputs'):
 
         ppt_idx = [int(ppt_line.strip().split('\t')[0])
                    for ppt_line in
-                   open('wcwave_adaptors/test/data/ppt_desc', 'r').readlines()]
+                   open('vwpy/test/data/ppt_desc', 'r').readlines()]
 
         for idx, varname in enumerate(group_varnames):
 
@@ -395,8 +395,8 @@ class TestNetCDF(unittest.TestCase):
     """
 
     def setUp(self):
-        self.cdl_build_path = 'wcwave_adaptors/test/test_cdl_path.cdl'
-        self.nc_out_path = 'wcwave_adaptors/test/test_nc_from_template.nc'
+        self.cdl_build_path = 'vwpy/test/test_cdl_path.cdl'
+        self.nc_out_path = 'vwpy/test/test_nc_from_template.nc'
 
     def test_utm_latlon_conversion(self):
         "check utm to latlon conversion of Dry Creek actually maps there"

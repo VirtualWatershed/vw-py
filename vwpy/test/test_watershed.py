@@ -51,7 +51,7 @@ class bcolors:
     RED = '\033[91m'
     ENDC = '\033[0m'
 
-VW_CLIENT = default_vw_client('wcwave_adaptors/test/test.conf')
+VW_CLIENT = default_vw_client('vwpy/test/test.conf')
 
 
 class TestJSONMetadata(unittest.TestCase):
@@ -62,7 +62,7 @@ class TestJSONMetadata(unittest.TestCase):
         initialize the class with some appropriate entry
         metadata from file
         """
-        self.config = _get_config('wcwave_adaptors/test/test.conf')
+        self.config = _get_config('vwpy/test/test.conf')
 
         self.modelRunUUID = '09079630-5ef8-11e4-9803-0800200c9a66'
         self.parentModelRunUUID = '373ae181-a0b2-4998-ba32-e27da190f6dd'
@@ -72,14 +72,14 @@ class TestJSONMetadata(unittest.TestCase):
 
         # minimal watershed JSON with geotiff
         generated = make_watershed_metadata(
-            'wcwave_adaptors/test/data/in.0010.I_lw.tif',
+            'vwpy/test/data/in.0010.I_lw.tif',
             self.config, 'MODELRUNXX**A*', 'MODELRUNXX**A*', 'inputs',
             'Dry Creek', 'Idaho', file_ext='tif', taxonomy='geoimage',
             model_name='isnobal', proc_date='2015-05-08')
 
         # load expected json metadata file
         expected = \
-            open('wcwave_adaptors/test/data/expected_minimal_tif_watershed.json',
+            open('vwpy/test/data/expected_minimal_tif_watershed.json',
                  'r').read()
 
         # check equality
@@ -88,12 +88,12 @@ class TestJSONMetadata(unittest.TestCase):
 
         # minimal watershed JSON with iSNOBAL binary
         generated = make_watershed_metadata(
-            'wcwave_adaptors/test/data/in.0010',
+            'vwpy/test/data/in.0010',
             self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
             'Dry Creek', 'Idaho', file_ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
             model_name='isnobal', proc_date='2015-05-08')
 
-        expected = open('wcwave_adaptors/test/data/expected_minimal_isno_watershed.json',
+        expected = open('vwpy/test/data/expected_minimal_isno_watershed.json',
                         'r').read()
 
 
@@ -102,7 +102,7 @@ class TestJSONMetadata(unittest.TestCase):
             show_string_diff(generated, expected)
 
         # full watershed JSON with geotiff
-        xml = make_fgdc_metadata('wcwave_adaptors/test/data/in.0010.I_lw.tif',
+        xml = make_fgdc_metadata('vwpy/test/data/in.0010.I_lw.tif',
                                  self.config, 'MODELRUNXX**AA*',
                                  "2010-10-01", "2011-09-31",
                                  proc_date="2015-05-07",
@@ -111,7 +111,7 @@ class TestJSONMetadata(unittest.TestCase):
                                  lon_res=2.5, map_units='m')
 
         generated = make_watershed_metadata(
-            'wcwave_adaptors/test/data/in.0010.I_lw.tif',
+            'vwpy/test/data/in.0010.I_lw.tif',
             self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
             'Dry Creek', 'Idaho', fgdc_metadata=xml,
             orig_epsg=26911, epsg=4326, model_set_type='tif', model_vars='I_lw',
@@ -119,7 +119,7 @@ class TestJSONMetadata(unittest.TestCase):
             end_datetime='2010-10-01 11:00:00', model_name='isnobal')
 
         # load expected json metadata file
-        expected = open('wcwave_adaptors/test/data/expected_full_tif_watershed.json',
+        expected = open('vwpy/test/data/expected_full_tif_watershed.json',
                         'r').read()
 
         # check equality
@@ -127,7 +127,7 @@ class TestJSONMetadata(unittest.TestCase):
             show_string_diff(generated, expected)
 
         # full watershed JSON with iSNOBAL binary
-        xml = make_fgdc_metadata('wcwave_adaptors/test/data/in.0010',
+        xml = make_fgdc_metadata('vwpy/test/data/in.0010',
                                  self.config, 'MODELRUNXX**AA*',
                                  "2010-10-01", "2011-09-31",
                                  proc_date="2015-05-07",
@@ -136,7 +136,7 @@ class TestJSONMetadata(unittest.TestCase):
                                  lon_res=2.5, map_units='m', file_ext='bin')
 
         generated = make_watershed_metadata(
-            'wcwave_adaptors/test/data/in.0010',
+            'vwpy/test/data/in.0010',
             self.config, 'MODELRUNXX**A*','MODELRUNXX**A*', 'inputs',
             'Dry Creek', 'Idaho', fgdc_metadata=xml,
             start_datetime='2010-01-01 10:00:00', end_datetime='2010-01-01 11:00:00',
@@ -145,7 +145,7 @@ class TestJSONMetadata(unittest.TestCase):
             model_name='isnobal')
 
 
-        expected = open('wcwave_adaptors/test/data/expected_full_isno_watershed.json',
+        expected = open('vwpy/test/data/expected_full_isno_watershed.json',
                         'r').read()
 
         # check equality
@@ -161,28 +161,28 @@ class TestFGDCMetadata(unittest.TestCase):
         """ initialize the class with some appropriate entry
             metadata from file
         """
-        self.config = _get_config('wcwave_adaptors/test/test.conf')
+        self.config = _get_config('vwpy/test/test.conf')
 
         self.modelRunUUID = '09079630-5ef8-11e4-9803-0800200c9a66'
-        self.dataFile = 'wcwave_adaptors/test/data/in.0000'
+        self.dataFile = 'vwpy/test/data/in.0000'
 
     def testCorrectMetadatum(self):
         """ Test that a single metadata JSON string is properly built (FGDC)"""
         cfg = self.config
 
-        generated = make_fgdc_metadata('wcwave_adaptors/test/data/in.0000',
+        generated = make_fgdc_metadata('vwpy/test/data/in.0000',
                                        cfg, 'MODELRUNXX**AA*', "2010-10-01",
                                        "2011-09-31", proc_date="2015-05-07",
                                        file_ext='ipw')
 
-        expected = open('wcwave_adaptors/test/data/expected_minimal_fgdc.xml',
+        expected = open('vwpy/test/data/expected_minimal_fgdc.xml',
                         'r').read()
 
         assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
         generated = \
-            make_fgdc_metadata('wcwave_adaptors/test/data/in.0010.I_lw.tif',
+            make_fgdc_metadata('vwpy/test/data/in.0010.I_lw.tif',
                                cfg, 'MODELRUNXX**AA*',
                                "2010-10-01", "2011-09-31",
                                proc_date="2015-05-07",
@@ -190,7 +190,7 @@ class TestFGDCMetadata(unittest.TestCase):
                                column_count=124, lat_res=2.5,
                                lon_res=2.5, map_units='m')
 
-        expected = open('wcwave_adaptors/test/data/expected_full_fgdc.xml',
+        expected = open('vwpy/test/data/expected_full_fgdc.xml',
                         'r').read()
 
         assert generated.strip() == expected.strip(), \
@@ -209,7 +209,7 @@ class TestVWClient(unittest.TestCase):
             s = VW_CLIENT.delete_modelrun(u)
             print "pre-test cleanup success on %s: %s" % (u, str(s))
 
-        self.config = _get_config('wcwave_adaptors/test/test.conf')
+        self.config = _get_config('vwpy/test/test.conf')
 
         self.kwargs = {'keywords': 'Snow,iSNOBAL,wind',
                        'researcher_name': self.config['Researcher']['researcher_name'],
@@ -220,12 +220,12 @@ class TestVWClient(unittest.TestCase):
 
         self.parent_uuid = self.UUID
 
-        VW_CLIENT.upload(self.UUID, 'wcwave_adaptors/test/data/in.0000')
+        VW_CLIENT.upload(self.UUID, 'vwpy/test/data/in.0000')
 
-        fgdc_md = make_fgdc_metadata('wcwave_adaptors/test/data/in.0000',
+        fgdc_md = make_fgdc_metadata('vwpy/test/data/in.0000',
             self.config, self.UUID, "2010-10-01 00:00:00", "2010-10-01 01:00:00")
 
-        wmd_from_file = metadata_from_file('wcwave_adaptors/test/data/in.0000',
+        wmd_from_file = metadata_from_file('vwpy/test/data/in.0000',
             self.UUID, self.UUID, 'unittest for download', 'Dry Creek', 'Idaho',
             start_datetime="2010-10-01 00:00:00",
             end_datetime="2010-10-01 01:00:00",
@@ -298,9 +298,9 @@ class TestVWClient(unittest.TestCase):
         UUID = \
             VW_CLIENT.initialize_modelrun(**kwargs)
 
-        VW_CLIENT.upload(UUID, 'wcwave_adaptors/test/data/in.0000')
+        VW_CLIENT.upload(UUID, 'vwpy/test/data/in.0000')
 
-        dataFile = 'wcwave_adaptors/test/data/in.0000'
+        dataFile = 'vwpy/test/data/in.0000'
 
         fgdcXML = \
             make_fgdc_metadata(dataFile, self.config, UUID,
@@ -340,7 +340,7 @@ class TestVWClient(unittest.TestCase):
 
         url = results.records[0]['downloads'][0]['bin']
 
-        outfile = "wcwave_adaptors/test/data/back_in.0000"
+        outfile = "vwpy/test/data/back_in.0000"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
@@ -353,7 +353,7 @@ class TestVWClient(unittest.TestCase):
         os.remove(outfile)
 
         # now do the same for netcdf
-        nc_file = 'wcwave_adaptors/test/data/flat_sample.nc'
+        nc_file = 'vwpy/test/data/flat_sample.nc'
 
         VW_CLIENT.upload(self.UUID, nc_file)
 
@@ -371,7 +371,7 @@ class TestVWClient(unittest.TestCase):
                   for r in VW_CLIENT.dataset_search(model_run_uuid=self.UUID).records
                   if r['name'].split('.')[-1] == 'nc'][0]
 
-        outfile = "wcwave_adaptors/test/data/back_in.nc"
+        outfile = "vwpy/test/data/back_in.nc"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
@@ -387,7 +387,7 @@ class TestVWClient(unittest.TestCase):
         """ VW Client properly uploads data using the swift client"""
 
         # now do the same for netcdf
-        nc_file = 'wcwave_adaptors/test/data/flat_sample_for_swift.nc'
+        nc_file = 'vwpy/test/data/flat_sample_for_swift.nc'
 
         res = VW_CLIENT.swift_upload(self.UUID, nc_file)
 
@@ -405,7 +405,7 @@ class TestVWClient(unittest.TestCase):
                   for r in VW_CLIENT.dataset_search(model_run_uuid=self.UUID).records
                   if r['name'].split('.')[-1] == 'nc'][0]
 
-        outfile = "wcwave_adaptors/test/data/back_in.nc"
+        outfile = "vwpy/test/data/back_in.nc"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
@@ -427,7 +427,7 @@ class TestVWClient(unittest.TestCase):
         r0 = result.records[0]
         url = r0['downloads'][0]['bin']
 
-        outfile = "wcwave_adaptors/test/data/test_dl.file"
+        outfile = "vwpy/test/data/test_dl.file"
 
         if os.path.isfile(outfile):
             os.remove(outfile)
@@ -450,7 +450,7 @@ class TestVWClient(unittest.TestCase):
         """
         Check that a directory and individual files are correctly uploaded/inserted to VW
         """
-        test_conf = "wcwave_adaptors/test/test.conf"
+        test_conf = "vwpy/test/test.conf"
         vwc = default_vw_client(test_conf)
 
         # convenience for testing upsert performed as expected
@@ -488,7 +488,7 @@ class TestVWClient(unittest.TestCase):
 
             assert i == num_expected
 
-        upsert_dir = 'wcwave_adaptors/test/data/upsert_test/'
+        upsert_dir = 'vwpy/test/data/upsert_test/'
 
         ## test upsert of entire directory
         # as a brand-new parent/model run
@@ -506,7 +506,7 @@ class TestVWClient(unittest.TestCase):
 
         # with no slash after directory name
         parent_uuid, UUID = \
-            upsert('wcwave_adaptors/test/data/upsert_test', 'Dry Creek',
+            upsert('vwpy/test/data/upsert_test', 'Dry Creek',
                    'Idaho', model_name='isnobal', config_file=test_conf,
                    file_ext='bin', **kwargs)
         _worked(parent_uuid, UUID)
@@ -559,7 +559,7 @@ class TestVWClient(unittest.TestCase):
         Test watershed functions operating on an IPW instance or as a static method
         """
         # load expected json metadata file
-        expected = open('wcwave_adaptors/test/data/expected_ipw_metadata.json',
+        expected = open('vwpy/test/data/expected_ipw_metadata.json',
                         'r').read()
 
         description = 'Testing metadata!'
@@ -568,13 +568,13 @@ class TestVWClient(unittest.TestCase):
         parent_uuid = '373ae181-a0b2-4998-ba32-e27da190f6dd'
         uuid = '09079630-5ef8-11e4-9803-0800200c9a66'
 
-        generated = metadata_from_file('wcwave_adaptors/test/data/in.0000',
+        generated = metadata_from_file('vwpy/test/data/in.0000',
                                        parent_uuid,
                                        uuid,
                                        description, 'Dry Creek', 'Idaho',
                                        model_name='isnobal',
                                        file_ext='bin',
-                                       config_file='wcwave_adaptors/test/test.conf',
+                                       config_file='vwpy/test/test.conf',
                                        proc_date='2015-07-14')
 
         # check equality
@@ -593,10 +593,10 @@ class TestVWClient(unittest.TestCase):
         generated = metadata_from_file(
             os.path.dirname(__file__) + '/data/in.0008.I_lw.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
-            config_file='wcwave_adaptors/test/test.conf', model_vars='I_lw',
+            config_file='vwpy/test/test.conf', model_vars='I_lw',
             proc_date="2015-05-12")
 
-        expected = open('wcwave_adaptors/test/data/expected_tif.json', 'r').read()
+        expected = open('vwpy/test/data/expected_tif.json', 'r').read()
 
         assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
@@ -607,10 +607,10 @@ class TestVWClient(unittest.TestCase):
         generated = metadata_from_file(
             os.path.dirname(__file__) + '/data/in.0008.I_lw.tif',
             parent_uuid, uuid, 'Testing metadata!', 'Dry Creek', 'Idaho',
-            config_file='wcwave_adaptors/test/test.conf', dt=dt,
+            config_file='vwpy/test/test.conf', dt=dt,
             model_vars='melt', proc_date="2015-05-12")
 
-        expected = open('wcwave_adaptors/test/data/expected_tif_nonhourdt.json',
+        expected = open('vwpy/test/data/expected_tif_nonhourdt.json',
                         'r').read()
 
         assert generated.strip() == expected.strip(), \

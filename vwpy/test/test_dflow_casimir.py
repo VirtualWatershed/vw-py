@@ -19,16 +19,16 @@ class TestDflow(unittest.TestCase):
     Functions for working with DFLOW inputs and outputs
     """
     def setUp(self):
-        self.ascii_veg = 'wcwave_adaptors/test/data/dflow_casimir/vegcode.asc'
+        self.ascii_veg = 'vwpy/test/data/dflow_casimir/vegcode.asc'
         self.excel_veg_to_nval = \
-            'wcwave_adaptors/test/data/dflow_casimir/lookup_table.xlsx'
+            'vwpy/test/data/dflow_casimir/lookup_table.xlsx'
         self.expected_ascii_roughness = \
-            'wcwave_adaptors/test/data/dflow_casimir/roughness.asc'
+            'vwpy/test/data/dflow_casimir/roughness.asc'
 
         self.expected_ascii_nvals = \
             ESRIAsc(self.expected_ascii_roughness)
 
-        self.config = _get_config('wcwave_adaptors/test/test.conf')
+        self.config = _get_config('vwpy/test/test.conf')
 
         self.vwc = default_vw_client()
 
@@ -43,7 +43,7 @@ class TestDflow(unittest.TestCase):
         self.model_run_uuid = \
             self.vwc.initialize_modelrun('dflow_casimir unittest',
                                          'unittest run '.format(datetime.now()),
-                                         'wcwave_adaptors unittester',
+                                         'vwpy unittester',
                                          'test,unittest')
 
     def test_asc_veg_to_nvals(self):
