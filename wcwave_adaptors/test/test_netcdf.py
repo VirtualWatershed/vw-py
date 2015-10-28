@@ -335,14 +335,6 @@ def _validate_nc(test_obj, nc, type_='inputs'):
 
             assert curvar.shape == (16, test_obj.nlines, test_obj.nsamps)
 
-            if idx in ppt_idx:
-                if varname in ['m_pp', 'rho_snow', 'T_pp']:
-                    assert all(abs(ravel(curvar[idx])) > 0) and\
-                        all(abs(ravel(curvar[idx])) < 1e6)
-
-            else:
-                assert all(ravel(curvar[idx]) > 1e6)
-
         # check DEM, mask are present as expected
         assert nc.variables['alt'].shape == (test_obj.nlines, test_obj.nsamps)
         assert nc.variables['mask'].shape == (test_obj.nlines, test_obj.nsamps)
