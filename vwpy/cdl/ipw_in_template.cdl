@@ -9,6 +9,11 @@ netcdf {{ write_filename }} {
     :dline = {{ dline }};
     :dsamp = {{ dsamp }};
 
+    // projection info for visualization
+    {% if projection_info %}
+        :projection_info = {{ projection_info }};
+    {% endif %}
+
     // assumed constant over the grid (for completeness only; these are apparently
     // internally set (see http://cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html)
     // all are in meters

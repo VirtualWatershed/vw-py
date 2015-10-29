@@ -85,7 +85,7 @@ def _create_isnobal_nc_from_dir(tif_dir, data_tstep=60, output_frequency=1,
     """
     After the zip file has been unzipped, this function parses the filenames
     and data in the `tif_dir`. Each geotiff in the file corresponds to a
-    specific variable and timestep. We construct an xray Dataset in four parts:
+    specific variable and timestep. We construct a Dataset in four parts:
     1) initialize the space and time coordinates and variables
     2) insert data in the matching variable and timestep
 
@@ -97,11 +97,14 @@ def _create_isnobal_nc_from_dir(tif_dir, data_tstep=60, output_frequency=1,
         tif_dir (str): path to directory where geotiffs are stored
 
     Returns:
-        (xray.Dataset): NetCDF representation of isnobal inputs
+        (netCDF4.Dataset): NetCDF representation of isnobal inputs
     """
     # extract geo information from one raster; assume (TODO check) it matches
     tifs = glob.glob(os.path.join(tif_dir, '*'))
     tif0 = gdal.Open(tifs[0])
+
+    # get projection info from geotiff
+    projection_info = tif0.GetProjection()
 
     # build easting and northing vectors
     n_northings = tif0.RasterXSize
@@ -141,7 +144,8 @@ def _create_isnobal_nc_from_dir(tif_dir, data_tstep=60, output_frequency=1,
                          year=earliest_time.year,
                          month=earliest_time.month,
                          day=earliest_time.day,
-                         hour=earliest_time.hour)
+                         hour=earliest_time.hour,
+                         projection_info=projection_info)
 
     nc = ncgen_from_template(
         'ipw_in_template.cdl', nc_out, clobber=True, **template_args
