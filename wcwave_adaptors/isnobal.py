@@ -152,7 +152,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
         # TODO sanitize this isnobalcmd or better yet, avoid shell=True
         print 'running isnobal'
         kwargs['event_name'] = 'running_isonbal'
-        kwargs['event_description'] = 'Running the actual model'
+        kwargs['event_description'] = 'Running the ISNOBAL model'
         kwargs['progress_value'] = 50
         if event_emitter:
             event_emitter.emit('progress',**kwargs)
@@ -633,7 +633,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                 progress.update(i)
                 #print event_emitter
                 kwargs['event_name'] = 'ouptut_ipw_to_nc'
-                kwargs['event_description'] = 'creating output nc file fro moutput ipw'
+                kwargs['event_description'] = 'creating output netcdf file from output ipw files'
                 kwargs['progress_value'] =  format((float(i)/len(output_files)) * 100,'.2f')
                 if event_emitter:
                     event_emitter.emit('progress',**kwargs)
@@ -801,7 +801,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',event_e
         zeropad_factor = floor(log10(tsteps))
 
         file_type = 'in'
-        print 'creating input ipw for each timestep form nc '
+        print 'creating input ipw files for each timestep from the input netcdf file (stage 1)'
         with ProgressBar(maxval=time_index[-1]) as progress:
             for i, idx in enumerate(time_index):
                 if idx < 10:
@@ -817,7 +817,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',event_e
 
                 progress.update(i)
                 kwargs['event_name'] = 'processing_input'
-                kwargs['event_description'] = 'creating input ipw for each timestep form nc'
+                kwargs['event_description'] = 'creating input ipw files for each timestep from the input netcdf file (stage 1)'
                 kwargs['progress_value'] = format((float(i)/time_index[-1]) * 100, '.2f')
 
                 if event_emitter:
@@ -872,7 +872,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',event_e
 
         # this should be mostly right except for ppt_desc and ppt data dir
         with open(osjoin(ipw_base_dir, 'ppt_desc'), 'w') as ppt_desc:
-            print 'updating 2'
+            print 'creating input ipw files for each timestep from the input netcdf file (stage 2)'
             with ProgressBar(maxval=len(time_indexes)) as progress:
 
                 for i, idx in enumerate(time_indexes):
@@ -887,7 +887,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',event_e
 
                     progress.update(i)
                     kwargs['event_name'] = 'processing_input2'
-                    kwargs['event_description'] = 'creating input ipw for each timestep form nc 2'
+                    kwargs['event_description'] = 'creating input ipw files for each timestep from the input netcdf file (stage 2)'
                     kwargs['progress_value'] = format((float(i)/len(time_indexes)) * 100, '.2f')
                     if event_emitter:
                         event_emitter.emit('progress',**kwargs)
