@@ -214,8 +214,17 @@ class ESRIAsc:
             f.write("yllcorner {}\n".format(self.yllcorner))
             f.write("cellsize {}\n".format(self.cellsize))
             f.write("NODATA_value {}\n".format(self.NODATA_value))
-            f.write(' '.join(self.data.map(lambda val: str(val)).values)
-                    + '\n')
+
+            # prob not most efficient, but CASiMiR requires
+            # ESRI Ascii w/ newlines
+            f.write(
+                '\n'.join(
+                    [
+                        ' '.join([str(v) for v in row])
+                        for row in self.as_matrix()
+                    ]
+                )
+            )
 
     def __eq__(self, other):
 
