@@ -2,24 +2,26 @@
 Ingestion and access routines for working with the ISU gridding tools.
 
 Author: Matthew Turner
-Date: 8/7/2015
+Date: 9/30/2015
 """
 import gdal
 import glob
 import os.path
+import re
 
-from numpy import array, full, ones
-from numpy.random import randn
+from datetime import datetime
+from numpy import array
 from os import mkdir
 from pandas import to_datetime
 from uuid import uuid4
-from xray import Dataset
+
 from zipfile import ZipFile
 
-from .isnobal import AssertISNOBALInput, VARNAME_BY_FILETYPE
+from .isnobal import AssertISNOBALInput, ncgen_from_template
 from .netcdf import utm2latlon
 
-def create_isnobal_dataset(tif_zip, unzip_dir=None):
+
+def create_isnobal_dataset(tif_zip, unzip_dir=None, nc_out=None):
     """
     Public function to create an isnobal dataset from a tif zip file returned
     by the ISU Gridding Tool.
@@ -29,7 +31,7 @@ def create_isnobal_dataset(tif_zip, unzip_dir=None):
         unzip_dir (str): where the tifs should go. if None, a temp dir is created
 
     Returns:
-        (xray.Dataset) loaded with input (init, precip, in) required to run
+        (netCDF4.Dataset) loaded with input (init, precip, in) required to run
         iSNOBAL
     """
     # create temp directory if no unzip dir is specified
@@ -41,7 +43,7 @@ def create_isnobal_dataset(tif_zip, unzip_dir=None):
 
     _unzip_geotiffs(tif_zip, unzip_dir)
 
-    return _create_isnobal_nc_from_dir(unzip_dir)
+    return _create_isnobal_nc_from_dir(unzip_dir, nc_out=nc_out)
 
 
 def _unzip_geotiffs(tif_zip, unzip_dir):
@@ -53,8 +55,33 @@ def _unzip_geotiffs(tif_zip, unzip_dir):
         if os.path.splitext(zi.filename)[-1] == '.tif':
             zf.extract(zi, unzip_dir)
 
+INIT_LOOKUP = dict(
+    z_0='roughness_length',
+    rho='snow_density',
+    T_s_0='active_snow_layer_temperature',
+    T_s='average_snow_cover_temperature',
+    h2o_sat='H2O_saturation'
+)
 
-def _create_isnobal_nc_from_dir(tif_dir):
+CLIMATE_LOOKUP = dict(
+    # iSNOBAL 'in' non-precip variables
+    I_lw='thermal_radiation',
+    T_a='air_temperature',
+    e_a='vapor_pressure',
+    u='wind_speed',
+    T_g='soil_temperature',
+    S_n='solar_radiation',
+
+    # precipitation
+    m_pp='precipitation_mass',
+    percent_snow='percent_snow',
+    rho_snow='precipitation_snow_density',
+    T_pp='dew_point_temperature'
+)
+
+
+def _create_isnobal_nc_from_dir(tif_dir, data_tstep=60, output_frequency=1,
+                                dt=1, nc_out=None):
     """
     After the zip file has been unzipped, this function parses the filenames
     and data in the `tif_dir`. Each geotiff in the file corresponds to a
@@ -77,11 +104,8 @@ def _create_isnobal_nc_from_dir(tif_dir):
     tif0 = gdal.Open(tifs[0])
 
     # build easting and northing vectors
-    # XXX temporary fix until ISU fixes varied gridding size
-    n_northings = 1689
-    n_eastings = 1120
-    # n_northings = tif0.RasterXSize
-    # n_eastings = tif0.RasterYSize
+    n_northings = tif0.RasterXSize
+    n_eastings = tif0.RasterYSize
 
     geotransform = tif0.GetGeoTransform()
     easting = geotransform[0]
@@ -99,123 +123,77 @@ def _create_isnobal_nc_from_dir(tif_dir):
     lat_vec = latlon_arr[:, 0].squeeze()
     lon_vec = latlon_arr[:, 1].squeeze()
 
-    # build datetimes array; t_a is present for every input; use that
-    all_ta = glob.glob(os.path.join(tif_dir, 'T_a*'))
+    # build datetimes array using air temp, which is present for every input
+    all_ta = glob.glob(os.path.join(tif_dir, 'air_temperature*'))
 
-    _get_timestamp = \
-        lambda tif_path: tif_path.split('_')[-1].replace('.tif', '')
-
-    time_index = to_datetime(map(_get_timestamp, all_ta)).order()
+    time_index = to_datetime(map(_read_timestamp, all_ta)).order()
     n_timesteps = len(time_index)
+    earliest_time = time_index[0]
 
-    vardict = VARNAME_BY_FILETYPE
+    # initialize netCDF
+    template_args = dict(bline=easting, bsamp=northing, dline=d_easting,
+                         dsamp=d_northing, nsamps=n_eastings,
+                         nlines=n_northings, data_tstep=data_tstep,
+                         nsteps=n_timesteps, output_frequency=output_frequency,
+                         dt=dt,
+                         year=earliest_time.year,
+                         month=earliest_time.month,
+                         day=earliest_time.day,
+                         hour=earliest_time.hour)
 
-    coords = {'easting': easting_vec, 'northing': northing_vec,
-              'time': time_index, 'reference_time': time_index[0]}
+    nc = ncgen_from_template(
+        'ipw_in_template.cdl', nc_out, clobber=True, **template_args
+    )
 
-    dataset = Dataset(coords=coords)
+    # build coordinates
+    nc['northing'][:] = northing_vec
+    nc['easting'][:] = easting_vec
+    nc['lat'][:] = lat_vec.reshape((n_northings, n_eastings))
+    nc['lon'][:] = lon_vec.reshape((n_northings, n_eastings))
 
-    # add some additional stuff
-    # XXX fake elevation until ISU gives me elevation
-    alt = 1000 + randn(n_eastings, n_northings)*50
+    # insert time-independent initialization bands
+    # XXX set initial snow depth to zero
+    nc['z_s'][:] = 0.0
 
-    # all points are being used, so all mask values are 1
-    mask = ones((n_eastings, n_northings))
+    for k, v in INIT_LOOKUP.iteritems():
 
-    # insert lon, lat, alt
-    lon = lon_vec.reshape((n_eastings, n_northings))
-    lat = lat_vec.reshape((n_eastings, n_northings))
-    dataset.update(Dataset(
-        {
-            'lon': (['easting', 'northing'], lon),
-            'lat': (['easting', 'northing'], lat),
-            'mask': (['easting', 'northing'], mask),
-            'alt': (['easting', 'northing'], alt)
-        }, coords=coords))
+        f = glob.glob(tif_dir + '/*' + v + '*')
+        assert len(f) == 1, "there should be only one timestep of init vars"
+        gdl_tif = gdal.Open(f.pop())
+        rb = gdl_tif.GetRasterBand(1)
+        arr = rb.ReadAsArray()
+        nc[k][:] = arr
 
-    # initialize 3D input and precipitation variables
-    for varname in (vardict['in'] + vardict['precip']):
+    # insert time-dependent non-precip input bands
+    for k, v in CLIMATE_LOOKUP.iteritems():
+        file_list = glob.glob(tif_dir + '/*' + v + '*')
+        for f in file_list:
+            # extract date from path and insert in proper output nc location
+            dtime = _read_timestamp(f)
+            i_nc = time_index.get_loc(dtime)
 
-        # initialize the variable
-        data = full((n_timesteps, n_eastings, n_northings), -9999.)
+            gdl_tif = gdal.Open(f)
+            rb = gdl_tif.GetRasterBand(1)
+            nc[k][i_nc, :] = rb.ReadAsArray()
 
-        # glob on that variable name
-        glb = glob.glob(os.path.join(tif_dir, varname + '*'))
+    AssertISNOBALInput(nc)
 
-        for g in glb:
-            # use extract timestamp off end of file
-            timestamp = g.split('_')[-1].replace('.tif', '')
-            # get index of the tif based on date lookup
-            tif_idx = time_index.get_loc(timestamp)
+    return nc
 
-            tif = gdal.Open(g)
 
-            # XXX remove this once Joel fixes the grid size issue
-            cur_n_northings = tif.RasterXSize
-            cur_n_eastings = tif.RasterYSize
+DATE_REGEX = re.compile('[0-9]{8}_[0-9]{2}')
 
-            tif_array = tif.GetRasterBand(1).ReadAsArray()
-            tif_array[tif_array < -1e30] = 0.0
-            # XXX when bug in grid size is fixed,
-            data[tif_idx, :cur_n_eastings, :cur_n_northings] = tif_array
-            # data[tif_idx] = tif.GetRasterBand(1).ReadAsArray()
 
-            dataset.update(Dataset({varname: (['time', 'easting', 'northing'],
-                                              data)},
-                           coords=coords))
+def _read_timestamp(tif_path):
+    """
+    Parse the ISU timestamp formatted as %Y%m%d_%H
+    https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior
 
-    # XXX generate fake random wind speeds until ISU provides
-    wind_speed = abs(10*randn(n_timesteps, n_eastings, n_northings))
+    Returns:
+        (datetime.datetime)
+    """
+    tif_datestr = re.search(DATE_REGEX, tif_path).group()
 
-    dataset.update(Dataset({'u': (['time', 'easting', 'northing'],
-                                  wind_speed)},
-                           coords=coords)
-                   )
+    tif_datetime = datetime.strptime(tif_datestr, '%Y%m%d_%H')
 
-    # initialize 2D init image
-    init_varnames = vardict['init']
-    for varname in init_varnames:
-
-        min_datetime = time_index[0]
-        min_timestamp = min_datetime.isoformat()
-
-        # glob on that variable name
-        glob_path = os.path.join(tif_dir,
-                                 varname + '_' + min_timestamp + '.tif')
-
-        glb = glob.glob(glob_path)
-
-        assert len(glb) == 1, \
-            "There are more than one timestep's worth of init data " \
-            "in the zip file:\nvariable:{}\nglob:{}".format(varname, glb)
-
-        # initialize the variable
-        data = full((n_eastings, n_northings), -9999.)
-
-        tif = gdal.Open(glb[0])
-
-        # XXX remove this once Joel fixes the grid size issue
-        cur_n_northings = tif.RasterXSize
-        cur_n_eastings = tif.RasterYSize
-
-        tif_array = tif.GetRasterBand(1).ReadAsArray()
-        tif_array[tif_array < -1e30] = 0.0
-
-        data[:cur_n_eastings, :cur_n_northings] = tif_array
-
-        dataset.update(Dataset({varname: (['easting', 'northing'], data)},
-                       coords=coords))
-
-    dataset.attrs.update({
-        'nsteps': n_timesteps,
-        'data_tstep': 60,  # time interval between inputs in _minutes_
-        'output_frequency': 1,
-        'bline': northing,
-        'bsamp': easting,
-        'dline': d_northing,
-        'dsamp': d_easting
-    })
-
-    AssertISNOBALInput(dataset)
-
-    return dataset
+    return tif_datetime

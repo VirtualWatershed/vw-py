@@ -504,7 +504,7 @@ class IPW(object):
 
 def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                          output_frequency=1, dt='hours', year=2010, month=10,
-                         day='01',event_emitter=None,**kwargs):
+                         day='01',hour='',event_emitter=None,**kwargs):
     """Use the utilities from netcdf.py to convert standard set of either input
        or output files to a NetCDF4 file. A standard set of files means
 
@@ -536,6 +536,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
         raise IPWFileError("%s does not meet standards" % base_dir)
 
     if ipw_type == 'inputs':
+
         input_files = [osjoin(base_dir, 'inputs', el) for el in
                        listdir(osjoin(base_dir, 'inputs'))]
 
@@ -551,7 +552,7 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
                              dsamp=gt[1], nsamps=gb.nSamps, nlines=gb.nLines,
                              data_tstep=data_tstep, nsteps=nsteps,
                              output_frequency=output_frequency, dt=dt,
-                             year=year, month=month, day=day)
+                             year=year, month=month, day=day, hour=hour)
 
         # initialize the nc file
         nc = ncgen_from_template('ipw_in_template.cdl', nc_out, clobber=True,
@@ -580,7 +581,9 @@ def generate_standard_nc(base_dir, nc_out=None, data_tstep=60,
         for el in [mask, dem, init]:
             _nc_insert_ipw(nc, el, None, gb.nLines, gb.nSamps)
 
+        # precipitation files
         # read ppt_desc file and insert to nc with appropriate time step
+        # we do not explicitly set any value for zero-precip time steps
         ppt_pairs = [ppt_line.strip().split('\t')
                      for ppt_line in
                      open(osjoin(base_dir, 'ppt_desc'), 'r').readlines()]

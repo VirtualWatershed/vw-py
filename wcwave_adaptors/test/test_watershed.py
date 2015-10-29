@@ -83,7 +83,7 @@ class TestJSONMetadata(unittest.TestCase):
                  'r').read()
 
         # check equality
-        assert generated == expected, \
+        assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
         # minimal watershed JSON with iSNOBAL binary
@@ -98,7 +98,7 @@ class TestJSONMetadata(unittest.TestCase):
 
 
         # check equality
-        assert generated == expected, \
+        assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
         # full watershed JSON with geotiff
@@ -123,7 +123,7 @@ class TestJSONMetadata(unittest.TestCase):
                         'r').read()
 
         # check equality
-        assert generated == expected, \
+        assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
         # full watershed JSON with iSNOBAL binary
@@ -144,11 +144,12 @@ class TestJSONMetadata(unittest.TestCase):
             file_ext='bin', model_vars='I_lw,T_a,e_a,u,T_g,S_n',
             model_name='isnobal')
 
+
         expected = open('wcwave_adaptors/test/data/expected_full_isno_watershed.json',
                         'r').read()
 
         # check equality
-        assert generated == expected, \
+        assert generated.strip() == expected.strip(), \
             show_string_diff(generated, expected)
 
 
