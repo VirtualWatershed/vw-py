@@ -382,9 +382,10 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        description, watershed_name, state, start_datetime=None,
                        end_datetime=None, model_name=None, fgdc_metadata=None,
                        model_set_type=None, model_set_taxonomy=None,
-                       water_year_start=2010, water_year_end=2011,
-                       config_file=None, dt=None, model_set=None,
-                       model_vars=None, file_ext=None, **kwargs):
+                       taxonomy='geoimage', water_year_start=2010,
+                       water_year_end=2011, config_file=None, dt=None,
+                       model_set=None, model_vars=None, file_ext=None,
+                       **kwargs):
     """
     Generate metadata for input_file.
 
@@ -429,14 +430,14 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     if file_ext == 'tif':
 
-        model_set_type = "vis"
-        kwargs['taxonomy'] = "geoimage"
-        kwargs['mimetype'] = "application/x-zip-compressed"
+        model_set_type = 'vis'
+        kwargs['taxonomy'] = 'geoimage'
+        kwargs['mimetype'] = 'application/x-zip-compressed'
 
         # make sure the bounding box will be in lat/lon
-        wgs84_file = input_file + ".wgs84.tmp"
+        wgs84_file = input_file + '.wgs84.tmp'
 
-        subprocess.call(["gdalwarp", "-t_srs", "EPSG:4326",
+        subprocess.call(['gdalwarp', '-t_srs', 'EPSG:4326',
                          input_file, wgs84_file])
 
         geodata = gdal.Open(wgs84_file)
@@ -489,7 +490,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     # calculate the "dates" fields for the watershed JSON metadata
     start_dt = dt * dt_multiplier
 
-    if not (start_datetime and end_datetime):
+    if not (start_datetime is None and end_datetime is None):
         start_datetime = datetime(water_year_start, 10, 01) + start_dt
         start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -510,9 +511,8 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     if file_ext == 'nc':
         kwargs['taxonomy'] = 'netcdf_isnobal'
-        # kwargs['taxonomy'] = 'netcdf'
 
-    js =  \
+    return \
         make_watershed_metadata(input_basename,
                                 config,
                                 parent_model_run_uuid,
@@ -530,8 +530,6 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                                 end_datetime=end_datetime_str,
                                 file_ext=file_ext,
                                 **kwargs)
-
-    return js
 
 
 def upsert(input_path, watershed_name, state,
