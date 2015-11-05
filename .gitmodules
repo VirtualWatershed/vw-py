@@ -1,0 +1,3 @@
+[submodule "vwpy/prms"]
+	path = vwpy/prms
+	url = https://github.com/lisapalathingal/PRMS_Adaptor.git
