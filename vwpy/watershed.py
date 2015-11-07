@@ -501,6 +501,10 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         start_datetime_str = start_datetime
         end_datetime_str = end_datetime
 
+    elif type(start_datetime) is datetime and type(end_datetime) is datetime:
+        start_datetime_str = start_datetime
+        end_datetime_str = end_datetime
+
     else:
         raise TypeError('bad start_ and/or end_datetime arguments')
 
@@ -511,6 +515,11 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     if file_ext == 'nc':
         kwargs['taxonomy'] = 'netcdf_isnobal'
         # kwargs['taxonomy'] = 'netcdf'
+
+    if 'taxonomy' not in kwargs:
+        kwargs['taxonomy'] = 'file'
+    elif not kwargs['taxonomy']:
+        kwargs['taxonomy'] = 'file'
 
     js =  \
         make_watershed_metadata(input_basename,
