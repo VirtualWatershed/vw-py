@@ -55,6 +55,8 @@ class VWClient:
         l = self.sesh.get(auth_url, auth=(uname, passwd), verify=False)
         l.raise_for_status()
 
+        self.auth_token = l.request.headers['Authorization']
+
         self.uname = uname
         self.passwd = passwd
 
@@ -315,6 +317,7 @@ def _build_query(search_route, **kwargs):
         full_url += "&%s=%s" % (key, val)
 
     return full_url
+
 
 class QueryResult:
     """
