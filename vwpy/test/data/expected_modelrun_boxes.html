@@ -1,0 +1,77 @@
+<!-- 
+  In template call, we will have something like this where there will be
+  an array of json representations of each model run description. Then we can
+  for-loop over them, and creating a new block for each JSON that's there.
+-->
+
+<!DOCTYPE html>
+  <head>
+    <style>
+    svg {
+        display: block;
+        margin: auto;
+    }
+    .box {
+        display: block;
+        margin: auto;
+    }
+    </style>
+
+    <title>Virtual Watershed Platform</title>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>    
+
+  </head>
+  <body>
+  
+  <h1 align="center"> Search Results! </h1>
+  
+    <br><br>
+    <div class="model_run_box">
+      <svg class="box" width=810 height=610>
+        <g id=>
+          <rect class="box" x="5" y="5" width="800" height="600"
+            style="stroke: #000099;
+                   fill: #3333ff;
+                   fill-opacity: 0.5; 
+              "
+            />
+            <text font-size="35" x="400" y="80" text-anchor="middle">
+              Paradise Creek Data
+            </text>
+            <text font-size="25" x="40" y="130" text-anchor="left">
+              Contributed by: Matty
+            </text>
+            <text font-size="25" x="40" y="180" text-anchor="left">
+              Location: Moscow
+            </text>
+        </g>
+      </svg>
+    </div>
+  
+    <br><br>
+    <div class="model_run_box">
+      <svg class="box" width=810 height=610>
+        <g id=>
+          <rect class="box" x="5" y="5" width="800" height="600"
+            style="stroke: #000099;
+                   fill: #3333ff;
+                   fill-opacity: 0.5; 
+              "
+            />
+            <text font-size="35" x="400" y="80" text-anchor="middle">
+              Dry Creek Treeline from Kormos, et al., 2014
+            </text>
+            <text font-size="25" x="40" y="130" text-anchor="left">
+              Contributed by: Alfred J. Prufrock
+            </text>
+            <text font-size="25" x="40" y="180" text-anchor="left">
+              Location: Dry Creek
+            </text>
+        </g>
+      </svg>
+    </div>
+  
+
+  </body>
+</html>

@@ -7,7 +7,8 @@ import netCDF4 as netCDF4
 
 from datetime import datetime
 
-from vwpy import default_vw_client, isnobal, metadata_from_file
+from .watershed import default_vw_client, metadata_from_file
+from .isnobal import isnobal
 
 
 def vw_isnobal(input_dataset_uuid):

@@ -1,7 +1,7 @@
 {
     "orig_epsg": "4326",
     "description": "Testing metadata!",
-    "taxonomy": "",
+    "taxonomy": "file",
     "basename": "in.0000",
     "parent_model_run_uuid": "373ae181-a0b2-4998-ba32-e27da190f6dd",
     "model_run_uuid": "09079630-5ef8-11e4-9803-0800200c9a66",

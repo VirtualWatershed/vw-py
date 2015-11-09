@@ -8,7 +8,6 @@ associated metadata.
 import configparser
 import json
 import logging
-import gdal
 import pandas as pd
 import os
 import requests
@@ -382,7 +381,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                        description, watershed_name, state, start_datetime=None,
                        end_datetime=None, model_name=None, fgdc_metadata=None,
                        model_set_type=None, model_set_taxonomy=None,
-                       taxonomy='geoimage', water_year_start=2010,
+                       taxonomy=None, water_year_start=2010,
                        water_year_end=2011, config_file=None, dt=None,
                        model_set=None, model_vars=None, file_ext=None,
                        **kwargs):
@@ -434,28 +433,6 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         kwargs['taxonomy'] = 'geoimage'
         kwargs['mimetype'] = 'application/x-zip-compressed'
 
-        # make sure the bounding box will be in lat/lon
-        wgs84_file = input_file + '.wgs84.tmp'
-
-        subprocess.call(['gdalwarp', '-t_srs', 'EPSG:4326',
-                         input_file, wgs84_file])
-
-        geodata = gdal.Open(wgs84_file)
-
-        # extract the full geotransform from
-        gt = geodata.GetGeoTransform()
-
-        # bounds are given by the east and north bound in the geotrans
-        # explicitly. Use the step size in conjunction with grid counts in
-        # X and Y to get the west and south bounds.
-        kwargs['east_bound'] = gt[0]
-        kwargs['north_bound'] = gt[3]
-        kwargs['west_bound'] = gt[0] + gt[1]*geodata.RasterXSize
-        kwargs['south_bound'] = gt[3] + gt[5]*geodata.RasterYSize
-
-        # we don't actually want to keep the file
-        os.remove(wgs84_file)
-
     elif file_ext == 'asc':
         file_ext = 'ascii'
         model_set_type = 'file'
@@ -490,7 +467,7 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
     # calculate the "dates" fields for the watershed JSON metadata
     start_dt = dt * dt_multiplier
 
-    if not (start_datetime is None and end_datetime is None):
+    if (start_datetime is None and end_datetime is None):
         start_datetime = datetime(water_year_start, 10, 01) + start_dt
         start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -502,7 +479,14 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
         start_datetime_str = start_datetime
         end_datetime_str = end_datetime
 
+    elif type(start_datetime) is datetime and type(end_datetime) is datetime:
+        start_datetime_str = datetime.strftime(start_datetime,
+                                               '%Y-%m-%d %H:%M:%S')
+        end_datetime_str = datetime.strftime(end_datetime,
+                                             '%Y-%m-%d %H:%M:%S')
+
     else:
+        import ipdb; ipdb.set_trace()
         raise TypeError('bad start_ and/or end_datetime arguments')
 
     # we pretty much always want to try to set these
@@ -511,6 +495,11 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     if file_ext == 'nc':
         kwargs['taxonomy'] = 'netcdf_isnobal'
+
+    if 'taxonomy' not in kwargs:
+        kwargs['taxonomy'] = 'file'
+    elif kwargs['taxonomy'] == '':
+        kwargs['taxonomy'] = 'file'
 
     return \
         make_watershed_metadata(input_basename,
@@ -530,95 +519,6 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
                                 end_datetime=end_datetime_str,
                                 file_ext=file_ext,
                                 **kwargs)
-
-
-def upsert(input_path, watershed_name, state,
-           model_run_name=None, description=None, keywords=None,
-           parent_model_run_uuid=None, model_run_uuid=None, model_name=None,
-           model_set_type=None, file_ext=None, config_file=None, dt=None,
-           taxonomy='geoimage', model_set_taxonomy='grid'):
-    """Upload the file or files located at input_path, which could be a
-       directory. This function also creates and inserts metadata records for
-       every file as required by the virtual watershed.
-
-    Inputs:
-        input_path (str): Directorty or file to upload
-
-    Returns:
-        (str, str): A two-tuple of parent_model_run_uuid and model_run_uuid
-
-    """
-    assert not (model_run_uuid is not None and parent_model_run_uuid is None),\
-        "If model_run_uuid is given, its parent must also be given!"
-
-    # redundant, but better to catch this before we continue
-    assert dt is None or issubclass(type(dt), timedelta)
-
-    # get the configuration file path if not given
-    if not config_file:
-        config_file = \
-            os.path.join(os.path.dirname(__file__), '../default.conf')
-
-    # build a list of files to be upserted
-    if os.path.isdir(input_path):
-
-        if input_path[-1] != '/':
-            input_path += '/'
-
-        files = [input_path + el for el in os.listdir(input_path)
-                 if os.path.isfile(input_path + el)]
-
-    elif os.path.isfile(input_path):
-        files = [input_path]
-
-    else:
-        raise os.error(input_path + " is not a valid file or directory!")
-
-
-    # initialize the vw_client manually (not defuault) since we need
-    # config info
-    conn = _get_config(config_file)['Connection']
-
-    vw_client = VWClient(conn['watershed_url'], conn['user'], conn['pass'])
-
-    # get either parent_model_run_uuid and/or model_run_uuid if need be
-    # final case to handle is if model_run_uuid is given but not its parent
-    if not parent_model_run_uuid:
-        parent_model_run_uuid = \
-            vw_client.initialize_modelrun(model_run_name=model_run_name,
-               description=description, keywords=keywords,
-               researcher_name=_get_config(config_file)['Researcher']['researcher_name'])
-
-        model_run_uuid = parent_model_run_uuid
-
-    elif not model_run_uuid and parent_model_run_uuid:
-        model_run_uuid = \
-            vw_client.initialize_modelrun(model_run_name=model_run_name,
-                                           description=description,
-                                           keywords=keywords,
-                                           researcher_name=commonConfig['researcherName']
-                                           )
-
-    # closure to do the upsert on each file
-    def _upsert(file_):
-        js = metadata_from_file(file_, parent_model_run_uuid,
-                                  model_run_uuid, description, watershed_name,
-                                  state, model_set_type=model_set_type,
-                                  model_name=model_name, file_ext=file_ext,
-                                  config_file=config_file, dt=dt,
-                                  model_set_taxonomy=model_set_taxonomy,
-                                  taxonomy=taxonomy)
-
-        vw_client.upload(model_run_uuid, file_)
-        vw_client.insert_metadata(js)
-
-    print "upserting file(s) from %s with model_run_uuid %s" % \
-        (input_path, model_run_uuid)
-
-    for i, file_ in enumerate(files):
-        _upsert(file_)
-
-    return (parent_model_run_uuid, model_run_uuid)
 
 
 def make_fgdc_metadata(file_name, config, model_run_uuid, beg_date, end_date,

@@ -673,17 +673,17 @@ def generate_standard_nc(base_dir, nc_out=None, inputs_dir='inputs',
 
     e = nc.variables['easting']
     # eastings are "samples" in IPW
-    nlines = len(e)
-    e[:] = array([nc.bline + nc.dline*i for i in range(nlines)])
+    nsamps = len(e)
+    e[:] = array([nc.bsamp + nc.dsamp*i for i in range(nsamps)])
 
     n = nc.variables['northing']
     # northings are "lines" in IPW
-    nsamps = len(n)
-    n[:] = array([nc.bsamp + nc.dsamp*i for i in range(nsamps)])
+    nlines = len(n)
+    n[:] = array([nc.bline + nc.dline*i for i in range(nlines)])
 
     # get a n_points x 2 array of lat/lon pairs at every point on the grid
-    latlon_arr = utm2latlon(nc.bline, nc.bsamp, nc.dline,
-                            nc.dsamp, nlines, nsamps)
+    latlon_arr = utm2latlon(nc.bsamp, nc.bline, nc.dsamp,
+                            nc.dline, nsamps, nlines)
 
     # break this out into lat and lon separately at each point on the grid
     lat = nc.variables['lat']

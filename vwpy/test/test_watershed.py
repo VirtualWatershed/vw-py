@@ -3,7 +3,7 @@ Testing module for Virtual Watershed Data adaptor.
 """
 
 from ..watershed import make_watershed_metadata, make_fgdc_metadata, \
-    VWClient, default_vw_client, _get_config, upsert, metadata_from_file
+    VWClient, default_vw_client, _get_config, metadata_from_file
 
 import datetime
 import json
@@ -233,7 +233,7 @@ class TestVWClient(unittest.TestCase):
             taxonomy='geoimage', model_set_taxonomy='grid',
             model_name='isnobal', epsg=4326, orig_epsg=26911)
 
-        VW_CLIENT.insert_metadata(wmd_from_file)
+        res = VW_CLIENT.insert_metadata(wmd_from_file)
 
         time.sleep(1)
 
@@ -257,8 +257,7 @@ class TestVWClient(unittest.TestCase):
     @raises(HTTPError)
     def test_duplicate_error(self):
         """
-        If the user tries to init a new model run with a previously used name,
-        catch HTTPError
+        If the user tries to init a new model run with a previously used name, catch HTTPError
         """
         keywords = 'Snow,iSNOBAL,wind'
         description = 'model run db testing'
@@ -444,115 +443,6 @@ class TestVWClient(unittest.TestCase):
         url = "http://httpbin.org/status/404"
 
         VW_CLIENT.download(url, "this won't ever exist")
-
-
-    def test_upsert(self):
-        """
-        Check that a directory and individual files are correctly uploaded/inserted to VW
-        """
-        test_conf = "vwpy/test/test.conf"
-        vwc = default_vw_client(test_conf)
-
-        # convenience for testing upsert performed as expected
-        def _worked(p_uuid, UUID, dir_=True, inherited=False):
-            time.sleep(1) # pause to let watershed catch up
-
-            if inherited:
-                factor = 2
-            else:
-                factor = 1
-
-            if dir_:
-                num_expected = 4 * factor
-            else:
-                num_expected = 1 * factor
-
-            res = vwc.dataset_search(model_run_uuid=UUID)
-            print "testing model_run_uuid %s" % UUID
-            assert res.total == num_expected, \
-                "Data was not upserted as expected.\n" +\
-                "Total inserted: %s, Expected: %s\n" %\
-                (res.total, num_expected)
-                # "For test on p_uuid=%s, uuid=%s" %\
-
-            i = 0
-            for r in res.records:
-                assert r['parent_model_run_uuid']
-                i += 1
-
-                ftype = r['name'].split('.')[0]
-                assert r['model_vars'] == ','.join(VARNAME_DICT[ftype]),\
-                    "model vars were not appropriately set!\n" + \
-                    "Expected: %s, Generated: %s" %\
-                    (','.join(VARNAME_DICT[ftype]), r['model_vars'])
-
-            assert i == num_expected
-
-        upsert_dir = 'vwpy/test/data/upsert_test/'
-
-        ## test upsert of entire directory
-        # as a brand-new parent/model run
-        print "On test 1"
-        kwargs = {'keywords': 'Snow,iSNOBAL,wind',
-                  'description': 'unittest',
-                  'model_run_name': 'unittest' + str(uuid4())}
-
-        print kwargs['model_run_name']
-        parent_uuid, UUID = upsert(upsert_dir, 'Dry Creek', 'Idaho', model_name='isnobal',
-                                   config_file=test_conf, file_ext='bin', **kwargs)
-        _worked(parent_uuid, UUID)
-
-        kwargs = _gen_kw_args()
-
-        # with no slash after directory name
-        parent_uuid, UUID = \
-            upsert('vwpy/test/data/upsert_test', 'Dry Creek',
-                   'Idaho', model_name='isnobal', config_file=test_conf,
-                   file_ext='bin', **kwargs)
-        _worked(parent_uuid, UUID)
-
-        kwargs = _gen_kw_args()
-        # as an existing model run
-        inherit_parent = parent_uuid
-        parent_uuid, uuid = upsert(upsert_dir, 'Dry Creek', 'Idaho', model_name='isnobal',
-                                   parent_model_run_uuid=inherit_parent,
-                                   model_run_uuid=UUID, config_file=test_conf,
-                                   file_ext='bin', **kwargs)
-
-        assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
-
-        _worked(parent_uuid, UUID, inherited=True)
-
-        ## test upsert of a single file
-        upsert_file = upsert_dir + "/snow.1345"
-        # as a brand-new parent/model run
-        kwargs = _gen_kw_args()
-
-        parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
-                                   config_file=test_conf, file_ext='bin', **kwargs)
-        _worked(parent_uuid, UUID, dir_=False)
-
-        # with no slash after directory name
-        kwargs = _gen_kw_args()
-
-        parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
-                                   config_file=test_conf, file_ext='bin', **kwargs)
-
-        _worked(parent_uuid, UUID, dir_=False)
-
-        # as a new model run with a parent
-        inherit_parent = parent_uuid
-
-        kwargs = _gen_kw_args()
-
-        parent_uuid, UUID = upsert(upsert_file, 'Dry Creek', 'Idaho', model_name='isnobal',
-                                   parent_model_run_uuid=inherit_parent,
-                                   model_run_uuid=UUID, config_file=test_conf,
-                                   file_ext='bin',  **kwargs)
-
-        assert parent_uuid == inherit_parent, "Parent UUID not inherited!"
-
-        _worked(parent_uuid, UUID, dir_=False, inherited=True)
 
     def test_watershed_connection(self):
         """
