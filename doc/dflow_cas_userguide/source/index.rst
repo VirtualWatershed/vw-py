@@ -114,13 +114,13 @@ Run DFLOW
 ---------
 
 The first step to run DFLOW in this workflow is to run the following commands in
-an iPython shell from the root directory of the ``wcwave_adaptors`` repository.
+an iPython shell from the root directory of the ``vw-py`` repository.
 For this example, let's say the URI that contains the vegetation map and
 roughness lookup table is ``8a440a63-dc8a-4ebb-8c8c-45d87a62f31e``.
 
 .. code-block:: python
 
-    from wcwave_adaptors.dflow_casimir import (get_vw_nvalues, shear_mesh_to_asc,
+    from vwpy.dflow_casimir import (get_vw_nvalues, shear_mesh_to_asc,
                                                _insert_shear_out)
 
     # copy-and-pasted into terminal
@@ -139,7 +139,7 @@ format with the same dimensions as the vegetation map.
 
 .. code-block:: python
 
-    from wcwave_adaptors.dflow_casimir import ESRIAsc  # only required if roughness_map needs to be reloaded
+    from vwpy.dflow_casimir import ESRIAsc  # only required if roughness_map needs to be reloaded
 
     # this is required only if the map needs to be reloaded to get the grid dimensions
     roughness_map = ESRIAsc('location/to/save/roughness_map.asc')
