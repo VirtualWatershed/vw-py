@@ -843,6 +843,17 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',
                                 ).write(osjoin(inputs_dir, 'in.' + idxstr))
                     progress.update(i)
 
+                    kwargs['event_name'] = 'processing_input'
+
+                    kwargs['event_description'] = 'creating input ipw files for ' \
+                        'each timestep from the input netcdf file (stage 1)'
+                    
+                    kwargs['progress_value'] = format(
+                        (float(i)/time_index[-1]) * 100, '.2f')
+
+                    if event_emitter:
+                        event_emitter.emit('progress', **kwargs)
+
             else:
                 IPW.from_nc(nc_in, tstep=time_index[0], file_type=file_type,
                             ).write(osjoin(inputs_dir, 'in'))
