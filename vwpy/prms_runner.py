@@ -1,6 +1,7 @@
 import os
 import datetime
 from shutil import copyfile
+from shutil import rmtree
 import subprocess
 
 from prms import netcdf_to_data
@@ -100,11 +101,10 @@ def create_control(control_data,output_path):
                 f.write(str(d)+'\n')
 
 
-def run_prms(data_in,param_in,control_in,event_emitter=None,*args,**kwargs):
+def run_prms(prmsdir=None,data_in=None,param_in=None,control_in=None,event_emitter=None,*args,**kwargs):
     if not (data_in or param_in or control_in):
         return False
 
-    prmsdir = os.path.join(PRMS_RUN_DIR,str(datetime.datetime.now()).replace(' ', ''))
     inputdir = os.path.join(prmsdir,'input')
     outputdir = os.path.join(prmsdir,'output')
 
@@ -164,6 +164,8 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,anima
         event_emitter.emit('progress',**kwargs)
 
     prms_tmp_dir = os.path.join(PRMS_TMP_DIR,str(datetime.datetime.now()).replace(' ', ''))
+    prmsdir = os.path.join(PRMS_RUN_DIR,str(datetime.datetime.now()).replace(' ', ''))
+
     if not os.path.exists(prms_tmp_dir):
         os.makedirs(prms_tmp_dir)
     data_in = os.path.join(prms_tmp_dir,'prms.data')
@@ -186,7 +188,8 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,anima
     if event_emitter:
         event_emitter.emit('progress',**kwargs)
 
-    output,output_locs = run_prms(data_in=data_in,param_in=param_in,control_in=control_path,*args,**kwargs)
+
+    output,output_locs = run_prms(prmsdir=prmsdir,data_in=data_in,param_in=param_in,control_in=control_path,*args,**kwargs)
 
     kwargs['event_name'] = 'running_prms'
     kwargs['event_description'] = 'Running PRMS model'
@@ -218,9 +221,9 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,anima
         event_emitter.emit('progress',**kwargs)
 
     #clean up
-    #shutil.rmtree(PRMS_RUN_DIR)
-    #shutil.rmtree(PRMS_TMP_DIR)
+    rmtree(prmsdir)
+    rmtree(prms_tmp_dir)
 
 #if __name__=="__main__":
-#    prms(data_path='/home/escenic/prms_chao/LC.data.nc',param_path='/home/escenic/prms_chao/LC.param.nc',control_path='/home/escenic/prms_chao/LC.control',output_path='/home/escenic/prms_chao/prms.out',animation_path='/home/escenic/prms_chao/animation.out',statsvar_path='/home/escenic/prms_chao/statsvar.out',event_emitter=None)
+    #prms(data_path='/home/escenic/prms_chao/LC.data.nc',param_path='/home/escenic/prms_chao/LC.param.nc',control_path='/home/escenic/prms_chao/LC.control',output_path='/home/escenic/prms_chao/prms.out',animation_path='/home/escenic/prms_chao/animation.out',statsvar_path='/home/escenic/prms_chao/statsvar.out',event_emitter=None)
     #run_prms_on_nc('/home/escenic/prms_chao/LC.data.nc','/home/escenic/prms_chao/LC.param.nc','/home/escenic/prms_chao/LC.control',event_emitter=ee)
