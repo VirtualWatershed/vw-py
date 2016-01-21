@@ -61,3 +61,4 @@ examples/temperature_experiment/*data
 venv
 *.nc
 *.asc
+examples/isnobal_netcdf/.ipynb_checkpoints/

@@ -1,9 +1,23 @@
 netcdf {{ write_filename }} {
 
+
     // these are required for running iSNOBAL
+    {% if data_tstep %}
     :data_tstep = {{ data_tstep }};
+    {% else %}
+    :data_tstep = 60;
+    {% endif %}
+
+    {% if nsteps %}
     :nsteps = {{ nsteps }};
+    {% endif %}
+
+    {% if output_frequency %}
     :output_frequency = {{ output_frequency }};
+    {% else %}
+    :output_frequency = 1;
+    {% endif %}
+
     :bline = {{ bline }};
     :bsamp = {{ bsamp }};
     :dline = {{ dline }};
@@ -24,13 +38,14 @@ netcdf {{ write_filename }} {
 
     :documentation_link = "cgiss.boisestate.edu/~hpm/software/IPW/man1/isnobal.html";
     :description = "auto-generated NetCDF-4 Dataset that encapsulates full inputs for iSNOBAL model run";
+    :generated_at = "{{ generated_at }}";
 
     // virtual watershed metadata
     :bands_name = "nsteps";
     :bands_desc = "band index represents {{ dt }} since {{ year }}-{{ month }}-{{ day }}T{{ hour }}:00:00";
     :exclude_layers = "mask,alt,time,northing,easting,lat,lon,z_0,z_s,rho,T_s_0,T_s,h2o_sat";
 
-    dimensions: 
+    dimensions:
         time = UNLIMITED ;
         northing = {{ nlines }} ;
         easting = {{ nsamps }} ;
@@ -39,7 +54,7 @@ netcdf {{ write_filename }} {
 
         int time(time) ;
             time:long_name = "time";
-            time:standard_name = "{{ dt }} since {{ year }}-{{ month }}-{{ day }}";
+            time:standard_name = "{{ dt }} since {{ year }}-{{ month }}-{{ day }}T{{ hour }}:00:00";
 
         float easting(easting) ;
             easting:long_name = "x distance on the projection plane from the origin";
@@ -70,7 +85,7 @@ netcdf {{ write_filename }} {
         byte mask(northing, easting) ;
             mask:long_name = "mask for more efficient computation";
             mask:_FillValue = 0;
-            
+
         float z(northing, easting) ;
             z:layer_name = "elevation";
             z:layer_desc = "meters above sea level";
@@ -127,14 +142,14 @@ netcdf {{ write_filename }} {
         float rho_snow(time, northing, easting) ;
             rho_snow:layer_name = "density of snowfall";
             rho_snow:layer_desc = "density in kg m-3 of whatever snowfall is present";
-            rho_snow:layer_units = "kg m-3"; 
+            rho_snow:layer_units = "kg m-3";
             rho_snow:_DeflateLevel = 1 ;
             rho_snow:_FillValue = 0.0;
 
         float T_pp(time, northing, easting) ;
             T_pp:layer_name = "average precip temperature";
             T_pp:layer_desc = "from dew point temperature if available, or can be estimated during storm, or minimum daily temperature";
-            T_pp:layer_units = "C"; 
+            T_pp:layer_units = "C";
             T_pp:_DeflateLevel = 1 ;
             T_pp:_FillValue = 0.0;
 
@@ -146,7 +161,7 @@ netcdf {{ write_filename }} {
             I_lw:layer_units = "W m-2";
             I_lw:_DeflateLevel = 1 ;
             I_lw:_FillValue = 0.0;
-            
+
         float T_a(time, northing, easting) ;
             T_a:layer_name = "air temperature";
             T_a:standard_name = "air_temperature";
