@@ -9,13 +9,15 @@ from netCDF4 import Dataset
 from numpy import ravel, shape, sum
 
 from ..netcdf import utm2latlon, ncgen_from_template
+
 # include tests for generate_standard_nc in this module
 from ..isnobal import (_nc_insert_ipw, IPW, nc_to_standard_ipw,
                        GlobalBand, generate_standard_nc)
 
 
 class TestIsnobalNetCDF(unittest.TestCase):
-    """Unittests for NetCDF to iSNOBAL Adaptor Functionality
+    """
+    Unittests for NetCDF to iSNOBAL Adaptor Functionality
     """
     def setUp(self):
         test_dir = os.path.join(os.path.dirname(__file__), 'data')
