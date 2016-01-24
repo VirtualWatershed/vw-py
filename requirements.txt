@@ -2,7 +2,6 @@ configparser==3.3.0.post2
 Flask==0.10.1
 Flask-SQLAlchemy==2.1
 futures==3.0.3
-GDAL==1.10.0
 h5py==2.3.1
 itsdangerous==0.24
 Jinja2==2.8
