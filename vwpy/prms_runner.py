@@ -85,8 +85,8 @@ def parse_control(control_in):
 
 def create_control(control_data,output_path):
     '''
-    This function creates a control file from the given control data in a python dictionary specified in the function:
-    parse_control(control_in)
+    This function creates a control file from the given control data
+    in a python dictionary specified in the function: parse_control(control_in)
     '''
     with open(output_path,'w') as f:
         if 'header' in control_data:
@@ -101,7 +101,8 @@ def create_control(control_data,output_path):
                 f.write(str(d)+'\n')
 
 
-def run_prms(prmsdir=None,data_in=None,param_in=None,control_in=None,event_emitter=None,*args,**kwargs):
+def run_prms(prmsdir=None,data_in=None,param_in=None,control_in=None,
+                event_emitter=None,*args,**kwargs):
     if not (data_in or param_in or control_in):
         return False
 
@@ -156,7 +157,8 @@ def run_prms(prmsdir=None,data_in=None,param_in=None,control_in=None,event_emitt
 
 
 
-def prms(data_path=None,param_path=None,control_path=None,output_path=None,animation_path=None,statsvar_path=None,event_emitter=None,*args,**kwargs):
+def prms(data_path=None,param_path=None,control_path=None,output_path=None,
+            animation_path=None,statsvar_path=None,event_emitter=None,*args,**kwargs):
     kwargs['event_name'] = 'initializing_prms'
     kwargs['event_description'] = 'Initializing PRMS model Run'
     kwargs['progress_value'] = 0
@@ -189,7 +191,8 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,anima
         event_emitter.emit('progress',**kwargs)
 
 
-    output,output_locs = run_prms(prmsdir=prmsdir,data_in=data_in,param_in=param_in,control_in=control_path,*args,**kwargs)
+    output,output_locs = run_prms(prmsdir=prmsdir,data_in=data_in,param_in=param_in,
+                                    control_in=control_path,*args,**kwargs)
 
     kwargs['event_name'] = 'running_prms'
     kwargs['event_description'] = 'Running PRMS model'
@@ -202,8 +205,10 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,anima
     #copyfile(output_locs['ani_output_file'], animation_path)
     #copyfile(output_locs['stats_output_file'], statsvar_path)
 
-    animation_to_netcdf(output_locs['ani_output_file'],param_path, animation_path,event_emitter=event_emitter,**kwargs)
-    statvar_to_netcdf(output_locs['stats_output_file'], statsvar_path, event_emitter=event_emitter,**kwargs)
+    animation_to_netcdf(output_locs['ani_output_file'],param_path, animation_path,
+        event_emitter=event_emitter,**kwargs)
+    statvar_to_netcdf(output_locs['stats_output_file'], statsvar_path,
+        event_emitter=event_emitter,**kwargs)
     # TODO
     #prmsout_to_netcdf(output_locs['model_output_file'], output_path, event_emitter=event_emitter)
 
@@ -225,4 +230,5 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,anima
         output_path='/home/escenic/prms_chao/run1/prms.out.nc',
         animation_path='/home/escenic/prms_chao/run1/animation.out.nc',
         statsvar_path='/home/escenic/prms_chao/run1/statsvar.out.nc',event_emitter=ee)
-    #run_prms_on_nc('/home/escenic/prms_chao/LC.data.nc','/home/escenic/prms_chao/LC.param.nc','/home/escenic/prms_chao/LC.control',event_emitter=ee)'''
+    #run_prms_on_nc('/home/escenic/prms_chao/LC.data.nc','/home/escenic/prms_chao/LC.param.nc',
+                            '/home/escenic/prms_chao/LC.control',event_emitter=ee)'''
