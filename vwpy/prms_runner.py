@@ -198,21 +198,14 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,anima
         event_emitter.emit('progress',**kwargs)
 
 
-    #now convert the output files to nc format
-    # output_locs = {
-    #     'ani_output_file':'./output/animation.out',
-    #     'model_output_file':'./output/prms.out',
-    #     'stats_output_file':'./output/statvar.dat'
-    # }
-
     copyfile(output_locs['model_output_file'], output_path)
-    copyfile(output_locs['ani_output_file'], animation_path)
-    copyfile(output_locs['stats_output_file'], statsvar_path)
+    #copyfile(output_locs['ani_output_file'], animation_path)
+    #copyfile(output_locs['stats_output_file'], statsvar_path)
 
+    animation_to_netcdf(output_locs['ani_output_file'],param_path, animation_path,event_emitter=event_emitter,**kwargs)
+    statvar_to_netcdf(output_locs['stats_output_file'], statsvar_path, event_emitter=event_emitter,**kwargs)
     # TODO
-    #animation_to_netcdf(output_locs['ani_output_file'],param_nc, os.path.join(prms_tmp_dir,'animation.nc'),event_emitter=event_emitter)
-    #statvar_to_netcdf(output_locs['stats_output_file'], os.path.join(prms_tmp_dir,'statvar.nc'), event_emitter=event_emitter)
-    #prmsout_to_netcdf(output_locs['model_output_file'], os.path.join(prms_tmp_dir,'prms.out.nc'), event_emitter=event_emitter)
+    #prmsout_to_netcdf(output_locs['model_output_file'], output_path, event_emitter=event_emitter)
 
     kwargs['event_name'] = 'done_prms'
     kwargs['event_description'] = 'Done running prms model'
@@ -224,6 +217,12 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,anima
     rmtree(prmsdir)
     rmtree(prms_tmp_dir)
 
-#if __name__=="__main__":
-    #prms(data_path='/home/escenic/prms_chao/LC.data.nc',param_path='/home/escenic/prms_chao/LC.param.nc',control_path='/home/escenic/prms_chao/LC.control',output_path='/home/escenic/prms_chao/prms.out',animation_path='/home/escenic/prms_chao/animation.out',statsvar_path='/home/escenic/prms_chao/statsvar.out',event_emitter=None)
-    #run_prms_on_nc('/home/escenic/prms_chao/LC.data.nc','/home/escenic/prms_chao/LC.param.nc','/home/escenic/prms_chao/LC.control',event_emitter=ee)
+
+'''if __name__=="__main__":
+    prms(data_path='/home/escenic/prms_chao/run1/LC.data.nc',
+        param_path='/home/escenic/prms_chao/run1/LC.param.nc',
+        control_path='/home/escenic/prms_chao/run1/LC.control',
+        output_path='/home/escenic/prms_chao/run1/prms.out.nc',
+        animation_path='/home/escenic/prms_chao/run1/animation.out.nc',
+        statsvar_path='/home/escenic/prms_chao/run1/statsvar.out.nc',event_emitter=ee)
+    #run_prms_on_nc('/home/escenic/prms_chao/LC.data.nc','/home/escenic/prms_chao/LC.param.nc','/home/escenic/prms_chao/LC.control',event_emitter=ee)'''
