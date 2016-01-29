@@ -61,4 +61,3 @@ examples/temperature_experiment/*data
 venv
 *.nc
 *.asc
-deployment-config.json
