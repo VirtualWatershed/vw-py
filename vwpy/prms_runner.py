@@ -200,17 +200,20 @@ def prms(data_path=None,param_path=None,control_path=None,output_path=None,
     if event_emitter:
         event_emitter.emit('progress',**kwargs)
 
-
-    copyfile(output_locs['model_output_file'], output_path)
+    print output_locs['ani_output_file']
+    #copyfile(output_locs['model_output_file'], output_path)
     #copyfile(output_locs['ani_output_file'], animation_path)
     #copyfile(output_locs['stats_output_file'], statsvar_path)
+    if os.path.exists(output_locs['model_output_file']):
+        prmsout_to_netcdf(output_locs['model_output_file'], output_path,
+            event_emitter=event_emitter,**kwargs)
+    if os.path.exists(output_locs['ani_output_file']):
+        animation_to_netcdf(output_locs['ani_output_file'],param_path, animation_path,
+            event_emitter=event_emitter,**kwargs)
+    if os.path.exists(output_locs['stats_output_file']):
+        statvar_to_netcdf(output_locs['stats_output_file'], statsvar_path,
+            event_emitter=event_emitter,**kwargs)
 
-    animation_to_netcdf(output_locs['ani_output_file'],param_path, animation_path,
-        event_emitter=event_emitter,**kwargs)
-    statvar_to_netcdf(output_locs['stats_output_file'], statsvar_path,
-        event_emitter=event_emitter,**kwargs)
-    # TODO
-    #prmsout_to_netcdf(output_locs['model_output_file'], output_path, event_emitter=event_emitter)
 
     kwargs['event_name'] = 'done_prms'
     kwargs['event_description'] = 'Done running prms model'
