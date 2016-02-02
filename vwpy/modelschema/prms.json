@@ -1,0 +1,52 @@
+{
+  "model": "prms",
+  "version": "1.0.0",
+  "description":"prms model",
+  "resources":{
+    "inputs":{
+      "data":{
+        "type":"nc",
+        "mapsTo":"data_path",
+        "desc":"input data file for insobal model in netcdf format"
+      },
+      "param":{
+        "type":"nc",
+        "mapsTo":"param_path",
+        "desc":"input parameter file for insobal model in netcdf format"
+      },
+      "control":{
+        "type":"control",
+        "mapsTo":"control_path",
+        "desc":"control file for insobal model in netcdf format"
+      }
+    },
+    "outputs":{
+      "output":{
+        "type":"nc",
+        "mapsTo":"output_path",
+        "name":"prms_output",
+        "desc":"output file created in prms model run"
+      },
+      "animation":{
+        "type":"nc",
+        "mapsTo":"animation_path",
+        "name":"prms_animation_output",
+        "desc":"animation file created in prms model run"
+      },
+      "statsvar":{
+        "type":"nc",
+        "mapsTo":"statsvar_path",
+        "name":"prms_statsvar_output",
+        "desc":"statsvar file created in prms model run"
+      }
+    }
+  },
+  "execution":{
+    "policy":"cmd",
+    "target":{
+      "module":"vwpy.prms_runner",
+      "method":"prms"
+    }
+  }
+
+}
