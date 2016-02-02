@@ -46,11 +46,12 @@ def ncgen_from_template(template_filename, ncout_filename=None,
     if os.path.isfile(cdl_output_filename) and not clobber:
         raise NCOError("CDL file %s already exists and clobber is false" %
                        cdl_output_filename)
+
     _build_cdl(template_filename, cdl_output_filename, **kwargs)
 
     if ncout_filename is None:
         ncout_filename = os.path.join('/tmp', str(uuid.uuid4()))
-
+    print cdl_output_filename
     nc = ncgen(cdl_output_filename, ncout_filename)
 
     if not cdl_output_filename:
@@ -74,7 +75,8 @@ def _build_cdl(template_path, cdl_output_filename, **kwargs):
     """
     template = CDL_TEMPLATE_ENV.get_template(template_path)
 
-    rendered = template.render(**kwargs)
+    rendered = template.render(generated_at=datetime.datetime.utcnow(),
+                               **kwargs)
 
     if cdl_output_filename:
         open(cdl_output_filename, 'w').write(rendered)

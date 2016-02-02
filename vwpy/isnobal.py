@@ -157,7 +157,7 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
         kwargs['event_description'] = 'Running the ISNOBAL model'
         kwargs['progress_value'] = 50
         if event_emitter:
-            event_emitter.emit('progress',**kwargs)
+            event_emitter.emit('progress', **kwargs)
         output = subprocess.check_output(isnobalcmd, shell=True)
         logging.debug("ISNOBAL process output: " + output)
         logging.debug('done runinig isnobal')
@@ -172,7 +172,8 @@ def isnobal(nc_in=None, nc_out_fname=None, data_tstep=60, nsteps=8758,
             generate_standard_nc(dirname(em_prefix), nc_out_fname,
                                  data_tstep=data_tstep,
                                  output_frequency=output_frequency, dt=dt,
-                                 year=year, month=month, day=day,event_emitter=event_emitter,**kwargs)
+                                 year=year, month=month, day=day,
+                                 event_emitter=event_emitter, **kwargs)
 
         return nc_out
 
@@ -847,7 +848,7 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',
 
                     kwargs['event_description'] = 'creating input ipw files for ' \
                         'each timestep from the input netcdf file (stage 1)'
-                    
+
                     kwargs['progress_value'] = format(
                         (float(i)/time_index[-1]) * 100, '.2f')
 

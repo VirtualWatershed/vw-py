@@ -60,6 +60,11 @@ class TestIPW(unittest.TestCase):
 
         self.parent_model_run_uuid = "373ae181-a0b2-4998-ba32-e27da190f6dd"
 
+    def tearDown(self):
+
+        if os.path.exists('never_will_be_written_to'):
+            os.remove('never_will_be_written_to')
+
     def test_read_precip(self):
         "Precip files read into precip_tuple_list"
         pptfile = 'vwpy/test/data/ppt_desc'
@@ -722,6 +727,9 @@ class TestResampleIPW(unittest.TestCase):
             assert reimported.end_datetime ==\
                datetime.datetime(2010, 10, 1, 2*(i+1), 0), \
                "reimported datetime: %s" % str(reimported.end_datetime)
+
+        if os.path.exists('vwpy/test/data/tmp_write_reagg'):
+            os.remove('vwpy/test/data/tmp_write_reagg')
 
 
 class TestISNOBAL(unittest.TestCase):
