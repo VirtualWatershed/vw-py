@@ -1,29 +1,29 @@
 {
   "model": "isnobal",
   "version": "1.0.0",
-  "description":"isnobal model",
-  "resources":{
-    "inputs":{
-      "input":{
-        "type":"nc",
-        "mapsTo":"input_path",
-        "desc":"input netcdf file for insobal model"
+  "description": "isnobal model",
+  "resources": {
+    "inputs": {
+      "input": {
+        "type": "nc",
+        "mapsTo": "input_path",
+        "desc": "input netcdf file for insobal model"
       }
     },
-    "outputs":{
-      "output":{
-        "type":"nc",
-        "mapsTo":"output_path",
-        "name":"isnobal_output",
-        "desc":"output netcdf file for insobal model"
+    "outputs": {
+      "output": {
+        "type": "nc",
+        "mapsTo": "output_path",
+        "name": "isnobal_output",
+        "desc": "output netcdf file for insobal model"
       }
     }
   },
-  "execution":{
-    "policy":"cmd",
-    "target":{
-      "module":"vwpy.isnobal_runner",
-      "method":"run_isnobal"
+  "execution": {
+    "policy": "cmd",
+    "target": {
+      "module": "vwpy.isnobal_runner",
+      "method": "run_isnobal"
     }
   }
 }

@@ -10,7 +10,7 @@ def load_schemas(model=None):
         with open(os.path.join(schemadir, f)) as schema_file:
             if f.endswith('.json'):
                 data = json.load(schema_file)
-                modelschemas[data['model']]=data
+                modelschemas[data['model']] = data
     if model:
         if model in modelschemas:
             return modelschemas[model]
