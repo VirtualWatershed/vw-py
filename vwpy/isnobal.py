@@ -30,7 +30,7 @@ from os import mkdir, listdir
 from os.path import exists, dirname, basename
 from os.path import join as osjoin
 from pandas import date_range, DataFrame, Series, Timedelta
-from progressbar import ProgressBar
+#from progressbar import ProgressBar
 from shutil import rmtree
 from struct import pack
 
@@ -564,19 +564,19 @@ def generate_standard_nc(base_dir, nc_out=None, inputs_dir='inputs',
                                  **template_args)
 
         # first take care of non-precip files
-        with ProgressBar(maxval=len(input_files)) as progress:
-            for i, f in enumerate(input_files):
-                ipw = IPW(f)
-                tstep = int(basename(ipw.input_file).split('.')[-1])
-                _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
+        #with ProgressBar(maxval=len(input_files)) as progress:
+        for i, f in enumerate(input_files):
+            ipw = IPW(f)
+            tstep = int(basename(ipw.input_file).split('.')[-1])
+            _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
 
-                progress.update(i)
+            #progress.update(i)
 
-                kwargs['event_name'] = 'input_ipw_to_nc'
-                kwargs['event_description'] = 'creating nc form iw files'
-                kwargs['progress_value'] = format((float(i)/len(input_files)) * 100,'.2f')
-                if event_emitter:
-                    event_emitter.emit('progress',**kwargs)
+            kwargs['event_name'] = 'input_ipw_to_nc'
+            kwargs['event_description'] = 'creating nc form iw files'
+            kwargs['progress_value'] = format((float(i)/len(input_files)) * 100,'.2f')
+            if event_emitter:
+                event_emitter.emit('progress',**kwargs)
 
         # dem, mask may not exist
         dem_mask_init_list = []
@@ -609,25 +609,25 @@ def generate_standard_nc(base_dir, nc_out=None, inputs_dir='inputs',
                      for ppt_line in
                      open(osjoin(base_dir, ppt_desc_path), 'r').readlines()]
 
-        with ProgressBar(maxval=len(ppt_pairs)) as progress:
-            for i, ppt_pair in enumerate(ppt_pairs):
-                tstep = int(ppt_pair[0])
-                el = IPW(ppt_pair[1], file_type='precip')
+        #with ProgressBar(maxval=len(ppt_pairs)) as progress:
+        for i, ppt_pair in enumerate(ppt_pairs):
+            tstep = int(ppt_pair[0])
+            el = IPW(ppt_pair[1], file_type='precip')
 
-                _nc_insert_ipw(nc, el, tstep, gb.nLines, gb.nSamps)
+            _nc_insert_ipw(nc, el, tstep, gb.nLines, gb.nSamps)
 
-                progress.update(i)
-                kwargs['event_name'] = 'input_ipw_to_nc2'
-                kwargs['event_description'] = 'creating nc form iw files 2'
-                kwargs['progress_value'] = format((float(i)/len(ppt_pairs)) * 100,'.2f')
-                if event_emitter:
-                    event_emitter.emit('progress',**kwargs)
-
+            #progress.update(i)
             kwargs['event_name'] = 'input_ipw_to_nc2'
             kwargs['event_description'] = 'creating nc form iw files 2'
-            kwargs['progress_value'] = 100
+            kwargs['progress_value'] = format((float(i)/len(ppt_pairs)) * 100,'.2f')
             if event_emitter:
                 event_emitter.emit('progress',**kwargs)
+
+        kwargs['event_name'] = 'input_ipw_to_nc2'
+        kwargs['event_description'] = 'creating nc form iw files 2'
+        kwargs['progress_value'] = 100
+        if event_emitter:
+            event_emitter.emit('progress',**kwargs)
     else:
 
         output_files = [osjoin(base_dir, el) for el in listdir(base_dir)]
@@ -649,20 +649,21 @@ def generate_standard_nc(base_dir, nc_out=None, inputs_dir='inputs',
 
         logging.debug('creating output file')
 
-        with ProgressBar(maxval=len(output_files)) as progress:
+        #with ProgressBar(maxval=len(output_files)) as progress:
 
-            for i, f in enumerate(output_files):
-                ipw = IPW(f)
-                tstep = int(basename(ipw.input_file).split('.')[-1])
-                _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
+        for i, f in enumerate(output_files):
+            ipw = IPW(f)
+            tstep = int(basename(ipw.input_file).split('.')[-1])
+            _nc_insert_ipw(nc, ipw, tstep, gb.nLines, gb.nSamps)
 
-                progress.update(i)
+            #progress.update(i)
 
-                kwargs['event_name'] = 'ouptut_ipw_to_nc'
-                kwargs['event_description'] = 'creating output netcdf file from output ipw files'
-                kwargs['progress_value'] =  format((float(i)/len(output_files)) * 100,'.2f')
-                if event_emitter:
-                    event_emitter.emit('progress',**kwargs)
+            kwargs['event_name'] = 'ouptut_ipw_to_nc'
+            kwargs['event_description'] = 'creating output netcdf file from output ipw files'
+            kwargs['progress_value'] =  format((float(i)/len(output_files)) * 100,'.2f')
+            if event_emitter:
+                event_emitter.emit('progress',**kwargs)
+
             kwargs['event_name'] = 'ouptut_ipw_to_nc'
             kwargs['event_description'] = 'creating output nc file fro moutput ipw'
             kwargs['progress_value'] =  100
@@ -829,37 +830,21 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',
 
         file_type = 'in'
         logging.debug('creating input ipw files for each timestep from the input netcdf file (stage 1)')
-        with ProgressBar(maxval=time_index[-1]) as progress:
-            if len(time_index) > 1:
-                for i, idx in enumerate(time_index):
-                    if idx < 10:
-                        idxstr = "0"*zeropad_factor + str(idx)
-                    elif idx < 100:
-                        idxstr = "0"*(zeropad_factor - 1) + str(idx)
-                    elif idx < 1000:
-                        idxstr = "0"*(zeropad_factor - 2) + str(idx)
-                    else:
-                        idxstr = str(idx)
-                    IPW.from_nc(nc_in, tstep=idx, file_type=file_type,
-                                ).write(osjoin(inputs_dir, 'in.' + idxstr))
-                    progress.update(i)
 
-                    kwargs['event_name'] = 'processing_input'
-
-                    kwargs['event_description'] = 'creating input ipw files for ' \
-                        'each timestep from the input netcdf file (stage 1)'
-
-                    kwargs['progress_value'] = format(
-                        (float(i)/time_index[-1]) * 100, '.2f')
-
-                    if event_emitter:
-                        event_emitter.emit('progress', **kwargs)
-
-            else:
-                IPW.from_nc(nc_in, tstep=time_index[0], file_type=file_type,
-                            ).write(osjoin(inputs_dir, 'in'))
-
-                progress.update(i)
+        #with ProgressBar(maxval=time_index[-1]) as progress:
+        if len(time_index) > 1:
+            for i, idx in enumerate(time_index):
+                if idx < 10:
+                    idxstr = "0"*zeropad_factor + str(idx)
+                elif idx < 100:
+                    idxstr = "0"*(zeropad_factor - 1) + str(idx)
+                elif idx < 1000:
+                    idxstr = "0"*(zeropad_factor - 2) + str(idx)
+                else:
+                    idxstr = str(idx)
+                IPW.from_nc(nc_in, tstep=idx, file_type=file_type,
+                            ).write(osjoin(inputs_dir, 'in.' + idxstr))
+                #progress.update(i)
 
                 kwargs['event_name'] = 'processing_input'
 
@@ -872,15 +857,32 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',
                 if event_emitter:
                     event_emitter.emit('progress', **kwargs)
 
+        else:
+            IPW.from_nc(nc_in, tstep=time_index[0], file_type=file_type,
+                        ).write(osjoin(inputs_dir, 'in'))
+
+            #progress.update(i)
+
             kwargs['event_name'] = 'processing_input'
 
-            kwargs['event_description'] = \
-                'creating input ipw for each timestep form nc'
+            kwargs['event_description'] = 'creating input ipw files for ' \
+                'each timestep from the input netcdf file (stage 1)'
 
-            kwargs['progress_value'] = 100
+            kwargs['progress_value'] = format(
+                (float(i)/time_index[-1]) * 100, '.2f')
 
             if event_emitter:
                 event_emitter.emit('progress', **kwargs)
+
+        kwargs['event_name'] = 'processing_input'
+
+        kwargs['event_description'] = \
+            'creating input ipw for each timestep form nc'
+
+        kwargs['progress_value'] = 100
+
+        if event_emitter:
+            event_emitter.emit('progress', **kwargs)
 
         file_type = 'init'
         IPW.from_nc(nc_in, file_type=file_type
@@ -927,30 +929,30 @@ def nc_to_standard_ipw(nc_in, ipw_base_dir, clobber=True, type_='inputs',
         # this should be mostly right except for ppt_desc and ppt data dir
         with open(osjoin(ipw_base_dir, 'ppt_desc'), 'w') as ppt_desc:
             logging.debug('creating input ipw files for each timestep from the input netcdf file (stage 2)')
-            with ProgressBar(maxval=len(time_indexes)) as progress:
+            #with ProgressBar(maxval=len(time_indexes)) as progress:
 
-                for i, idx in enumerate(time_indexes):
-                    ppt_desc.write("%s\t%s\n" % (idx,
-                                   osjoin(ppt_images_dir,
-                                          'ppt_' + str(idx) + '.ipw')))
+            for i, idx in enumerate(time_indexes):
+                ppt_desc.write("%s\t%s\n" % (idx,
+                               osjoin(ppt_images_dir,
+                                      'ppt_' + str(idx) + '.ipw')))
 
-                    ipw = IPW.from_nc(nc_in, tstep=idx, file_type=file_type)
+                ipw = IPW.from_nc(nc_in, tstep=idx, file_type=file_type)
 
-                    ipw.write(osjoin(ppt_images_dir,
-                                     'ppt_' + str(idx) + '.ipw'))
+                ipw.write(osjoin(ppt_images_dir,
+                                 'ppt_' + str(idx) + '.ipw'))
 
-                    progress.update(i)
-                    kwargs['event_name'] = 'processing_input2'
-                    kwargs['event_description'] = 'creating input ipw files for each timestep from the input netcdf file (stage 2)'
-                    kwargs['progress_value'] = format((float(i)/len(time_indexes)) * 100, '.2f')
-                    if event_emitter:
-                        event_emitter.emit('progress',**kwargs)
-
+                #progress.update(i)
                 kwargs['event_name'] = 'processing_input2'
-                kwargs['event_description'] = 'creating input ipw for each timestep form nc 2'
-                kwargs['progress_value'] = 100
+                kwargs['event_description'] = 'creating input ipw files for each timestep from the input netcdf file (stage 2)'
+                kwargs['progress_value'] = format((float(i)/len(time_indexes)) * 100, '.2f')
                 if event_emitter:
                     event_emitter.emit('progress',**kwargs)
+
+            kwargs['event_name'] = 'processing_input2'
+            kwargs['event_description'] = 'creating input ipw for each timestep form nc 2'
+            kwargs['progress_value'] = 100
+            if event_emitter:
+                event_emitter.emit('progress',**kwargs)
     else:
         raise Exception("NetCDF to IPW converter not implemented for type %s" %
                         type_)
