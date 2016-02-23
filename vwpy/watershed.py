@@ -446,7 +446,10 @@ def metadata_from_file(input_file, parent_model_run_uuid, model_run_uuid,
 
     elif model_name == 'isnobal' and is_ipw:
         #: ISNOBAL variable names to be looked up to make dataframes + metadata
-        model_vars = ','.join(VARNAME_DICT[input_prefix])
+        try:
+            model_vars = ','.join(VARNAME_DICT[input_prefix])
+        except:
+            model_vars = ''
 
         if 'proc_date' in kwargs:
             proc_date = kwargs['proc_date']
