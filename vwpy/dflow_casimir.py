@@ -281,7 +281,7 @@ class ESRIAsc:
         Returns:
             (numpy.ndarray) matrix representation of the data in the .asc
         """
-        ret = reshape(self.data, (self.nrows, self.ncols))
+        ret = copy.copy(reshape(self.data, (self.nrows, self.ncols)))
         if replace_nodata_val is not None:
             ret[ret == self.NODATA_value] = replace_nodata_val
 

@@ -53,7 +53,8 @@ class TestDflow(unittest.TestCase):
         vegmap_mat = ESRIAsc(self.ascii_veg).as_matrix()
 
         vmat_unique = numpy.unique(vegmap_mat)
-        vmat_expected = numpy.array([-9999, 10, 12, 13, 15], dtype='f8')
+        vmat_expected = numpy.array([-9999, 100, 101, 102, 106, 210, 215],
+                                    dtype='f8')
 
         assert (vmat_unique == vmat_expected).all()
 
@@ -94,7 +95,12 @@ class TestDflow(unittest.TestCase):
         "Properly build nvals ESRI .asc from vegetation code .asc and lookup table"
         ascii_nvals = vegcode_to_nvalue(self.ascii_veg, self.excel_veg_to_nval)
 
-        eq_(ascii_nvals, self.expected_ascii_nvals)
+        eq_(
+            ascii_nvals, self.expected_ascii_nvals,
+            "expected: {}\ngenerated: {}".format(
+                ascii_nvals.as_matrix(), self.expected_ascii_nvals.as_matrix()
+            )
+        )
 
     def test_vw_vegcode_to_nvalue(self):
         "Fetch vegcode ESRI .asc and Excel lookup table from VW and build roughness .asc"
