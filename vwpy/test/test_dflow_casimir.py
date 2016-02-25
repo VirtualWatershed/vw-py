@@ -2,13 +2,15 @@
 Tests for posting/ingetsting dflow and casimir data to each respective model
 to/from the virtual watershed.
 """
+import json
+import numpy
 import time
 import unittest
 
 from nose.tools import eq_
 from datetime import datetime
 
-from ..dflow_casimir import ESRIAsc, vegcode_to_nvalue, get_vw_nvalues
+from ..dflow_casimir import ESRIAsc, vegcode_to_nvalue, get_vw_nvalues, casimir
 
 from ..watershed import (default_vw_client, make_fgdc_metadata,
                          metadata_from_file, _get_config)
@@ -45,6 +47,48 @@ class TestDflow(unittest.TestCase):
                                          'unittest run '.format(datetime.now()),
                                          'vwpy unittester',
                                          'test,unittest')
+
+    def test_vegmap_properly_read(self):
+
+        vegmap_mat = ESRIAsc(self.ascii_veg).as_matrix()
+
+        vmat_unique = numpy.unique(vegmap_mat)
+        vmat_expected = numpy.array([-9999, 10, 12, 13, 15], dtype='f8')
+
+        assert (vmat_unique == vmat_expected).all()
+
+    def test_casimir(self):
+
+        # load the expected ESRIAsc output from running casimir
+        expected_output = ESRIAsc(
+            'vwpy/test/data/dflow_casimir/expected_veg_output.asc'
+        )
+
+        # test results when loaded from file
+        veg_map_file = self.ascii_veg
+        shear_map_file = 'vwpy/test/data/dflow_casimir/shear.asc'
+        shear_resistance_dict_file = \
+            'vwpy/test/data/dflow_casimir/resistance.json'
+
+        generated_output = casimir(veg_map_file, shear_map_file,
+                                   shear_resistance_dict_file)
+
+        assert expected_output == generated_output, \
+            "expected: {}\ngenerated: {}".format(
+                expected_output.as_matrix(), generated_output.as_matrix()
+            )
+
+        # test results when using ESRIAsc instances
+        veg_map = ESRIAsc(veg_map_file)
+        shear_map = ESRIAsc(shear_map_file)
+        shear_resistance_dict = json.load(open(shear_resistance_dict_file))
+
+        generated_output = casimir(veg_map, shear_map, shear_resistance_dict)
+
+        assert expected_output == generated_output, \
+            "expected: {}\ngenerated: {}".format(
+                expected_output.as_matrix(), generated_output.as_matrix()
+            )
 
     def test_asc_veg_to_nvals(self):
         "Properly build nvals ESRI .asc from vegetation code .asc and lookup table"
