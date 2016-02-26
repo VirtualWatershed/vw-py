@@ -16,7 +16,7 @@ pandas==0.17.0
 progressbar2==3.3.1
 pyandoc==0.0.1
 python-dateutil==2.4.2
-# python-swiftclient==2.6.0
+python-swiftclient==2.6.0
 pytz==2015.7
 requests==2.8.1
 scipy==0.16.1
