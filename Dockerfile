@@ -1,5 +1,5 @@
 FROM ubuntu:14.04
-MAINTAINER Moinul Hossain, Mathew Turner
+MAINTAINER Moinul Hossain, Matthew Turner
 LABEL description="This Image builds an ubuntu 14.04 image will all the dependencies and the models defined in vw-py." \
       version="1.0"
 
