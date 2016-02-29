@@ -62,7 +62,7 @@ RUN wget http://water.usgs.gov/ogw/gsflow/GSFLOW-v1.2.0/gsflow_v1.2.0.zip && \
 
 
 # Some more dependencies needed for numpy and scipy
-RUN apt-get install -y libblas-dev liblapack-dev libatlas-base-dev gfortran
+RUN apt-get install -y libblas-dev liblapack-dev libatlas-base-dev gfortran libgfortran3
 # Time to install the python module itself
 #RUN git clone --recursive https://github.com/VirtualWatershed/vw-py /opt/vw-py
 COPY . /opt/vw-py
