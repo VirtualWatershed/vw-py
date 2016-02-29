@@ -36,7 +36,8 @@ RUN wget https://github.com/Unidata/netcdf-c/archive/v4.3.3.1.tar.gz && \
 RUN wget http://download.osgeo.org/gdal/1.10.0/gdal-1.10.0.tar.gz && \
     tar xvfz gdal-1.10.0.tar.gz && cd gdal-1.10.0 && \
     ./configure --with-python && \
-    make && make install && ldconfig
+    make && make install && ldconfig && \
+    cd .. && rm -rf gdal-1.10.0.tar.gz gdal-1.10.0
 
 
 # install isnobal
