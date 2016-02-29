@@ -38,20 +38,12 @@ RUN wget http://download.osgeo.org/gdal/1.10.0/gdal-1.10.0.tar.gz && \
     ./configure --with-python && \
     make && make install && ldconfig
 
+
 # install isnobal
-# Since this is a private git repo we need to make our github private key
-# from the host available to docker to clone the repo.
-# Another way would be to use personal github access token in the Dockerfile,
-# but that won't be a good idea if the Dockerfile is going to be comitted,
-# who would want to give up their Github credentials publicly!
-
-# To generate own pair of github ssh keys: https://help.github.com/articles/generating-an-ssh-key/
-
-# For windows user it might be somthing like this: COPY %UserProfile%\.ssh\id_rsa /root/.ssh/id_rsa
-COPY ~/.ssh/id_rsa /root/.ssh/id_rsa
-RUN chmod 600 /root/.ssh/id_rsa && echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
-RUN ssh-keyscan github.com >> ~/.ssh/known_hosts
-RUN git clone git@github.com:tri-state-epscor/water-ipw.git /opt/water-ipw
+RUN wget https://github.com/VirtualWatershed/vw-py/raw/master/water-ipw-master.zip && \
+    unzip water-ipw-master.zip -d /opt && \
+    mv /opt/water-ipw-master/ /opt/water-ipw/ && \
+    cd .. && rm -rf water-ipw-master.zip
 
 
 # install prms from usgs website
