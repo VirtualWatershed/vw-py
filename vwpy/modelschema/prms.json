@@ -38,6 +38,18 @@
         "mapsTo": "statsvar_path",
         "name": "prms_statsvar_output",
         "desc": "statsvar file created in prms model run"
+      },
+      "gsflow_log": {
+        "type": "txt",
+        "mapsTo": "gsflow_log_path",
+        "name": "gsflow_log",
+        "desc": "gsflow log file"
+      },
+      "log": {
+        "type": "txt",
+        "mapsTo": "log_path",
+        "name": "log",
+        "desc": "model log file"
       }
     }
   },
