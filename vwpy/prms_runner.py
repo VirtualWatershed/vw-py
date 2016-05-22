@@ -219,7 +219,7 @@ def run_prms(prmsdir=None, data_in=None, param_in=None, control_in=None, gsflow_
 
 
 def prms(data_path=None, param_path=None, control_path=None, output_path=None,
-         animation_path=None, statsvar_path=None, gsflow_log_path=None, log_path=None, event_emitter=None, *args, **kwargs):
+         animation_path=None, statsvar_path=None,statsvar_txt_path=None,animation_txt_path=None, gsflow_log_path=None, log_path=None, event_emitter=None, *args, **kwargs):
 
     #print 'running prms'
     kwargs['event_name'] = 'initializing_prms'
@@ -263,10 +263,12 @@ def prms(data_path=None, param_path=None, control_path=None, output_path=None,
     if event_emitter:
         event_emitter.emit('progress', **kwargs)
 
-    if os.path.exists(output_locs['model_output_file']):
+    if os.path.exists(output_locs['model_output_file']) and output_path:
         copyfile(output_locs['model_output_file'], output_path)
-    #copyfile(output_locs['ani_output_file'], animation_path)
-    #copyfile(output_locs['stats_output_file'], statsvar_path)
+    if os.path.exists(output_locs['ani_output_file']) and animation_txt_path:
+        copyfile(output_locs['ani_output_file'], animation_txt_path)
+    if os.path.exists(output_locs['stats_output_file']) and statsvar_txt_path:
+        copyfile(output_locs['stats_output_file'], statsvar_txt_path)
     '''if os.path.exists(output_locs['model_output_file']):
         prmsout_to_netcdf(output_locs['model_output_file'], output_path,
                           event_emitter=event_emitter, **kwargs)'''

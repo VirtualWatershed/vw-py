@@ -39,6 +39,18 @@
         "name": "prms_statsvar_output",
         "desc": "statsvar file created in prms model run"
       },
+      "statsvar_original": {
+        "type": "txt",
+        "mapsTo": "statsvar_txt_path",
+        "name": "prms_statsvar_output_txt",
+        "desc": "original statsvar file created in prms model run"
+      },
+      "animation_original": {
+        "type": "txt",
+        "mapsTo": "animation_txt_path",
+        "name": "prms_animation_output_txt",
+        "desc": "original animation file created in prms model run"
+      },
       "gsflow_log": {
         "type": "txt",
         "mapsTo": "gsflow_log_path",
