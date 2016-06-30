@@ -223,7 +223,7 @@ def prms(data_path=None, param_path=None, control_path=None, output_path=None,
 
     #print 'running prms'
     kwargs['event_name'] = 'initializing_prms'
-    kwargs['event_description'] = 'Initializing PRMS model Run'
+    kwargs['event_description'] = 'Initializing the PRMS model Run'
     kwargs['progress_value'] = 0
     if event_emitter:
         event_emitter.emit('progress', **kwargs)
